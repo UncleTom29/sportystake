@@ -35,8 +35,10 @@ export default function Header() {
 
         <nav className="ml-2 hidden items-center gap-1 md:flex">
           <SegLink href="/sportsbook" label="Sports" />
+          <SegLink href="/live" label="Live 🔴" />
           <SegLink href="/casino" label="Casino" />
           <SegLink href="/pools" label="Pools" />
+          <SegLink href="/leaderboard" label="Leaderboard" />
         </nav>
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-2 md:max-w-md md:flex-none lg:ml-4 lg:max-w-lg lg:flex-1">

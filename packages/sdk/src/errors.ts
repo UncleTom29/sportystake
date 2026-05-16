@@ -4,7 +4,7 @@
  */
 export class SportyStakeSDKError extends Error {
   public readonly code: string;
-  public readonly cause: unknown;
+  public override readonly cause: unknown;
 
   constructor(code: string, message: string, cause?: unknown) {
     super(message);

@@ -9,6 +9,7 @@ import Footer from "@/components/layout/Footer";
 import IntegrationProvider from "@/components/integration/IntegrationProvider";
 import ToastTray from "@/components/integration/ToastTray";
 import QuotaStatusBanner from "@/components/integration/QuotaStatusBanner";
+import LiveScoreTicker from "@/components/layout/LiveScoreTicker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,13 +39,14 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
-      <body className="min-h-screen bg-[var(--color-bg-0)] text-white antialiased">
+      <body className="min-h-screen bg-bg-0 text-white antialiased">
         <IntegrationProvider />
         <QuotaStatusBanner />
         <Header />
         <SportsNav />
+        <LiveScoreTicker />
         <div className="relative">
-          <main className="pb-24 md:pb-16 lg:pr-[360px]">{children}</main>
+          <main className="pb-24 md:pb-16 lg:pr-90">{children}</main>
           <BetSlipRail />
         </div>
         <Footer />

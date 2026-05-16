@@ -1,0 +1,40 @@
+{
+  "name": "@sportystake/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SportyStake smart contracts: non-custodial USDC sportsbook + casino on Arc EVM.",
+  "license": "UNLICENSED",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "coverage": "hardhat coverage",
+    "deploy": "hardhat deploy",
+    "deploy:testnet": "hardhat deploy --network arcTestnet",
+    "deploy:mainnet": "hardhat deploy --network arcMainnet",
+    "lint": "solhint 'contracts/**/*.sol' || true",
+    "clean": "hardhat clean",
+    "node": "hardhat node",
+    "typechain": "hardhat typechain",
+    "export-addresses": "hardhat run scripts/export-addresses.ts",
+    "create-market": "hardhat run scripts/create-market.ts",
+    "verify": "hardhat run scripts/verify.ts"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.3.0",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^20.0.0",
+    "chai": "^4.3.0",
+    "ethers": "^6.10.0",
+    "hardhat": "^2.22.0",
+    "hardhat-deploy": "^0.12.0",
+    "hardhat-gas-reporter": "^2.0.0",
+    "solidity-coverage": "^0.8.0",
+    "ts-node": "^10.9.0",
+    "typechain": "^8.3.0",
+    "typescript": "^5.3.0"
+  }
+}

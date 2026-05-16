@@ -1,83 +1,166 @@
 "use client";
 import { useState } from "react";
+import { sportsList, topLeagues } from "@/lib/mockData";
+import { SportIcon } from "@/components/icons/SportIcons";
+import { ChevronDown, ChevronRight, FlameIcon, StarIcon, LiveIcon } from "@/components/icons/UIIcons";
 
-const sports = [
-  { label: "All Sports", icon: "🌐", count: 248 },
-  { label: "Football", icon: "⚽", count: 124 },
-  { label: "Basketball", icon: "🏀", count: 38 },
-  { label: "Tennis", icon: "🎾", count: 22 },
-  { label: "Baseball", icon: "⚾", count: 14 },
-  { label: "Ice Hockey", icon: "🏒", count: 18 },
-  { label: "MMA / UFC", icon: "🥊", count: 8 },
-  { label: "American Football", icon: "🏈", count: 10 },
-  { label: "Cricket", icon: "🏏", count: 16 },
-  { label: "Rugby", icon: "🏉", count: 9 },
-  { label: "Volleyball", icon: "🏐", count: 11 },
-  { label: "Table Tennis", icon: "🏓", count: 6 },
-];
+type SectionKey = "popular" | "sports" | "leagues";
 
-const leagues = [
-  { label: "Premier League", icon: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", live: 3 },
-  { label: "La Liga", icon: "🇪🇸", live: 2 },
-  { label: "Bundesliga", icon: "🇩🇪", live: 1 },
-  { label: "Serie A", icon: "🇮🇹", live: 2 },
-  { label: "Ligue 1", icon: "🇫🇷", live: 0 },
-  { label: "Champions League", icon: "⭐", live: 0 },
-  { label: "NBA", icon: "🏀", live: 4 },
-  { label: "ATP Tour", icon: "🎾", live: 1 },
-];
+export default function Sidebar({
+  activeSport,
+  onSportChange,
+}: {
+  activeSport?: string;
+  onSportChange?: (slug: string) => void;
+}) {
+  const [open, setOpen] = useState<Record<SectionKey, boolean>>({
+    popular: true,
+    sports: true,
+    leagues: true,
+  });
 
-export default function Sidebar() {
-  const [activeSport, setActiveSport] = useState("Football");
+  const toggle = (k: SectionKey) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
   return (
-    <aside className="w-56 shrink-0 hidden xl:flex flex-col gap-4 pt-4">
-      {/* Sports */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-2">Sports</p>
-        <div className="flex flex-col gap-0.5">
-          {sports.map((s) => (
-            <button
-              key={s.label}
-              onClick={() => setActiveSport(s.label)}
-              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                activeSport === s.label
-                  ? "bg-green-500/10 text-green-400"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <span>{s.icon}</span>
-                <span>{s.label}</span>
-              </span>
-              <span className="text-xs text-gray-600">{s.count}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+    <aside className="hidden w-60 shrink-0 lg:block">
+      <div className="sticky top-[112px] max-h-[calc(100vh-120px)] space-y-1 overflow-y-auto pb-6 pr-2 scrollbar-thin">
+        <Section title="Popular" open={open.popular} onToggle={() => toggle("popular")}>
+          <Item Icon={LiveIcon} label="Live now" right="248" highlight />
+          <Item Icon={FlameIcon} label="Hot bets" right="32" />
+          <Item Icon={StarIcon} label="Favourites" right="0" />
+        </Section>
 
-      {/* Popular Leagues */}
-      <div>
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 mb-2">Top Leagues</p>
-        <div className="flex flex-col gap-0.5">
-          {leagues.map((l) => (
-            <button
-              key={l.label}
-              className="flex items-center justify-between px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <span className="flex items-center gap-2">
-                <span>{l.icon}</span>
-                <span>{l.label}</span>
-              </span>
-              {l.live > 0 && (
-                <span className="text-xs font-semibold text-green-400 bg-green-500/10 px-1.5 py-0.5 rounded-md">
-                  {l.live} LIVE
-                </span>
-              )}
-            </button>
+        <Section title="Sports" open={open.sports} onToggle={() => toggle("sports")}>
+          {sportsList.map((s) => (
+            <SportItem
+              key={s.slug}
+              slug={s.slug}
+              name={s.name}
+              count={s.count}
+              active={activeSport === s.slug}
+              onClick={() => onSportChange?.(s.slug)}
+            />
           ))}
-        </div>
+        </Section>
+
+        <Section title="Top leagues" open={open.leagues} onToggle={() => toggle("leagues")}>
+          {topLeagues.map((l) => (
+            <LeagueItem key={l.slug} {...l} />
+          ))}
+        </Section>
       </div>
     </aside>
+  );
+}
+
+function Section({
+  title,
+  children,
+  open,
+  onToggle,
+}: {
+  title: string;
+  children: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="flex w-full items-center justify-between px-2 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-4)] hover:text-white"
+      >
+        <span>{title}</span>
+        {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+      </button>
+      {open && <div className="space-y-px py-0.5">{children}</div>}
+    </div>
+  );
+}
+
+function Item({
+  Icon,
+  label,
+  right,
+  highlight,
+}: {
+  Icon: (p: { className?: string }) => React.ReactElement;
+  label: string;
+  right?: string;
+  highlight?: boolean;
+}) {
+  return (
+    <button className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[13px] text-[var(--color-ink-1)] hover:bg-[var(--color-bg-2)]">
+      <span className="flex items-center gap-2.5">
+        <Icon className={`h-4 w-4 ${highlight ? "text-[var(--color-live)]" : "text-[var(--color-ink-3)]"}`} />
+        <span>{label}</span>
+      </span>
+      {right && (
+        <span className={`mono text-[11px] ${highlight ? "text-[var(--color-live)]" : "text-[var(--color-ink-4)]"}`}>
+          {right}
+        </span>
+      )}
+    </button>
+  );
+}
+
+function SportItem({
+  slug,
+  name,
+  count,
+  active,
+  onClick,
+}: {
+  slug: Parameters<typeof SportIcon>[0]["sport"];
+  name: string;
+  count: number;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[13px] ${
+        active ? "bg-[var(--color-bg-3)] text-white" : "text-[var(--color-ink-1)] hover:bg-[var(--color-bg-2)]"
+      }`}
+    >
+      <span className="flex items-center gap-2.5">
+        <SportIcon sport={slug} className={`h-4 w-4 ${active ? "text-[var(--color-brand-500)]" : "text-[var(--color-ink-3)]"}`} />
+        <span>{name}</span>
+      </span>
+      <span className="mono text-[11px] text-[var(--color-ink-4)]">{count}</span>
+    </button>
+  );
+}
+
+function LeagueItem({
+  name,
+  sport,
+  country,
+  live,
+}: {
+  name: string;
+  sport: Parameters<typeof SportIcon>[0]["sport"];
+  country: string;
+  live: number;
+}) {
+  return (
+    <button className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-[13px] text-[var(--color-ink-1)] hover:bg-[var(--color-bg-2)]">
+      <span className="flex items-center gap-2.5">
+        <SportIcon sport={sport} className="h-4 w-4 text-[var(--color-ink-3)]" />
+        <span className="truncate">{name}</span>
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="mono rounded bg-[var(--color-bg-2)] px-1 py-0.5 text-[9px] font-bold text-[var(--color-ink-4)]">
+          {country}
+        </span>
+        {live > 0 && (
+          <span className="mono flex items-center gap-1 rounded bg-[var(--color-live)]/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-live)]">
+            <span className="h-1 w-1 rounded-full bg-[var(--color-live)] pulse-dot" />
+            {live}
+          </span>
+        )}
+      </span>
+    </button>
   );
 }

@@ -1,276 +1,283 @@
 import Link from "next/link";
-import { matches, stats, casinoGames, esportsMatches } from "@/lib/mockData";
+import { matches, casinoGames, topLeagues } from "@/lib/mockData";
 import MatchCard from "@/components/sportsbook/MatchCard";
+import MatchRow, { LeagueGroup } from "@/components/sportsbook/MatchRow";
+import GameTile from "@/components/casino/GameTile";
+import PromoCarousel from "@/components/marketing/PromoCarousel";
+import StatsMarquee from "@/components/marketing/StatsMarquee";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { SportIcon } from "@/components/icons/SportIcons";
+import { LiveIcon, FlameIcon, CasinoChipIcon, TrophyIcon, SparkleIcon, ZapIcon, ArrowUpRight, ShieldIcon, BadgeCheck, ChevronRight } from "@/components/icons/UIIcons";
 import Badge from "@/components/ui/Badge";
 
-const features = [
-  { icon: "🔐", title: "Non-Custodial", desc: "Your keys, your funds. Bet directly from your wallet without giving up custody." },
-  { icon: "⚡", title: "Instant Settlement", desc: "Winnings hit your wallet the moment the match ends. No delays, no friction." },
-  { icon: "💧", title: "Liquidity Pools", desc: "Provide liquidity and earn a share of sportsbook profits automatically." },
-  { icon: "🌍", title: "Borderless Access", desc: "Accessible globally with just a crypto wallet. No bank account required." },
-];
-
-const verticals = [
-  { label: "Sportsbook", href: "/sportsbook", icon: "⚽", desc: "12,400+ live markets", color: "from-green-600 to-green-800" },
-  { label: "Casino", href: "/casino", icon: "🎰", desc: "200+ games available", color: "from-purple-600 to-purple-900" },
-  { label: "Esports", href: "/esports", icon: "🎮", desc: "CS2, Valorant, Dota 2", color: "from-blue-600 to-blue-900" },
-  { label: "Fantasy", href: "/fantasy", icon: "🏆", desc: "Weekly crypto prizes", color: "from-yellow-600 to-yellow-900" },
-  { label: "Social", href: "/social", icon: "👥", desc: "Copy expert bettors", color: "from-pink-600 to-pink-900" },
-  { label: "AI Picks", href: "/ai-analytics", icon: "🤖", desc: "ML-powered insights", color: "from-cyan-600 to-cyan-900" },
-];
-
 export default function Home() {
-  const liveMatches = matches.filter((m) => m.isLive).slice(0, 2);
-  const featuredMatches = matches.filter((m) => !m.isLive).slice(0, 2);
+  const liveMatches = matches.filter((m) => m.isLive);
+  const hot = matches.filter((m) => m.isHot).slice(0, 4);
+  const eplMatches = matches.filter((m) => m.league === "Premier League");
+  const otherSoccer = matches.filter(
+    (m) => m.sportSlug === "soccer" && m.league !== "Premier League"
+  );
 
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#0d1f35] to-[#0a1520] border-b border-white/5">
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(30,136,229,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(30,136,229,0.06) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-        <div className="relative max-w-6xl mx-auto px-4 py-16 sm:py-24 text-center">
-          <Badge variant="green" size="md">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-              Live on Arc Blockchain
-            </span>
-          </Badge>
+    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+      {/* Promo + side stats */}
+      <div className="grid gap-4 md:grid-cols-[1.6fr_1fr]">
+        <PromoCarousel />
+        <div className="grid grid-cols-2 gap-3">
+          <StatCard
+            label="Live now"
+            value={`${liveMatches.length}`}
+            sub="markets streaming"
+            accent="var(--color-live)"
+            Icon={LiveIcon}
+          />
+          <StatCard label="Total wagered" value="$124.8M" sub="all time" accent="var(--color-brand-500)" Icon={ZapIcon} />
+          <StatCard label="LP yield" value="18.2%" sub="top APY" accent="#a78bfa" Icon={SparkleIcon} />
+          <StatCard label="Biggest win" value="$1.84M" sub="this week" accent="var(--color-warn)" Icon={TrophyIcon} />
+        </div>
+      </div>
 
-          <h1 className="mt-6 text-4xl sm:text-6xl font-black tracking-tight leading-tight">
-            The Future of
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-400">
-              Sports Betting
-            </span>
-            is Non-Custodial
-          </h1>
+      <div className="mt-4 -mx-3 md:-mx-5">
+        <StatsMarquee />
+      </div>
 
-          <p className="mt-6 text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            Bet on sports, play casino games, and earn yield — all from your crypto wallet.
-            No sign-up. No KYC. Instant settlements.
-          </p>
-
-          <div className="mt-8 flex items-center justify-center gap-4 flex-wrap">
-            <Link
-              href="/sportsbook"
-              className="bg-green-500 hover:bg-green-400 text-black font-black px-8 py-3.5 rounded-2xl text-lg transition-colors shadow-lg shadow-green-500/20"
-            >
-              Start Betting
-            </Link>
-            <Link
-              href="/pools"
-              className="border border-white/20 hover:border-white/40 text-white font-semibold px-8 py-3.5 rounded-2xl text-lg transition-colors"
-            >
-              Earn Yield
-            </Link>
-          </div>
-
-          {/* Stats */}
-          <div className="mt-14 grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: "Total Volume", value: `$${stats.totalVolume}` },
-              { label: "Active Players", value: stats.activePlayers },
-              { label: "Pool Liquidity", value: `$${stats.poolsLiquidity}` },
-              { label: "Markets Live", value: stats.sportsMarkets },
-            ].map((s) => (
-              <div key={s.label} className="bg-white/5 rounded-2xl px-4 py-4 border border-white/5">
-                <p className="text-2xl sm:text-3xl font-black text-white">{s.value}</p>
-                <p className="text-xs text-gray-500 mt-1">{s.label}</p>
-              </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr]">
+        {/* Hot events */}
+        <section>
+          <SectionHeader
+            title="Hot events"
+            subtitle="Trending markets right now"
+            href="/sportsbook?tab=popular"
+            Icon={FlameIcon}
+            accent="#ff8a00"
+          />
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {hot.map((m) => (
+              <MatchCard key={m.id} match={m} />
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Live now */}
-      <section className="max-w-6xl mx-auto px-4 py-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
-            <h2 className="text-lg font-bold">Live Now</h2>
+        {/* Live strip */}
+        <section>
+          <SectionHeader
+            title="Live now"
+            subtitle="In-play matches updating in real time"
+            href="/sportsbook?tab=live"
+            Icon={LiveIcon}
+            accent="var(--color-live)"
+            right={
+              <span className="mono flex items-center gap-1.5 rounded bg-[var(--color-live)]/15 px-2 py-1 text-[11px] font-bold text-[var(--color-live)]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-live)] pulse-dot" />
+                {liveMatches.length} live
+              </span>
+            }
+          />
+          <div className="overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)]">
+            {liveMatches.map((m) => (
+              <MatchRow key={m.id} match={m} />
+            ))}
           </div>
-          <Link href="/sportsbook" className="text-sm text-green-400 hover:text-green-300">
-            View all →
-          </Link>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {liveMatches.map((m) => (
-            <MatchCard key={m.id} match={m} />
-          ))}
-        </div>
-      </section>
+        </section>
 
-      {/* Product verticals */}
-      <section className="max-w-6xl mx-auto px-4 py-6">
-        <h2 className="text-lg font-bold mb-4">Explore Platform</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {verticals.map((v) => (
-            <Link
-              key={v.href}
-              href={v.href}
-              className={`group relative overflow-hidden bg-gradient-to-br ${v.color} rounded-2xl p-4 border border-white/10 hover:border-white/20 transition-all hover:scale-105`}
-            >
-              <span className="text-3xl block mb-2">{v.icon}</span>
-              <p className="font-bold text-white text-sm">{v.label}</p>
-              <p className="text-xs text-white/60 mt-0.5">{v.desc}</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Featured matches */}
-      <section className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Featured Matches</h2>
-          <Link href="/sportsbook" className="text-sm text-green-400 hover:text-green-300">
-            View all →
-          </Link>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {featuredMatches.map((m) => (
-            <MatchCard key={m.id} match={m} />
-          ))}
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="max-w-6xl mx-auto px-4 py-10 border-t border-white/5">
-        <h2 className="text-2xl font-black text-center mb-8">Why SportyStake?</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {features.map((f) => (
-            <div key={f.title} className="bg-[#111e2d] border border-white/5 rounded-2xl p-5">
-              <span className="text-3xl block mb-3">{f.icon}</span>
-              <h3 className="font-bold text-white mb-2">{f.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
+        {/* Two-col split */}
+        <section className="grid gap-6 lg:grid-cols-2">
+          {/* EPL group */}
+          <div>
+            <SectionHeader title="Premier League" subtitle="Today & tomorrow" href="/sportsbook?league=epl" Icon={TrophyIcon} accent="#3b82f6" />
+            <LeagueGroup league="Premier League" countryCode="ENG" sport="Soccer">
+              {eplMatches.map((m) => <MatchRow key={m.id} match={m} />)}
+            </LeagueGroup>
+          </div>
+          {/* Other soccer */}
+          <div>
+            <SectionHeader title="Top soccer" subtitle="Across Europe & global leagues" href="/sportsbook?sport=soccer" Icon={() => <SportIcon sport="soccer" />} accent="#22c55e" />
+            <div className="space-y-3">
+              <LeagueGroup league="La Liga" countryCode="ESP" sport="Soccer">
+                {otherSoccer.filter((m) => m.league === "La Liga").map((m) => <MatchRow key={m.id} match={m} />)}
+              </LeagueGroup>
+              <LeagueGroup league="Bundesliga" countryCode="GER" sport="Soccer">
+                {otherSoccer.filter((m) => m.league === "Bundesliga").map((m) => <MatchRow key={m.id} match={m} />)}
+              </LeagueGroup>
+              <LeagueGroup league="UEFA Champions League" countryCode="EUR" sport="Soccer">
+                {otherSoccer.filter((m) => m.league.startsWith("UCL")).map((m) => <MatchRow key={m.id} match={m} />)}
+              </LeagueGroup>
             </div>
-          ))}
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* Featured casino game */}
-      <section className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Casino Highlights</h2>
-          <Link href="/casino" className="text-sm text-green-400 hover:text-green-300">
-            View all →
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {casinoGames.slice(0, 4).map((g) => (
-            <Link
-              key={g.id}
-              href="/casino"
-              className="group bg-[#111e2d] rounded-2xl p-4 border border-white/5 hover:border-white/10 transition-all hover:scale-[1.02]"
-            >
-              <div
-                className="w-full h-20 rounded-xl flex items-center justify-center text-4xl mb-3"
-                style={{ backgroundColor: g.color + "33" }}
+        {/* Top leagues nav */}
+        <section>
+          <SectionHeader title="Top leagues" subtitle="Jump straight in" Icon={TrophyIcon} accent="#facc15" />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10">
+            {topLeagues.map((l) => (
+              <Link
+                key={l.slug}
+                href={`/sportsbook?league=${l.slug}`}
+                className="group flex items-center gap-2 rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-2.5 transition-colors hover:border-[var(--color-line-2)] hover:bg-[var(--color-bg-3)]"
               >
-                {g.icon}
-              </div>
-              <p className="font-semibold text-sm">{g.name}</p>
-              <p className="text-xs text-gray-500">{g.provider}</p>
-              <p className="text-xs text-green-400 mt-1">RTP {g.rtp}%</p>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* Esports */}
-      <section className="max-w-6xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold">Esports Betting</h2>
-          <Link href="/esports" className="text-sm text-green-400 hover:text-green-300">
-            View all →
-          </Link>
-        </div>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {esportsMatches.slice(0, 2).map((m) => (
-            <Link
-              key={m.id}
-              href="/esports"
-              className="bg-[#111e2d] border border-white/5 hover:border-white/10 rounded-2xl p-4 flex items-center justify-between transition-colors"
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span>{m.gameIcon}</span>
-                  <span className="text-xs text-gray-500">{m.tournament}</span>
-                  {m.isLive && <Badge variant="red">LIVE</Badge>}
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[var(--color-bg-3)] text-[var(--color-ink-2)] group-hover:text-white">
+                  <SportIcon sport={l.sport} className="h-4 w-4" />
                 </div>
-                <p className="font-semibold text-sm">{m.team1}</p>
-                <p className="font-semibold text-sm text-gray-400">vs {m.team2}</p>
-              </div>
-              <div className="flex gap-2">
-                <div className="text-center bg-[#1a2f47] rounded-xl px-3 py-2">
-                  <p className="text-xs text-gray-500">{m.team1.split(" ")[0]}</p>
-                  <p className="font-bold text-green-400">{m.team1Odds.toFixed(2)}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12px] font-semibold text-white">{l.name}</p>
+                  <p className="mono truncate text-[10px] text-[var(--color-ink-3)]">{l.today} today</p>
                 </div>
-                <div className="text-center bg-[#1a2f47] rounded-xl px-3 py-2">
-                  <p className="text-xs text-gray-500">{m.team2.split(" ")[0]}</p>
-                  <p className="font-bold text-green-400">{m.team2Odds.toFixed(2)}</p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA pool */}
-      <section className="max-w-6xl mx-auto px-4 py-10 mb-8">
-        <div className="bg-gradient-to-r from-[#0d2a1f] to-[#0d1f35] border border-green-500/20 rounded-3xl p-8 text-center">
-          <h2 className="text-2xl font-black mb-3">Earn Up to 18.2% APY</h2>
-          <p className="text-gray-400 mb-6 max-w-xl mx-auto">
-            Provide liquidity to SportyStake&apos;s sportsbook pools and earn a share of platform profits. Transparent, non-custodial, instant rewards.
-          </p>
-          <Link
-            href="/pools"
-            className="inline-flex bg-green-500 hover:bg-green-400 text-black font-black px-8 py-3 rounded-2xl transition-colors shadow-lg shadow-green-500/20"
-          >
-            Explore Liquidity Pools
-          </Link>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-[#0d1821]">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="grid sm:grid-cols-4 gap-6 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center font-black text-black text-xs">SS</div>
-                <span className="font-black">Sporty<span className="text-green-400">Stake</span></span>
-              </div>
-              <p className="text-xs text-gray-500 leading-relaxed">
-                The non-custodial crypto sportsbook built on Arc. Bet, earn, and play with full financial sovereignty.
-              </p>
-            </div>
-            {[
-              { title: "Platform", links: ["Sportsbook", "Casino", "Esports", "Fantasy"] },
-              { title: "Earn", links: ["Liquidity Pools", "Referral Program", "Affiliate System"] },
-              { title: "Company", links: ["About", "Blog", "Careers", "Security"] },
-            ].map((col) => (
-              <div key={col.title}>
-                <p className="font-semibold text-sm mb-3">{col.title}</p>
-                <div className="flex flex-col gap-2">
-                  {col.links.map((l) => (
-                    <span key={l} className="text-xs text-gray-500 hover:text-gray-300 cursor-pointer transition-colors">{l}</span>
-                  ))}
-                </div>
-              </div>
+                {l.live > 0 && (
+                  <span className="mono flex items-center gap-1 rounded bg-[var(--color-live)]/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-live)]">
+                    {l.live}
+                  </span>
+                )}
+              </Link>
             ))}
           </div>
-          <div className="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
-            <p>© 2025 SportyStake. All rights reserved.</p>
-            <p>18+ | Gamble Responsibly | Built on Arc</p>
+        </section>
+
+        {/* Casino preview */}
+        <section>
+          <SectionHeader title="Casino · Originals" subtitle="House games · provably fair · on-chain" href="/casino" Icon={CasinoChipIcon} accent="#a78bfa" />
+          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-6">
+            {casinoGames.slice(0, 6).map((g) => (
+              <GameTile key={g.id} game={g} />
+            ))}
           </div>
+        </section>
+
+        {/* LP CTA */}
+        <section className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
+          <div className="bg-mesh absolute inset-0 opacity-80" />
+          <div className="relative grid items-center gap-6 md:grid-cols-[1.4fr_1fr]">
+            <div>
+              <Badge variant="brand">Earn · Non-custodial</Badge>
+              <h3 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
+                Back the house. Earn up to <span className="text-[var(--color-brand-500)]">18.2% APY</span>.
+              </h3>
+              <p className="mt-2 max-w-lg text-[13px] text-[var(--color-ink-2)] md:text-sm">
+                Provide stablecoin liquidity to the sportsbook & casino vaults. Returns come from real gameplay margin —
+                no token emissions, no smoke. Withdraw any time the vault has free capacity.
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <Link
+                  href="/pools"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-5 text-[14px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]"
+                >
+                  Provide liquidity
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/pools"
+                  className="inline-flex h-11 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--color-bg-3)]"
+                >
+                  Read docs
+                </Link>
+                <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-3)]">
+                  <ShieldIcon className="h-3.5 w-3.5" />
+                  Audited · ERC-4626 vaults
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-2">
+              <PoolCard name="Sportsbook Main" asset="USDT" apy={12.4} tvl="4.25M" />
+              <PoolCard name="High Yield" asset="ETH" apy={18.2} tvl="1.64M" highlight />
+              <PoolCard name="Casino Reserve" asset="USDC" apy={9.8} tvl="2.18M" />
+              <PoolCard name="Stable Yield" asset="USDT" apy={7.5} tvl="0.87M" />
+            </div>
+          </div>
+        </section>
+
+        {/* Trust strip */}
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Trust Icon={ShieldIcon} title="Non-custodial" sub="Your wallet. Your funds. Always." />
+          <Trust Icon={ZapIcon} title="Instant settlement" sub="On-chain payouts the moment markets settle." />
+          <Trust Icon={BadgeCheck} title="Provably fair" sub="Every casino spin verifiable on-chain." />
+          <Trust Icon={SparkleIcon} title="Built on Arc" sub="High-throughput EVM · 18ms median latency." />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  accent,
+  Icon,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  accent: string;
+  Icon: (p: { className?: string }) => React.ReactElement;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</span>
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-md"
+          style={{ background: `${accent}1f`, color: accent }}
+        >
+          <Icon className="h-3.5 w-3.5" />
         </div>
-      </footer>
+      </div>
+      <p className="mono text-2xl font-black text-white">{value}</p>
+      <p className="mt-0.5 text-[11px] text-[var(--color-ink-3)]">{sub}</p>
+    </div>
+  );
+}
+
+function PoolCard({
+  name,
+  asset,
+  apy,
+  tvl,
+  highlight,
+}: {
+  name: string;
+  asset: string;
+  apy: number;
+  tvl: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-lg p-3 ${
+        highlight
+          ? "border border-[var(--color-brand-500)]/40 bg-[var(--color-brand-500)]/10"
+          : "border border-[var(--color-line-1)] bg-[var(--color-bg-1)]"
+      }`}
+    >
+      <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{asset}</p>
+      <p className="truncate text-[13px] font-bold text-white">{name}</p>
+      <div className="mt-2 flex items-end justify-between">
+        <span className="mono text-xl font-black text-[var(--color-brand-500)]">{apy}%</span>
+        <span className="mono text-[10px] text-[var(--color-ink-3)]">TVL ${tvl}</span>
+      </div>
+    </div>
+  );
+}
+
+function Trust({
+  Icon,
+  title,
+  sub,
+}: {
+  Icon: (p: { className?: string }) => React.ReactElement;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--color-bg-3)] text-[var(--color-brand-500)]">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div>
+        <p className="text-[13px] font-bold text-white">{title}</p>
+        <p className="text-[12px] text-[var(--color-ink-3)]">{sub}</p>
+      </div>
+      <ChevronRight className="ml-auto h-4 w-4 self-center text-[var(--color-ink-4)]" />
     </div>
   );
 }

@@ -1,13 +1,20 @@
 "use client";
 import { useBetSlip } from "@/lib/betSlipStore";
+import { TrendUp, TrendDown } from "@/components/icons/UIIcons";
 
-type OddsButtonProps = {
+export type Direction = "up" | "down" | null;
+
+type Props = {
   matchId: string;
   matchLabel: string;
   market: string;
   selection: string;
+  label?: string;
   odds: number;
+  direction?: Direction;
   disabled?: boolean;
+  block?: boolean;
+  size?: "sm" | "md";
 };
 
 export default function OddsButton({
@@ -15,24 +22,41 @@ export default function OddsButton({
   matchLabel,
   market,
   selection,
+  label,
   odds,
+  direction = null,
   disabled,
-}: OddsButtonProps) {
+  block,
+  size = "md",
+}: Props) {
   const { addSelection, hasSelection } = useBetSlip();
   const active = hasSelection(matchId, market);
 
   return (
     <button
-      onClick={() => addSelection({ matchId, matchLabel, market, selection, odds })}
+      type="button"
+      onClick={() =>
+        addSelection({ matchId, matchLabel, market, selection, odds })
+      }
       disabled={disabled}
-      className={`flex flex-col items-center justify-center min-w-[72px] px-3 py-2 rounded-xl text-sm font-semibold border transition-all ${
+      className={`group relative flex items-center justify-between gap-2 overflow-hidden rounded-md border transition-colors ${
+        size === "sm" ? "h-9 px-2.5" : "h-11 px-3"
+      } ${
         active
-          ? "bg-green-500/20 border-green-500 text-green-400"
-          : "bg-[#1a2f47] border-[#243447] text-white hover:bg-[#1e88e5]/20 hover:border-[#1e88e5] hover:text-[#1e88e5]"
-      } disabled:opacity-30 disabled:cursor-not-allowed`}
+          ? "border-[var(--color-brand-500)] bg-[var(--color-brand-500)]/15 text-white"
+          : "border-transparent bg-[var(--color-bg-3)] text-white hover:bg-[var(--color-bg-4)]"
+      } ${block ? "w-full" : "min-w-[88px]"} disabled:cursor-not-allowed disabled:opacity-40`}
     >
-      <span className="text-xs text-gray-500 font-normal leading-none mb-0.5">{selection}</span>
-      <span>{odds.toFixed(2)}</span>
+      <span className={`truncate text-[11px] font-medium ${active ? "text-[var(--color-brand-300)]" : "text-[var(--color-ink-3)]"}`}>
+        {label ?? selection}
+      </span>
+      <span className="flex items-center gap-1">
+        {direction === "up" && <TrendUp className="h-3 w-3 text-[var(--color-brand-500)]" />}
+        {direction === "down" && <TrendDown className="h-3 w-3 text-[var(--color-live)]" />}
+        <span className={`mono text-[14px] font-bold ${active ? "text-[var(--color-brand-300)]" : "text-white"}`}>
+          {odds.toFixed(2)}
+        </span>
+      </span>
     </button>
   );
 }

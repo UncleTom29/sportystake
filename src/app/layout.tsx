@@ -6,6 +6,9 @@ import SportsNav from "@/components/layout/SportsNav";
 import BetSlipRail from "@/components/layout/BetSlipRail";
 import MobileBottomNav from "@/components/layout/MobileBottomNav";
 import Footer from "@/components/layout/Footer";
+import IntegrationProvider from "@/components/integration/IntegrationProvider";
+import ToastTray from "@/components/integration/ToastTray";
+import QuotaStatusBanner from "@/components/integration/QuotaStatusBanner";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,6 +39,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable}`}>
       <body className="min-h-screen bg-[var(--color-bg-0)] text-white antialiased">
+        <IntegrationProvider />
+        <QuotaStatusBanner />
         <Header />
         <SportsNav />
         <div className="relative">
@@ -44,6 +49,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </div>
         <Footer />
         <MobileBottomNav />
+        <ToastTray />
       </body>
     </html>
   );

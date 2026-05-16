@@ -1,0 +1,153 @@
+export const crashGameAbi = [
+  // --- Functions ---
+  {
+    type: 'function',
+    name: 'placeBet',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'autoCashoutX100', type: 'uint256' },
+    ],
+    outputs: [{ name: 'roundId', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'cashout',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'roundId', type: 'uint256' }],
+    outputs: [{ name: 'payout', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'startRound',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'commitment', type: 'bytes32' }],
+    outputs: [{ name: 'roundId', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'settleRound',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'roundId', type: 'uint256' },
+      { name: 'seed', type: 'bytes32' },
+      { name: 'crashPointX100', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'rounds',
+    stateMutability: 'view',
+    inputs: [{ name: 'roundId', type: 'uint256' }],
+    outputs: [
+      { name: 'commitment', type: 'bytes32' },
+      { name: 'seed', type: 'bytes32' },
+      { name: 'crashPointX100', type: 'uint256' },
+      { name: 'startedAt', type: 'uint64' },
+      { name: 'settledAt', type: 'uint64' },
+      { name: 'status', type: 'uint8' },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'bets',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'roundId', type: 'uint256' },
+      { name: 'player', type: 'address' },
+    ],
+    outputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'autoCashoutX100', type: 'uint256' },
+      { name: 'cashedOutAtX100', type: 'uint256' },
+      { name: 'payout', type: 'uint256' },
+      { name: 'status', type: 'uint8' },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'casinoHouse',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'usdc',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'currentRoundId',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'houseEdgeBps',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'minBet',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'maxBet',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  // --- Events ---
+  {
+    type: 'event',
+    name: 'RoundStarted',
+    inputs: [
+      { name: 'roundId', type: 'uint256', indexed: true },
+      { name: 'commitment', type: 'bytes32', indexed: false },
+      { name: 'startedAt', type: 'uint64', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'BetPlaced',
+    inputs: [
+      { name: 'roundId', type: 'uint256', indexed: true },
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+      { name: 'autoCashoutX100', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'CashedOut',
+    inputs: [
+      { name: 'roundId', type: 'uint256', indexed: true },
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'multiplierX100', type: 'uint256', indexed: false },
+      { name: 'payout', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'RoundSettled',
+    inputs: [
+      { name: 'roundId', type: 'uint256', indexed: true },
+      { name: 'crashPointX100', type: 'uint256', indexed: false },
+      { name: 'seed', type: 'bytes32', indexed: false },
+    ],
+    anonymous: false,
+  },
+] as const;

@@ -2,6 +2,9 @@
 import { useState, useEffect } from "react";
 import { useBetSlip, type BetSelection } from "@/lib/betSlipStore";
 import { CloseIcon, TicketIcon, ChevronDown, ChevronUp, ZapIcon, UsdtIcon } from "@/components/icons/UIIcons";
+import { useWallet } from "@/lib/walletStore";
+import { useNotifications } from "@/lib/notificationStore";
+import { placeSingleBets, placeParlay } from "@/lib/placeBet";
 
 type Tab = "singles" | "parlay";
 
@@ -11,6 +14,35 @@ export default function BetSlipRail() {
   const [singleStake, setSingleStake] = useState(0);
   const [parlayStake, setParlayStake] = useState(0);
   const [accept, setAccept] = useState<"any" | "better" | "none">("any");
+  const [placing, setPlacing] = useState(false);
+  const walletStatus = useWallet((s) => s.status);
+  const balance = useWallet((s) => s.balanceUsdc);
+  const connect = useWallet((s) => s.connect);
+  const pushToast = useNotifications((s) => s.pushToast);
+
+  const handlePlace = async () => {
+    if (walletStatus !== "connected") { await connect(); return; }
+    if (!selections.length) return;
+    setPlacing(true);
+    try {
+      if (tab === "singles") {
+        if (singleStake <= 0) { pushToast({ kind: "warn", title: "Enter a stake" }); return; }
+        const { placed, failures } = await placeSingleBets(selections, singleStake);
+        if (placed.length) pushToast({ kind: "success", title: `${placed.length} bet${placed.length > 1 ? "s" : ""} placed` });
+        if (failures.length) pushToast({ kind: "error", title: `${failures.length} leg(s) failed`, body: failures[0].error });
+        if (placed.length && !failures.length) clearAll();
+      } else {
+        if (parlayStake <= 0) { pushToast({ kind: "warn", title: "Enter a stake" }); return; }
+        const { parlay, failures } = await placeParlay(selections, parlayStake);
+        if (parlay) { pushToast({ kind: "success", title: "Parlay placed", body: `${parlay.legs.length} legs @ ${(parlay.combinedOddsX1000 / 1000).toFixed(2)}×` }); clearAll(); }
+        else pushToast({ kind: "error", title: "Parlay failed", body: failures[0]?.error ?? "Unknown error" });
+      }
+    } catch (e) {
+      pushToast({ kind: "error", title: "Place bet failed", body: (e as Error).message });
+    } finally {
+      setPlacing(false);
+    }
+  };
 
   useEffect(() => {
     if (selections.length > 1) setTab((t) => (t === "singles" ? "parlay" : t));
@@ -22,6 +54,22 @@ export default function BetSlipRail() {
   const parlayReturn = parlayStake * parlayOdds;
   const hasSelections = selections.length > 0;
 
+  const shared = {
+    selections,
+    tab, setTab,
+    removeSelection, clearAll,
+    singleStake, setSingleStake,
+    parlayStake, setParlayStake,
+    parlayOdds, singlesTotalStake, singlesTotalReturn, parlayReturn,
+    hasSelections,
+    accept, setAccept,
+    updateStake,
+    placing,
+    walletConnected: walletStatus === "connected",
+    balance,
+    onPlace: handlePlace,
+  };
+
   return (
     <>
       {/* Mobile drawer */}
@@ -29,51 +77,14 @@ export default function BetSlipRail() {
         <div className="fixed inset-0 z-50 lg:hidden">
           <div onClick={toggle} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="absolute bottom-0 left-0 right-0 max-h-[88vh] overflow-y-auto rounded-t-2xl border-t border-[var(--color-line-1)] bg-[var(--color-bg-1)]">
-            <SlipContent
-              selections={selections}
-              tab={tab}
-              setTab={setTab}
-              removeSelection={removeSelection}
-              clearAll={clearAll}
-              singleStake={singleStake}
-              setSingleStake={setSingleStake}
-              parlayStake={parlayStake}
-              setParlayStake={setParlayStake}
-              parlayOdds={parlayOdds}
-              singlesTotalStake={singlesTotalStake}
-              singlesTotalReturn={singlesTotalReturn}
-              parlayReturn={parlayReturn}
-              hasSelections={hasSelections}
-              accept={accept}
-              setAccept={setAccept}
-              onClose={toggle}
-              updateStake={updateStake}
-            />
+            <SlipContent {...shared} onClose={toggle} />
           </div>
         </div>
       )}
 
       {/* Desktop rail */}
       <aside className="fixed right-0 top-[104px] z-30 hidden h-[calc(100vh-104px-64px)] w-[340px] border-l border-[var(--color-line-1)] bg-[var(--color-bg-1)] lg:block">
-        <SlipContent
-          selections={selections}
-          tab={tab}
-          setTab={setTab}
-          removeSelection={removeSelection}
-          clearAll={clearAll}
-          singleStake={singleStake}
-          setSingleStake={setSingleStake}
-          parlayStake={parlayStake}
-          setParlayStake={setParlayStake}
-          parlayOdds={parlayOdds}
-          singlesTotalStake={singlesTotalStake}
-          singlesTotalReturn={singlesTotalReturn}
-          parlayReturn={parlayReturn}
-          hasSelections={hasSelections}
-          accept={accept}
-          setAccept={setAccept}
-          updateStake={updateStake}
-        />
+        <SlipContent {...shared} />
       </aside>
     </>
   );
@@ -100,6 +111,10 @@ function SlipContent({
   setAccept,
   onClose,
   updateStake,
+  placing,
+  walletConnected,
+  balance,
+  onPlace,
 }: {
   selections: Sel[];
   tab: Tab;
@@ -119,6 +134,10 @@ function SlipContent({
   setAccept: (a: "any" | "better" | "none") => void;
   onClose?: () => void;
   updateStake: (matchId: string, market: string, stake: number) => void;
+  placing: boolean;
+  walletConnected: boolean;
+  balance: string;
+  onPlace: () => void;
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -227,12 +246,22 @@ function SlipContent({
             </div>
           </div>
 
-          <button className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--color-brand-500)] text-[14px] font-black uppercase tracking-wider text-[var(--color-bg-0)] transition-colors hover:bg-[var(--color-brand-400)]">
+          <button
+            onClick={onPlace}
+            disabled={placing}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--color-brand-500)] text-[14px] font-black uppercase tracking-wider text-[var(--color-bg-0)] transition-colors hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
             <ZapIcon className="h-4 w-4" />
-            {tab === "singles" ? `Place ${selections.length} bet${selections.length > 1 ? "s" : ""}` : "Place bet"}
+            {placing
+              ? "Submitting…"
+              : !walletConnected
+              ? "Connect wallet to bet"
+              : tab === "singles"
+              ? `Place ${selections.length} bet${selections.length > 1 ? "s" : ""}`
+              : "Place parlay"}
           </button>
           <p className="mt-2 text-center text-[10px] text-[var(--color-ink-4)]">
-            On-chain · settled by smart contract · zero gas to you
+            {walletConnected ? `Balance: ${balance} USDC · ` : ""}On-chain · settled by smart contract · zero gas to you
           </p>
         </div>
       )}

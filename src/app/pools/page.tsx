@@ -1,182 +1,259 @@
 "use client";
 import { useState } from "react";
 import { liquidityPools } from "@/lib/mockData";
+import { formatUsd } from "@/lib/format";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import {
+  ShieldIcon,
+  ZapIcon,
+  TrendUp,
+  SparkleIcon,
+  UsdtIcon,
+  UsdcIcon,
+  EthIcon,
+  CopyIcon,
+} from "@/components/icons/UIIcons";
 
-function formatNumber(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n}`;
-}
+const tokenIcon = {
+  USDT: UsdtIcon,
+  USDC: UsdcIcon,
+  ETH: EthIcon,
+};
 
 export default function PoolsPage() {
-  const [activePool, setActivePool] = useState<string | null>(null);
-  const [stakeAmount, setStakeAmount] = useState("");
-
+  const [active, setActive] = useState<string | null>(null);
+  const [stake, setStake] = useState("");
   const totalTVL = liquidityPools.reduce((s, p) => s + p.tvl, 0);
-  const avgApy = liquidityPools.reduce((s, p) => s + p.apy, 0) / liquidityPools.length;
+  const avg = liquidityPools.reduce((s, p) => s + p.apy, 0) / liquidityPools.length;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#0d2a1f] to-[#0d1f35] rounded-3xl p-8 mb-6 border border-green-500/20">
-        <div className="relative z-10">
-          <Badge variant="green">💧 Liquidity Pools</Badge>
-          <h1 className="text-3xl font-black mt-3 mb-2">Earn from the House Edge</h1>
-          <p className="text-gray-400 max-w-xl">
-            Provide liquidity to SportyStake&apos;s decentralized treasury and earn a share of sportsbook and casino profits. Transparent. Non-custodial. Real yield.
-          </p>
-        </div>
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 text-8xl opacity-10">💧</div>
-      </div>
-
-      {/* Overview stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: "Total Value Locked", value: formatNumber(totalTVL), icon: "🏦" },
-          { label: "Avg APY", value: `${avgApy.toFixed(1)}%`, icon: "📈" },
-          { label: "Active LPs", value: "1,284", icon: "👥" },
-          { label: "Paid Out (30d)", value: "$48,200", icon: "💸" },
-        ].map((s) => (
-          <div key={s.label} className="bg-[#111e2d] border border-white/5 rounded-2xl p-4">
-            <p className="text-lg mb-1">{s.icon}</p>
-            <p className="text-xl font-black text-white">{s.value}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
+    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
+        <div className="bg-mesh absolute inset-0" />
+        <div className="relative grid items-center gap-6 p-6 md:grid-cols-[1.4fr_1fr] md:p-8">
+          <div>
+            <Badge variant="brand">Earn · ERC-4626 vaults</Badge>
+            <h1 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">
+              Bank the house.
+              <span className="block text-[var(--color-brand-500)]">Earn the margin.</span>
+            </h1>
+            <p className="mt-3 max-w-xl text-[13px] text-[var(--color-ink-2)] md:text-sm">
+              Deposit stablecoins or ETH into SportyStake&apos;s on-chain liquidity vaults. Earn a
+              proportional share of every settled bet and every spin — denominated in real
+              gameplay margin, not inflationary emissions.
+            </p>
+            <div className="mt-5 flex items-center gap-3">
+              <Button>Provide liquidity</Button>
+              <Button variant="outline">Read whitepaper</Button>
+            </div>
           </div>
-        ))}
+
+          <div className="grid grid-cols-2 gap-3">
+            <Metric label="Total value locked" value={formatUsd(totalTVL)} accent="var(--color-brand-500)" />
+            <Metric label="Average APY" value={`${avg.toFixed(1)}%`} accent="var(--color-info)" />
+            <Metric label="LPs active" value="1,284" accent="#a78bfa" />
+            <Metric label="Paid (30d)" value="$48,200" accent="var(--color-warn)" />
+          </div>
+        </div>
       </div>
 
       {/* My position */}
-      <div className="bg-[#111e2d] border border-white/10 rounded-2xl p-5 mb-6">
-        <p className="text-sm font-semibold text-gray-400 mb-3">My Position</p>
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex gap-6">
-            <div>
-              <p className="text-2xl font-black text-white">$5,000.00</p>
-              <p className="text-xs text-gray-500">Total Staked</p>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-green-400">$62.30</p>
-              <p className="text-xs text-gray-500">Earnings (7d)</p>
-            </div>
-            <div>
-              <p className="text-2xl font-black text-blue-400">12.4%</p>
-              <p className="text-xs text-gray-500">Current APY</p>
-            </div>
+      <div className="mt-5 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
+        <div className="flex items-center justify-between border-b border-[var(--color-line-1)] px-5 py-3">
+          <div className="flex items-center gap-2">
+            <SparkleIcon className="h-4 w-4 text-[var(--color-brand-500)]" />
+            <p className="text-[13px] font-bold uppercase tracking-wider text-white">My position</p>
           </div>
-          <Button variant="secondary">Withdraw</Button>
+          <div className="flex items-center gap-2 rounded-md bg-[var(--color-bg-3)] px-2 py-1 text-[11px] text-[var(--color-ink-2)]">
+            0x4a…91bc
+            <CopyIcon className="h-3 w-3" />
+          </div>
+        </div>
+        <div className="grid items-center gap-4 p-5 md:grid-cols-4">
+          <Position label="Total staked" value="$5,000.00" sub="across 1 pool" />
+          <Position label="Earnings (7d)" value="+$62.30" sub="auto-compounding" accent="var(--color-brand-500)" />
+          <Position label="Current APY" value="12.4%" sub="floating · per-block" accent="var(--color-info)" />
+          <div className="flex items-center gap-2 md:justify-end">
+            <Button variant="outline" size="sm">Compound</Button>
+            <Button variant="secondary" size="sm">Withdraw</Button>
+          </div>
         </div>
       </div>
 
       {/* Pools list */}
+      <h2 className="mb-3 mt-7 text-[13px] font-bold uppercase tracking-wider text-[var(--color-ink-4)]">
+        Available vaults
+      </h2>
       <div className="space-y-3">
-        <p className="text-sm font-semibold text-gray-400">Available Pools</p>
-        {liquidityPools.map((pool) => (
-          <div
-            key={pool.id}
-            className="bg-[#111e2d] border border-white/5 hover:border-white/10 rounded-2xl overflow-hidden transition-colors"
-          >
-            <div className="p-5">
-              <div className="flex items-center justify-between flex-wrap gap-4">
+        {liquidityPools.map((p) => {
+          const Token = tokenIcon[p.asset];
+          const expanded = active === p.id;
+          return (
+            <div key={p.id} className="overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
+              <div className="grid items-center gap-3 p-4 md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-400 font-black text-sm">
-                    {pool.asset}
-                  </div>
+                  <Token className="h-10 w-10" />
                   <div>
-                    <p className="font-bold text-white">{pool.name}</p>
-                    <p className="text-xs text-gray-500">
-                      TVL: {formatNumber(pool.tvl)} · 24h Vol: {formatNumber(pool.volume24h)}
+                    <p className="text-[14px] font-bold text-white">{p.name}</p>
+                    <p className="mono text-[11px] text-[var(--color-ink-3)]">
+                      {p.asset} · vault.sportystake.{p.id}
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-xl font-black text-green-400">{pool.apy}%</p>
-                    <p className="text-xs text-gray-500">APY</p>
+                <PoolMetric label="APY" value={`${p.apy}%`} accent="var(--color-brand-500)" />
+                <PoolMetric label="TVL" value={formatUsd(p.tvl)} />
+                <PoolMetric label="24h volume" value={formatUsd(p.volume24h)} />
+                <div className="flex items-center gap-2 md:justify-end">
+                  <UtilizationBar value={p.utilization} />
+                  <Button
+                    size="sm"
+                    variant={expanded ? "danger" : "primary"}
+                    onClick={() => setActive(expanded ? null : p.id)}
+                  >
+                    {expanded ? "Cancel" : p.myStake > 0 ? "Add more" : "Deposit"}
+                  </Button>
+                </div>
+              </div>
+              {expanded && (
+                <div className="border-t border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-5">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="mb-1 text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">
+                        Deposit amount
+                      </p>
+                      <div className="flex h-11 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-2)] px-3 focus-within:border-[var(--color-brand-500)]/40">
+                        <Token className="h-5 w-5" />
+                        <input
+                          value={stake}
+                          onChange={(e) => setStake(e.target.value)}
+                          type="number"
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          className="mono ml-2 w-full bg-transparent text-[15px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)]"
+                        />
+                        <span className="text-[11px] font-bold text-[var(--color-ink-3)]">{p.asset}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {["25%", "50%", "Max"].map((v) => (
+                        <button
+                          key={v}
+                          className="h-9 rounded-md bg-[var(--color-bg-2)] px-3 text-[11px] font-bold text-[var(--color-ink-1)] hover:bg-[var(--color-bg-3)]"
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                    <Button>Deposit {stake ? `${stake} ${p.asset}` : ""}</Button>
                   </div>
-                  <div className="text-center hidden sm:block">
-                    <p className="text-xl font-black text-white">{formatNumber(pool.tvl)}</p>
-                    <p className="text-xs text-gray-500">TVL</p>
-                  </div>
-                  {pool.myStake > 0 && (
-                    <div className="text-center hidden sm:block">
-                      <p className="text-xl font-black text-blue-400">${pool.myStake.toLocaleString()}</p>
-                      <p className="text-xs text-gray-500">My Stake</p>
+                  {stake && parseFloat(stake) > 0 && (
+                    <div className="mt-3 grid gap-2 rounded-md bg-[var(--color-bg-2)] p-3 text-[12px] md:grid-cols-3">
+                      <Row label="Daily" value={`+$${((parseFloat(stake) * p.apy) / 100 / 365).toFixed(2)}`} />
+                      <Row label="Monthly" value={`+$${((parseFloat(stake) * p.apy) / 100 / 12).toFixed(2)}`} />
+                      <Row label="Yearly" value={`+$${((parseFloat(stake) * p.apy) / 100).toFixed(2)}`} accent />
                     </div>
                   )}
-                  <Button
-                    variant={activePool === pool.id ? "danger" : "primary"}
-                    size="sm"
-                    onClick={() => setActivePool(activePool === pool.id ? null : pool.id)}
-                  >
-                    {activePool === pool.id ? "Cancel" : pool.myStake > 0 ? "Add More" : "Deposit"}
-                  </Button>
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Deposit panel */}
-            {activePool === pool.id && (
-              <div className="border-t border-white/5 bg-[#0d1821] p-5">
-                <p className="text-sm font-semibold mb-3">Deposit to {pool.name}</p>
-                <div className="flex gap-3 flex-wrap">
-                  <div className="relative flex-1 min-w-48">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-medium">
-                      {pool.asset}
-                    </span>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={stakeAmount}
-                      onChange={(e) => setStakeAmount(e.target.value)}
-                      className="w-full bg-[#1a2738] border border-white/10 rounded-xl pl-14 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-green-500"
-                    />
-                  </div>
-                  <div className="flex gap-1">
-                    {["100", "500", "1000"].map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => setStakeAmount(v)}
-                        className="px-3 py-2 rounded-lg bg-[#1a2738] hover:bg-[#243447] text-xs text-gray-400 hover:text-white transition-colors"
-                      >
-                        ${v}
-                      </button>
-                    ))}
-                  </div>
-                  <Button variant="primary">
-                    Deposit {stakeAmount ? `$${stakeAmount}` : ""}
-                  </Button>
-                </div>
-                {stakeAmount && parseFloat(stakeAmount) > 0 && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    Est. monthly earnings:{" "}
-                    <span className="text-green-400 font-semibold">
-                      ${((parseFloat(stakeAmount) * pool.apy) / 100 / 12).toFixed(2)} {pool.asset}
-                    </span>
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Explainer */}
-      <div className="mt-8 grid sm:grid-cols-3 gap-4">
-        {[
-          { icon: "🔐", title: "Non-Custodial", desc: "Funds stay in smart contracts, not on our balance sheet. Withdraw anytime." },
-          { icon: "📊", title: "Transparent Yield", desc: "Earnings come from sportsbook margin and casino house edge — publicly verifiable." },
-          { icon: "⚡", title: "Instant Withdrawals", desc: "Withdraw your stake and accumulated earnings at any time with no lock-up period." },
-        ].map((f) => (
-          <div key={f.title} className="bg-[#111e2d] border border-white/5 rounded-2xl p-5">
-            <span className="text-2xl block mb-2">{f.icon}</span>
-            <p className="font-bold text-sm mb-1">{f.title}</p>
-            <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
-          </div>
-        ))}
+      <div className="mt-8 grid gap-3 md:grid-cols-3">
+        <Pillar Icon={ShieldIcon} title="Non-custodial" sub="Funds live inside audited ERC-4626 vault contracts. No platform balance sheet." />
+        <Pillar Icon={TrendUp} title="Real yield" sub="Earnings denominated in margin from actual gameplay — not subsidized rewards." />
+        <Pillar Icon={ZapIcon} title="Instant exits" sub="Withdraw whenever the vault has free capacity. No lock-ups, no slashing." />
       </div>
+    </div>
+  );
+}
+
+function Metric({ label, value, accent }: { label: string; value: string; accent: string }) {
+  return (
+    <div className="rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
+      <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</p>
+      <p className="mono mt-1 text-xl font-black" style={{ color: accent }}>{value}</p>
+    </div>
+  );
+}
+
+function Position({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  accent?: string;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</p>
+      <p className="mono text-2xl font-black text-white" style={accent ? { color: accent } : undefined}>{value}</p>
+      <p className="text-[11px] text-[var(--color-ink-3)]">{sub}</p>
+    </div>
+  );
+}
+
+function PoolMetric({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  return (
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</p>
+      <p className="mono text-[16px] font-black text-white" style={accent ? { color: accent } : undefined}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function UtilizationBar({ value }: { value: number }) {
+  return (
+    <div className="hidden flex-col items-end gap-1 md:flex">
+      <span className="mono text-[10px] text-[var(--color-ink-3)]">Util {Math.round(value * 100)}%</span>
+      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-[var(--color-bg-3)]">
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${value * 100}%`,
+            background: value > 0.75 ? "var(--color-warn)" : "var(--color-brand-500)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[var(--color-ink-3)]">{label}</span>
+      <span className={`mono font-bold ${accent ? "text-[var(--color-brand-500)]" : "text-white"}`}>{value}</span>
+    </div>
+  );
+}
+
+function Pillar({
+  Icon,
+  title,
+  sub,
+}: {
+  Icon: (p: { className?: string }) => React.ReactElement;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md bg-[var(--color-bg-3)] text-[var(--color-brand-500)]">
+        <Icon className="h-4 w-4" />
+      </div>
+      <p className="text-[14px] font-bold text-white">{title}</p>
+      <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-ink-3)]">{sub}</p>
     </div>
   );
 }

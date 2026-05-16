@@ -2,23 +2,27 @@ import { ReactNode, ButtonHTMLAttributes } from "react";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   children: ReactNode;
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "odds";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "outline";
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
 };
 
-const variants = {
-  primary: "bg-green-500 hover:bg-green-400 text-black font-bold",
-  secondary: "bg-[#1e3a5f] hover:bg-[#274d80] text-white font-semibold",
-  ghost: "bg-transparent hover:bg-white/5 text-gray-400 hover:text-white",
-  danger: "bg-red-600 hover:bg-red-500 text-white font-semibold",
-  odds: "bg-[#1a2f47] hover:bg-[#1e88e5] text-white font-semibold border border-[#243447] hover:border-[#1e88e5] transition-all",
+const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
+  primary:
+    "bg-[var(--color-brand-500)] hover:bg-[var(--color-brand-400)] text-[var(--color-bg-0)] font-bold",
+  secondary:
+    "bg-[var(--color-bg-3)] hover:bg-[var(--color-bg-4)] text-white font-semibold",
+  ghost:
+    "bg-transparent hover:bg-[var(--color-bg-2)] text-[var(--color-ink-2)] hover:text-white",
+  danger: "bg-[var(--color-live)] hover:opacity-90 text-white font-semibold",
+  outline:
+    "border border-[var(--color-line-2)] bg-transparent hover:bg-[var(--color-bg-2)] text-white font-semibold",
 };
 
-const sizes = {
-  sm: "px-3 py-1.5 text-xs rounded-lg",
-  md: "px-4 py-2 text-sm rounded-xl",
-  lg: "px-6 py-3 text-base rounded-xl",
+const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
+  sm: "h-8 px-2.5 text-[12px] rounded-md",
+  md: "h-10 px-3.5 text-[13px] rounded-md",
+  lg: "h-11 px-5 text-[14px] rounded-md",
 };
 
 export default function Button({
@@ -31,7 +35,7 @@ export default function Button({
 }: ButtonProps) {
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]} ${fullWidth ? "w-full" : ""} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${variants[variant]} ${sizes[size]} ${fullWidth ? "w-full" : ""} ${className}`}
       {...props}
     >
       {children}

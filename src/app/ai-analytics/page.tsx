@@ -1,168 +1,199 @@
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { SparkleIcon, TrendUp, TrendDown, ZapIcon, BadgeCheck, FlameIcon } from "@/components/icons/UIIcons";
 
 const predictions = [
   {
     id: "ai1",
     match: "Arsenal vs Manchester City",
-    league: "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League",
+    league: "Premier League · ENG",
     pick: "Over 2.5 Goals",
     confidence: 78,
     odds: 1.87,
-    reasoning: "Both teams average 2.8 goals per game at home. Manchester City have scored in 9 of their last 10 away games. Arsenal's high press creates open play.",
-    factors: ["Team form", "Head-to-head", "Weather", "Injuries"],
-    trend: "up",
+    fair: 1.61,
+    valueBps: 14,
+    reasoning:
+      "Both teams average 2.8 goals per game at home. Manchester City have scored in 9 of their last 10 away games. Arsenal's high press creates open play.",
+    factors: ["Team form", "Head-to-head", "xG trend", "Injuries"],
+    direction: "up" as const,
   },
   {
     id: "ai2",
-    match: "LA Lakers vs Boston Celtics",
-    league: "🏀 NBA",
+    match: "Lakers vs Celtics",
+    league: "NBA · USA",
     pick: "Boston Celtics ML",
     confidence: 71,
     odds: 1.78,
-    reasoning: "Celtics are 8-2 in last 10 games. Lakers missing two starters. Boston's defensive rating is #1 in the league this month.",
+    fair: 1.66,
+    valueBps: 8,
+    reasoning:
+      "Celtics 8-2 in last 10. Lakers missing two starters. Boston's defensive rating ranks #1 over the trailing 30 days.",
     factors: ["Injury reports", "Recent form", "Defensive stats"],
-    trend: "up",
+    direction: "up" as const,
   },
   {
     id: "ai3",
     match: "Bayern Munich vs Borussia Dortmund",
-    league: "🇩🇪 Bundesliga",
+    league: "Bundesliga · GER",
     pick: "Bayern Win",
     confidence: 82,
     odds: 1.65,
-    reasoning: "Bayern have won 7 consecutive Klassiker at home. Dortmund's away form is poor (3W-2D-5L). Bayern's xG is significantly higher.",
+    fair: 1.4,
+    valueBps: 22,
+    reasoning:
+      "Bayern have won 7 consecutive Klassikers at home. Dortmund's away xGD is -0.6/match. Squad depth gap pronounced.",
     factors: ["Historical H2H", "Home advantage", "xG data", "Squad depth"],
-    trend: "steady",
+    direction: "down" as const,
   },
   {
     id: "ai4",
     match: "G2 Esports vs Fnatic",
-    league: "🎮 LEC Summer Split",
+    league: "LEC · INT",
     pick: "G2 Win",
     confidence: 68,
     odds: 1.45,
-    reasoning: "G2 are in excellent form with a 6-1 record. Fnatic's jungler has a significantly lower KDA this split. Map control metrics favor G2.",
+    fair: 1.32,
+    valueBps: 6,
+    reasoning:
+      "G2 are 6-1 this split. Fnatic's jungler KDA is the lowest in the league. Map control favors G2 dramatically.",
     factors: ["Recent performance", "Player stats", "Meta analysis"],
-    trend: "up",
+    direction: "up" as const,
   },
 ];
 
 const insights = [
-  { icon: "📉", title: "Value Alert", desc: "Arsenal ML is priced at 2.85 but our model gives them a 42% implied probability — fair odds would be 2.38.", tag: "Value" },
-  { icon: "🔥", title: "Hot Streak", desc: "CryptoTipster.eth is on an 8-bet winning streak. Similar patterns historically continue for 2-3 more bets.", tag: "Social" },
-  { icon: "💧", title: "Line Movement", desc: "Manchester City ML has moved from 2.10 to 1.95 in the last 2 hours. Sharp money is backing City.", tag: "Odds" },
-  { icon: "⚠️", title: "Injury Alert", desc: "Confirmed: Arsenal's Saka is doubtful for tonight's match. Adjust your Arsenal accumulator predictions.", tag: "News" },
+  { tag: "VALUE", title: "Arsenal ML mispriced", desc: "Model gives 42% implied probability vs market 35%. Fair odds 2.38.", accent: "var(--color-brand-500)" },
+  { tag: "SHARP", title: "Manchester City line moved", desc: "From 2.10 → 1.95 over 2h. 87% of stake-weighted volume on City.", accent: "var(--color-info)" },
+  { tag: "INJURY", title: "Saka downgraded to doubtful", desc: "Adjust any Arsenal accumulators. Bookmaker odds lag 22 minutes.", accent: "var(--color-warn)" },
+  { tag: "SOCIAL", title: "CryptoTipster on +8 streak", desc: "Historical extension probability of similar streaks: 41% for next bet.", accent: "#a78bfa" },
 ];
 
 export default function AIAnalyticsPage() {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      {/* Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-cyan-900/40 to-[#0d1821] rounded-3xl p-8 mb-6 border border-cyan-500/20">
-        <div className="relative z-10">
-          <Badge variant="blue">🤖 AI Analytics</Badge>
-          <h1 className="text-3xl font-black mt-3 mb-2">AI-Powered Betting Insights</h1>
-          <p className="text-gray-400 max-w-xl">
-            Machine learning models analyze thousands of data points — form, stats, odds movements, injuries — to surface high-confidence picks and value bets.
-          </p>
+    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
+        <div className="bg-mesh absolute inset-0" />
+        <div className="relative flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-bg-3)] text-[var(--color-info)]">
+            <SparkleIcon className="h-6 w-6" />
+          </div>
+          <div>
+            <Badge variant="info">AI Edge · beta</Badge>
+            <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Find value the book doesn&apos;t see</h1>
+            <p className="mt-2 max-w-xl text-[13px] text-[var(--color-ink-2)] md:text-sm">
+              Our model ingests xG, injuries, line movement, head-to-head, and meta context across 40+
+              leagues. We surface mispriced odds and high-confidence picks updated every 5 minutes.
+            </p>
+          </div>
         </div>
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 text-8xl opacity-10">🤖</div>
       </div>
 
-      {/* Live insights */}
-      <div className="mb-6">
-        <p className="font-bold mb-3">Live Insights</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {insights.map((ins) => (
-            <div key={ins.title} className="bg-[#111e2d] border border-white/5 rounded-2xl p-4 flex gap-3">
-              <span className="text-2xl">{ins.icon}</span>
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-semibold text-sm">{ins.title}</p>
-                  <Badge variant="blue">{ins.tag}</Badge>
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">{ins.desc}</p>
-              </div>
+      {/* Insights */}
+      <section className="mt-6">
+        <SectionHeader title="Live insights" subtitle="Updated continuously · last sync 12s ago" Icon={ZapIcon} accent="var(--color-info)" />
+        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+          {insights.map((i) => (
+            <div key={i.title} className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+              <span
+                className="mono inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                style={{ background: `${i.accent}1f`, color: i.accent }}
+              >
+                {i.tag}
+              </span>
+              <p className="mt-2 text-[14px] font-bold text-white">{i.title}</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-[var(--color-ink-3)]">{i.desc}</p>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* AI Predictions */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <p className="font-bold">Today&apos;s AI Predictions</p>
-          <p className="text-xs text-gray-500">Updated 5 min ago</p>
-        </div>
-
-        <div className="space-y-4">
+      {/* Predictions */}
+      <section className="mt-6">
+        <SectionHeader
+          title="Today's picks"
+          subtitle="Ranked by expected value"
+          Icon={FlameIcon}
+          accent="var(--color-warn)"
+          right={<span className="text-[11px] text-[var(--color-ink-3)]">Updated 5 min ago</span>}
+        />
+        <div className="grid gap-3 md:grid-cols-2">
           {predictions.map((p) => (
-            <div key={p.id} className="bg-[#111e2d] border border-white/5 rounded-2xl overflow-hidden">
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">{p.league}</p>
-                    <p className="font-bold text-lg">{p.match}</p>
+            <div key={p.id} className="overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
+              <div className="flex items-center justify-between border-b border-[var(--color-line-1)] bg-[var(--color-bg-1)] px-4 py-2.5">
+                <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{p.league}</p>
+                <div className="flex items-center gap-1.5">
+                  {p.direction === "up" ? (
+                    <TrendUp className="h-3.5 w-3.5 text-[var(--color-brand-500)]" />
+                  ) : (
+                    <TrendDown className="h-3.5 w-3.5 text-[var(--color-live)]" />
+                  )}
+                  <span className="mono text-[11px] font-bold text-white">+{p.valueBps}% EV</span>
+                </div>
+              </div>
+              <div className="p-4">
+                <p className="text-[15px] font-bold text-white">{p.match}</p>
+
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <div className="flex-1 rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Model pick</p>
+                    <p className="text-[14px] font-bold text-white">{p.pick}</p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="flex items-center gap-2 justify-end mb-1">
-                      <span className="text-xs text-gray-500">Confidence</span>
-                      <span
-                        className={`font-black text-lg ${
-                          p.confidence >= 75 ? "text-green-400" : p.confidence >= 65 ? "text-yellow-400" : "text-gray-400"
-                        }`}
-                      >
-                        {p.confidence}%
-                      </span>
+                  <div className="w-28 rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3 text-right">
+                    <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Odds</p>
+                    <p className="mono text-xl font-black text-[var(--color-brand-500)]">{p.odds.toFixed(2)}</p>
+                    <p className="mono text-[10px] text-[var(--color-ink-4)]">fair {p.fair.toFixed(2)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Confidence</span>
+                      <span className="mono text-[12px] font-bold text-white">{p.confidence}%</span>
                     </div>
-                    {/* Confidence bar */}
-                    <div className="w-24 h-1.5 bg-[#1a2738] rounded-full overflow-hidden">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-bg-3)]">
                       <div
-                        className={`h-full rounded-full ${
-                          p.confidence >= 75 ? "bg-green-500" : p.confidence >= 65 ? "bg-yellow-500" : "bg-gray-500"
-                        }`}
-                        style={{ width: `${p.confidence}%` }}
+                        className="h-full"
+                        style={{
+                          width: `${p.confidence}%`,
+                          background:
+                            p.confidence >= 75
+                              ? "var(--color-brand-500)"
+                              : p.confidence >= 65
+                              ? "var(--color-warn)"
+                              : "var(--color-ink-3)",
+                        }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Pick */}
-                <div className="flex items-center gap-3 bg-[#1a2738] rounded-xl px-4 py-3 mb-3">
-                  <div className="flex-1">
-                    <p className="text-xs text-gray-500">AI Pick</p>
-                    <p className="font-bold text-white">{p.pick}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Odds</p>
-                    <p className="font-black text-green-400 text-lg">{p.odds.toFixed(2)}</p>
-                  </div>
-                </div>
+                <p className="mt-3 text-[12px] leading-relaxed text-[var(--color-ink-2)]">{p.reasoning}</p>
 
-                {/* Reasoning */}
-                <p className="text-sm text-gray-400 mb-3 leading-relaxed">{p.reasoning}</p>
-
-                {/* Factors */}
-                <div className="flex flex-wrap gap-1.5 mb-3">
+                <div className="mt-3 flex flex-wrap gap-1.5">
                   {p.factors.map((f) => (
-                    <span key={f} className="text-xs bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full border border-cyan-500/20">
+                    <span key={f} className="rounded bg-[var(--color-bg-3)] px-2 py-0.5 text-[10px] font-semibold text-[var(--color-ink-2)]">
                       {f}
                     </span>
                   ))}
                 </div>
 
-                <Button size="sm" variant="primary">Add to Slip</Button>
+                <div className="mt-4 flex items-center gap-2">
+                  <Button size="sm">Add to slip</Button>
+                  <Button size="sm" variant="outline">View match</Button>
+                </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Disclaimer */}
-      <div className="mt-6 bg-[#111e2d] border border-white/5 rounded-2xl p-4">
-        <p className="text-xs text-gray-600 leading-relaxed">
-          <strong className="text-gray-500">Disclaimer:</strong> AI predictions are based on statistical analysis and historical data. They are not guaranteed outcomes. Always bet responsibly and within your means. Past model performance is not indicative of future results.
+      <div className="mt-6 flex items-start gap-2 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+        <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-ink-3)]" />
+        <p className="text-[11px] leading-relaxed text-[var(--color-ink-3)]">
+          AI predictions are informational, not advice. Past model performance is not indicative of
+          future returns. Always bet responsibly within means you can afford to lose.
         </p>
       </div>
     </div>

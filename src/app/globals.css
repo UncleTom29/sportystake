@@ -1,16 +1,178 @@
 @import "tailwindcss";
 
-body {
-  background-color: #0a1520;
-  color: white;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+@theme {
+  /* Brand */
+  --color-brand-50: #e6fff0;
+  --color-brand-100: #b3ffd1;
+  --color-brand-200: #80ffb1;
+  --color-brand-300: #4dff92;
+  --color-brand-400: #2bff7b;
+  --color-brand-500: #00e701;
+  --color-brand-600: #00c802;
+  --color-brand-700: #00a302;
+
+  /* Surfaces (Stake-style depths) */
+  --color-bg-0: #0b141b;       /* page */
+  --color-bg-1: #0f212e;       /* main panel */
+  --color-bg-2: #1a2c38;       /* card */
+  --color-bg-3: #213743;       /* elevated / hover */
+  --color-bg-4: #2f4553;       /* button bg / odds */
+  --color-bg-5: #3e5b6c;
+
+  /* Borders */
+  --color-line-1: #1f3441;
+  --color-line-2: #2b4456;
+
+  /* Text */
+  --color-ink-0: #ffffff;
+  --color-ink-1: #d6e2ed;
+  --color-ink-2: #b1bad3;
+  --color-ink-3: #8b9ab1;
+  --color-ink-4: #557086;
+
+  /* Status */
+  --color-live: #ff2d2d;
+  --color-warn: #ffb020;
+  --color-info: #2dc4ff;
+
+  /* Fonts */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco,
+    Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
-.scrollbar-none {
+html,
+body {
+  background-color: var(--color-bg-0);
+  color: var(--color-ink-0);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+
+::selection {
+  background: var(--color-brand-500);
+  color: #0b141b;
+}
+
+/* Custom utilities */
+@utility scrollbar-none {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-bg-3) transparent;
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-bg-3);
+    border-radius: 6px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-bg-4);
+  }
+}
+
+@utility mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum", "zero";
+}
+
+/* Subtle animated noise / mesh gradient backdrop helper */
+.bg-mesh {
+  background-image:
+    radial-gradient(at 12% 8%, rgba(0, 231, 1, 0.10) 0px, transparent 50%),
+    radial-gradient(at 88% 0%, rgba(45, 196, 255, 0.10) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(0, 231, 1, 0.06) 0px, transparent 50%);
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-card {
+  background-color: var(--color-bg-2);
+}
+
+.bg-panel {
+  background-color: var(--color-bg-1);
+}
+
+.text-muted {
+  color: var(--color-ink-2);
+}
+.text-subtle {
+  color: var(--color-ink-3);
+}
+.text-faint {
+  color: var(--color-ink-4);
+}
+
+/* Pulse for live indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.25); }
+}
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+/* Marquee */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee-track {
+  animation: marquee 60s linear infinite;
+}
+
+/* Odds flash */
+@keyframes flash-up {
+  0% { background-color: rgba(0, 231, 1, 0.35); }
+  100% { background-color: transparent; }
+}
+@keyframes flash-down {
+  0% { background-color: rgba(255, 45, 45, 0.35); }
+  100% { background-color: transparent; }
+}
+.flash-up { animation: flash-up 1.2s ease-out; }
+.flash-down { animation: flash-down 1.2s ease-out; }
+
+/* Skeleton */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-2) 0%,
+    var(--color-bg-3) 50%,
+    var(--color-bg-2) 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s linear infinite;
 }

@@ -1,100 +1,117 @@
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
-import Link from "next/link";
+import SectionHeader from "@/components/ui/SectionHeader";
+import { TrophyIcon, GiftIcon, FlameIcon } from "@/components/icons/UIIcons";
+import { SoccerIcon, BasketballIcon, GlobeIcon } from "@/components/icons/SportIcons";
 
 const contests = [
-  { id: "f1", name: "EPL Weekend Classic", sport: "⚽ Football", prize: "$5,000 USDT", entries: 842, maxEntries: 1000, entryFee: "$5", closes: "Sat 14:00", type: "tournament" },
-  { id: "f2", name: "NBA Daily Showdown", sport: "🏀 Basketball", prize: "$2,500 USDT", entries: 320, maxEntries: 500, entryFee: "$10", closes: "Today 23:00", type: "tournament" },
-  { id: "f3", name: "Mega Jackpot", sport: "⚽ Football", prize: "$25,000 USDT", entries: 12840, maxEntries: 50000, entryFee: "$2", closes: "Sun 16:00", type: "mega" },
-  { id: "f4", name: "Free Roll Sunday", sport: "🏆 Multi-sport", prize: "$500 USDT", entries: 2041, maxEntries: 5000, entryFee: "FREE", closes: "Sun 12:00", type: "free" },
+  { id: "f1", name: "EPL Weekend Classic", sportLabel: "Premier League · Soccer", Icon: SoccerIcon, prize: "$5,000", entries: 842, maxEntries: 1000, entryFee: "$5", closes: "Sat · 14:00", type: "tournament" },
+  { id: "f2", name: "NBA Daily Showdown", sportLabel: "NBA · Basketball", Icon: BasketballIcon, prize: "$2,500", entries: 320, maxEntries: 500, entryFee: "$10", closes: "Today · 23:00", type: "tournament" },
+  { id: "f3", name: "Mega Jackpot Round", sportLabel: "Multi-league", Icon: GlobeIcon, prize: "$25,000", entries: 12840, maxEntries: 50000, entryFee: "$2", closes: "Sun · 16:00", type: "mega" },
+  { id: "f4", name: "Free Roll Sunday", sportLabel: "Multi-sport", Icon: GlobeIcon, prize: "$500", entries: 2041, maxEntries: 5000, entryFee: "FREE", closes: "Sun · 12:00", type: "free" },
 ];
 
 const leaderboard = [
-  { rank: 1, user: "crypto_king.eth", points: 284, prize: "$500 USDT" },
-  { rank: 2, user: "BetWizard99", points: 271, prize: "$250 USDT" },
-  { rank: 3, user: "MoonBettor", points: 265, prize: "$100 USDT" },
-  { rank: 4, user: "You", points: 241, prize: "$50 USDT", isMe: true },
-  { rank: 5, user: "Zeroday.arc", points: 239, prize: "$25 USDT" },
+  { rank: 1, user: "crypto_king.eth", points: 284, prize: "$500" },
+  { rank: 2, user: "BetWizard99", points: 271, prize: "$250" },
+  { rank: 3, user: "MoonBettor", points: 265, prize: "$100" },
+  { rank: 4, user: "You", points: 241, prize: "$50", isMe: true },
+  { rank: 5, user: "Zeroday.arc", points: 239, prize: "$25" },
 ];
 
 export default function FantasyPage() {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
-      {/* Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-yellow-900/40 to-[#0d1821] rounded-3xl p-8 mb-6 border border-yellow-500/20">
-        <div className="relative z-10">
-          <Badge variant="yellow">🏆 Fantasy Sports</Badge>
-          <h1 className="text-3xl font-black mt-3 mb-2">Fantasy Sports</h1>
-          <p className="text-gray-400 max-w-xl">
-            Build your lineup, compete in tournaments, and win crypto prizes. New contests every day across football, basketball, MMA, and more.
-          </p>
-          <div className="flex gap-3 mt-4">
-            <Button variant="primary">Create Lineup</Button>
-            <Button variant="secondary">View My Contests</Button>
+    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
+        <div className="bg-mesh absolute inset-0" />
+        <div className="relative grid items-center gap-4 md:grid-cols-[1.5fr_1fr]">
+          <div>
+            <Badge variant="warn">Fantasy · Daily contests</Badge>
+            <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Build a roster. Win the pot.</h1>
+            <p className="mt-2 max-w-xl text-[13px] text-[var(--color-ink-2)] md:text-sm">
+              Pick athletes inside a salary cap. Score points from real-world stats. Top finishers
+              split the pool — paid out in stablecoins, instant.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button>Create lineup</Button>
+              <Button variant="outline">My contests</Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <Stat label="Live pools" value="14" accent="var(--color-brand-500)" />
+            <Stat label="Top prize" value="$25K" accent="var(--color-warn)" />
+            <Stat label="Players" value="48k" accent="var(--color-info)" />
           </div>
         </div>
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 text-8xl opacity-10">🏆</div>
       </div>
 
-      {/* How it works */}
-      <div className="grid sm:grid-cols-3 gap-3 mb-6">
+      <div className="mt-6 grid gap-3 md:grid-cols-3">
         {[
-          { step: "1", title: "Pick Your Players", desc: "Select athletes from today's fixtures within your salary cap." },
-          { step: "2", title: "Enter a Contest", desc: "Join a public tournament or create a private contest with friends." },
-          { step: "3", title: "Win Crypto", desc: "Earn points from real-world stats. Top scorers win crypto prizes." },
+          { step: "1", title: "Pick players", desc: "Select athletes from today's fixtures within your $50K cap." },
+          { step: "2", title: "Enter a contest", desc: "Public tournaments or private rooms with friends." },
+          { step: "3", title: "Win crypto", desc: "Earn points from real stats. Top scorers split the pool." },
         ].map((s) => (
-          <div key={s.step} className="bg-[#111e2d] border border-white/5 rounded-2xl p-4 flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-400 font-black flex items-center justify-center shrink-0">
+          <div key={s.step} className="flex gap-3 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+            <div className="mono flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-[var(--color-warn)]/15 text-[var(--color-warn)]">
               {s.step}
             </div>
             <div>
-              <p className="font-bold text-sm mb-1">{s.title}</p>
-              <p className="text-xs text-gray-500">{s.desc}</p>
+              <p className="text-[13px] font-bold text-white">{s.title}</p>
+              <p className="text-[12px] text-[var(--color-ink-3)]">{s.desc}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Contests */}
-        <div className="lg:col-span-2">
-          <p className="font-bold mb-3">Open Contests</p>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div>
+          <SectionHeader title="Open contests" Icon={FlameIcon} accent="var(--color-warn)" />
           <div className="space-y-3">
             {contests.map((c) => {
-              const fillPct = (c.entries / c.maxEntries) * 100;
+              const fill = (c.entries / c.maxEntries) * 100;
               return (
-                <div key={c.id} className="bg-[#111e2d] border border-white/5 hover:border-white/10 rounded-2xl p-4 transition-colors">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm">{c.sport}</span>
-                        {c.type === "mega" && <Badge variant="yellow">MEGA</Badge>}
-                        {c.type === "free" && <Badge variant="green">FREE</Badge>}
+                <div key={c.id} className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--color-bg-3)] text-[var(--color-warn)]">
+                        <c.Icon className="h-5 w-5" />
                       </div>
-                      <p className="font-bold">{c.name}</p>
+                      <div className="min-w-0">
+                        <div className="mb-1 flex items-center gap-2">
+                          {c.type === "mega" && <Badge variant="warn">MEGA</Badge>}
+                          {c.type === "free" && <Badge variant="brand">FREE</Badge>}
+                          <p className="text-[11px] text-[var(--color-ink-3)]">{c.sportLabel}</p>
+                        </div>
+                        <p className="truncate text-[14px] font-bold text-white">{c.name}</p>
+                      </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-yellow-400 font-black">{c.prize}</p>
-                      <p className="text-xs text-gray-500">Prize Pool</p>
+                      <p className="mono text-xl font-black text-[var(--color-warn)]">{c.prize}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Prize</p>
                     </div>
                   </div>
 
-                  <div className="mb-3">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>{c.entries.toLocaleString()} / {c.maxEntries.toLocaleString()} entries</span>
-                      <span>Closes {c.closes}</span>
+                  <div className="mt-3">
+                    <div className="mb-1 flex justify-between text-[11px] text-[var(--color-ink-3)]">
+                      <span className="mono">
+                        {c.entries.toLocaleString()} / {c.maxEntries.toLocaleString()}
+                      </span>
+                      <span className="mono">Closes {c.closes}</span>
                     </div>
-                    <div className="h-1.5 bg-[#1a2738] rounded-full overflow-hidden">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--color-bg-3)]">
                       <div
-                        className="h-full bg-gradient-to-r from-yellow-500 to-green-500 rounded-full"
-                        style={{ width: `${fillPct}%` }}
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${fill}%`,
+                          background: "linear-gradient(90deg, var(--color-warn), var(--color-brand-500))",
+                        }}
                       />
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-white">{c.entryFee} entry</span>
-                    <Button size="sm" variant="primary">Enter Contest</Button>
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="mono text-[12px] font-bold text-white">{c.entryFee} entry</span>
+                    <Button size="sm">Enter contest</Button>
                   </div>
                 </div>
               );
@@ -102,46 +119,57 @@ export default function FantasyPage() {
           </div>
         </div>
 
-        {/* Leaderboard */}
         <div>
-          <p className="font-bold mb-3">Weekly Leaderboard</p>
-          <div className="bg-[#111e2d] border border-white/5 rounded-2xl overflow-hidden">
-            {leaderboard.map((entry) => (
+          <SectionHeader title="Weekly leaderboard" Icon={TrophyIcon} accent="var(--color-warn)" />
+          <div className="overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
+            {leaderboard.map((e) => (
               <div
-                key={entry.rank}
-                className={`flex items-center justify-between px-4 py-3 border-b border-white/5 last:border-0 ${
-                  entry.isMe ? "bg-green-500/5" : ""
+                key={e.rank}
+                className={`flex items-center justify-between border-b border-[var(--color-line-1)] px-4 py-2.5 last:border-b-0 ${
+                  e.isMe ? "bg-[var(--color-brand-500)]/5" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                      entry.rank === 1
-                        ? "bg-yellow-500 text-black"
-                        : entry.rank === 2
-                        ? "bg-gray-400 text-black"
-                        : entry.rank === 3
-                        ? "bg-orange-600 text-white"
-                        : "bg-white/10 text-gray-400"
+                  <div
+                    className={`mono flex h-7 w-7 items-center justify-center rounded-md text-[11px] font-black ${
+                      e.rank === 1
+                        ? "bg-[var(--color-warn)] text-[var(--color-bg-0)]"
+                        : e.rank === 2
+                        ? "bg-[var(--color-ink-2)] text-[var(--color-bg-0)]"
+                        : e.rank === 3
+                        ? "bg-[#cd7f32] text-[var(--color-bg-0)]"
+                        : "bg-[var(--color-bg-3)] text-white"
                     }`}
                   >
-                    {entry.rank}
-                  </span>
+                    {e.rank}
+                  </div>
                   <div>
-                    <p className={`text-sm font-semibold ${entry.isMe ? "text-green-400" : "text-white"}`}>
-                      {entry.user}
-                      {entry.isMe && " (you)"}
+                    <p className={`text-[13px] font-bold ${e.isMe ? "text-[var(--color-brand-500)]" : "text-white"}`}>
+                      {e.user}
+                      {e.isMe && <span className="ml-1 text-[10px] text-[var(--color-brand-500)]">(you)</span>}
                     </p>
-                    <p className="text-xs text-gray-500">{entry.points} pts</p>
+                    <p className="mono text-[10px] text-[var(--color-ink-3)]">{e.points} pts</p>
                   </div>
                 </div>
-                <span className="text-xs font-semibold text-green-400">{entry.prize}</span>
+                <div className="flex items-center gap-1.5">
+                  <GiftIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)]" />
+                  <span className="mono text-[12px] font-bold text-[var(--color-brand-500)]">{e.prize}</span>
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-600 text-center mt-2">Resets every Sunday midnight UTC</p>
+          <p className="mt-2 text-center text-[10px] text-[var(--color-ink-4)]">Resets every Sunday 00:00 UTC</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: string; accent: string }) {
+  return (
+    <div className="rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3 text-center">
+      <p className="mono text-xl font-black" style={{ color: accent }}>{value}</p>
+      <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</p>
     </div>
   );
 }

@@ -1,62 +1,57 @@
 "use client";
-import { Match } from "@/lib/mockData";
+import Link from "next/link";
+import type { Match } from "@/lib/mockData";
 import OddsButton from "./OddsButton";
-import Badge from "@/components/ui/Badge";
+import TeamBadge from "./TeamBadge";
+import { SportIcon } from "@/components/icons/SportIcons";
+import { LiveIcon, FlameIcon, ChevronRight } from "@/components/icons/UIIcons";
 
 export default function MatchCard({ match }: { match: Match }) {
   const label = `${match.homeTeam} vs ${match.awayTeam}`;
 
   return (
-    <div className="bg-[#111e2d] border border-white/5 rounded-2xl p-4 hover:border-white/10 transition-colors">
+    <div className="group relative overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4 transition-colors hover:border-[var(--color-line-2)]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-sm">{match.leagueIcon}</span>
-          <span className="text-xs text-gray-500 font-medium">{match.league}</span>
+          <SportIcon sport={match.sportSlug} className="h-3.5 w-3.5 text-[var(--color-ink-3)]" />
+          <span className="text-[11px] font-semibold text-[var(--color-ink-2)]">{match.league}</span>
+          <span className="mono rounded bg-[var(--color-bg-3)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
+            {match.country}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {match.isHot && (
+            <span className="inline-flex items-center gap-1 rounded bg-[var(--color-warn)]/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-warn)]">
+              <FlameIcon className="h-3 w-3" />
+              HOT
+            </span>
+          )}
           {match.isLive ? (
-            <Badge variant="red">
-              <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse"></span>
-                {match.liveMinute ? `${match.liveMinute}'` : "LIVE"}
-              </span>
-            </Badge>
+            <span className="mono inline-flex items-center gap-1 rounded bg-[var(--color-live)]/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-live)]">
+              <LiveIcon className="h-3 w-3 pulse-dot" />
+              {match.liveMinute}
+            </span>
           ) : (
-            <span className="text-xs text-gray-500">{match.time}</span>
+            <span className="mono text-[11px] text-[var(--color-ink-3)]">{match.time}</span>
           )}
         </div>
       </div>
 
       {/* Teams */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex flex-col gap-1 flex-1">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-white">{match.homeTeam}</span>
-            {match.isLive && (
-              <span className={`font-black text-lg ${match.homeScore! > match.awayScore! ? "text-green-400" : "text-white"}`}>
-                {match.homeScore}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-white">{match.awayTeam}</span>
-            {match.isLive && (
-              <span className={`font-black text-lg ${match.awayScore! > match.homeScore! ? "text-green-400" : "text-white"}`}>
-                {match.awayScore}
-              </span>
-            )}
-          </div>
-        </div>
+      <div className="mb-3 space-y-2">
+        <Team team={match.homeTeam} short={match.homeShort} color={match.homeColor} score={match.homeScore} isLive={match.isLive} />
+        <Team team={match.awayTeam} short={match.awayShort} color={match.awayColor} score={match.awayScore} isLive={match.isLive} />
       </div>
 
-      {/* Odds */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Odds row */}
+      <div className={`grid ${match.drawOdds ? "grid-cols-3" : "grid-cols-2"} gap-1.5`}>
         <OddsButton
           matchId={match.id}
           matchLabel={label}
           market="Match Winner"
           selection={match.homeTeam}
+          label={match.drawOdds ? "1" : match.homeShort}
           odds={match.homeOdds}
         />
         {match.drawOdds && (
@@ -65,6 +60,7 @@ export default function MatchCard({ match }: { match: Match }) {
             matchLabel={label}
             market="Match Winner"
             selection="Draw"
+            label="X"
             odds={match.drawOdds}
           />
         )}
@@ -73,33 +69,46 @@ export default function MatchCard({ match }: { match: Match }) {
           matchLabel={label}
           market="Match Winner"
           selection={match.awayTeam}
+          label={match.drawOdds ? "2" : match.awayShort}
           odds={match.awayOdds}
         />
-
-        {match.totalLine && match.totalOverOdds && match.totalUnderOdds && (
-          <>
-            <OddsButton
-              matchId={match.id}
-              matchLabel={label}
-              market={`Over/Under ${match.totalLine}`}
-              selection={`Over ${match.totalLine}`}
-              odds={match.totalOverOdds}
-            />
-            <OddsButton
-              matchId={match.id}
-              matchLabel={label}
-              market={`Over/Under ${match.totalLine}`}
-              selection={`Under ${match.totalLine}`}
-              odds={match.totalUnderOdds}
-            />
-          </>
-        )}
       </div>
 
-      {/* More markets */}
-      <button className="mt-3 w-full text-xs text-gray-600 hover:text-gray-400 transition-colors text-center">
-        +18 more markets →
-      </button>
+      {/* Footer */}
+      <div className="mt-3 flex items-center justify-between text-[11px]">
+        <span className="text-[var(--color-ink-3)]">+{match.markets} more markets</span>
+        <Link
+          href={`/sportsbook?match=${match.id}`}
+          className="flex items-center gap-0.5 font-semibold text-[var(--color-brand-500)] hover:text-[var(--color-brand-400)]"
+        >
+          View
+          <ChevronRight className="h-3 w-3" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function Team({
+  team,
+  short,
+  color,
+  score,
+  isLive,
+}: {
+  team: string;
+  short: string;
+  color: string;
+  score?: number;
+  isLive?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <TeamBadge initials={short} color={color} size="sm" />
+      <span className="flex-1 truncate text-[13px] font-semibold text-white">{team}</span>
+      {isLive && (
+        <span className="mono text-[14px] font-bold text-white">{score}</span>
+      )}
     </div>
   );
 }

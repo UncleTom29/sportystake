@@ -1,117 +1,201 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { casinoGames } from "@/lib/mockData";
-import Badge from "@/components/ui/Badge";
+import GameTile from "@/components/casino/GameTile";
+import SectionHeader from "@/components/ui/SectionHeader";
+import {
+  SearchIcon,
+  FlameIcon,
+  SparkleIcon,
+  TrophyIcon,
+  CasinoChipIcon,
+  ZapIcon,
+  ArrowUpRight,
+} from "@/components/icons/UIIcons";
 
-const categories = ["All", "Slots", "Table", "Live", "Crash", "Dice"];
+type Cat = "All" | "Originals" | "Slots" | "Live" | "Table" | "Crash" | "Dice";
+
+const cats: { id: Cat; label: string; Icon?: (p: { className?: string }) => React.ReactElement }[] = [
+  { id: "All", label: "All" },
+  { id: "Originals", label: "Originals", Icon: SparkleIcon },
+  { id: "Slots", label: "Slots", Icon: FlameIcon },
+  { id: "Live", label: "Live", Icon: ZapIcon },
+  { id: "Table", label: "Table", Icon: TrophyIcon },
+  { id: "Crash", label: "Crash" },
+  { id: "Dice", label: "Dice" },
+];
 
 export default function CasinoPage() {
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [search, setSearch] = useState("");
+  const [cat, setCat] = useState<Cat>("All");
+  const [q, setQ] = useState("");
 
-  const filtered = casinoGames.filter((g) => {
-    if (activeCategory !== "All" && g.category !== activeCategory) return false;
-    if (search && !g.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const filtered = useMemo(() => {
+    return casinoGames.filter((g) => {
+      if (cat !== "All") {
+        if (cat === "Originals") {
+          if (g.category !== "Original" && g.provider !== "SportyStake") return false;
+        } else if (g.category !== cat) return false;
+      }
+      if (q && !g.name.toLowerCase().includes(q.toLowerCase())) return false;
+      return true;
+    });
+  }, [cat, q]);
+
+  const hot = casinoGames.filter((g) => g.tag === "HOT").slice(0, 6);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
-      {/* Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-purple-900/60 via-[#1a0d35] to-[#0d1821] rounded-3xl p-8 mb-6 border border-purple-500/20">
-        <div className="relative z-10">
-          <Badge variant="blue">🎰 Casino</Badge>
-          <h1 className="text-3xl font-black mt-3 mb-2">Crypto Casino</h1>
-          <p className="text-gray-400 max-w-lg">
-            200+ games including slots, live dealer, crash, dice, and table games. All powered by provably fair crypto infrastructure.
-          </p>
-        </div>
-        <div className="absolute right-8 top-1/2 -translate-y-1/2 text-8xl opacity-10">🎰</div>
-      </div>
-
-      {/* Crash game hero */}
-      <div className="bg-gradient-to-r from-[#1a0d35] to-[#0d1821] border border-purple-500/20 rounded-2xl p-5 mb-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-1">Featured Game</p>
-            <h2 className="text-xl font-black">🚀 Crash Rocket</h2>
-            <p className="text-gray-400 text-sm mt-1">Cash out before the rocket crashes. Pure adrenaline.</p>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="text-2xl font-black text-purple-400">2.48×</p>
-              <p className="text-xs text-gray-500">Last crash</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-black text-green-400">147</p>
-              <p className="text-xs text-gray-500">Playing now</p>
-            </div>
-            <button className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-2.5 rounded-xl transition-colors">
-              Play Now
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Search + filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <input
-          type="text"
-          placeholder="Search games..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 bg-[#111e2d] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500"
+    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+      {/* Featured hero — Crash */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(120% 90% at 100% 0%, rgba(167, 139, 250, 0.35) 0%, transparent 50%), radial-gradient(80% 80% at 0% 100%, rgba(0, 231, 1, 0.18) 0%, transparent 55%)",
+          }}
         />
-        <div className="flex gap-2 overflow-x-auto scrollbar-none">
-          {categories.map((c) => (
+        <div className="relative grid items-center gap-4 p-5 md:grid-cols-[1.4fr_1fr] md:p-8">
+          <div>
+            <span className="mono inline-flex items-center gap-1 rounded-md bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-300">
+              <SparkleIcon className="h-3 w-3" /> Featured · Original
+            </span>
+            <h1 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">Crash Rocket</h1>
+            <p className="mt-2 max-w-md text-[13px] text-[var(--color-ink-2)] md:text-sm">
+              Watch the multiplier climb. Cash out before it busts. 100% provably fair —
+              every round verified by an on-chain VRF seed.
+            </p>
+            <div className="mt-5 grid grid-cols-3 gap-3 max-w-md">
+              <div>
+                <p className="mono text-2xl font-black text-violet-300">2.48×</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Last bust</p>
+              </div>
+              <div>
+                <p className="mono text-2xl font-black text-[var(--color-brand-500)]">2,204</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Players</p>
+              </div>
+              <div>
+                <p className="mono text-2xl font-black text-white">97.00%</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">RTP</p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <button className="inline-flex h-11 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-5 text-[14px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]">
+                Play now
+                <ArrowUpRight className="h-4 w-4" />
+              </button>
+              <button className="inline-flex h-11 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--color-bg-3)]">
+                View results
+              </button>
+            </div>
+          </div>
+
+          {/* Live crash chart */}
+          <div className="relative h-44 md:h-56">
+            <CrashChart />
+          </div>
+        </div>
+      </div>
+
+      {/* Search + categories */}
+      <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="relative md:w-72">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-ink-3)]" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search 200+ games…"
+            className="h-10 w-full rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-2)] pl-9 pr-3 text-sm text-white placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand-500)]/40 focus:outline-none"
+          />
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+          {cats.map((c) => (
             <button
-              key={c}
-              onClick={() => setActiveCategory(c)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-                activeCategory === c
-                  ? "bg-purple-600 text-white"
-                  : "bg-[#111e2d] text-gray-400 hover:text-white border border-white/5"
+              key={c.id}
+              onClick={() => setCat(c.id)}
+              className={`flex h-9 shrink-0 items-center gap-1.5 rounded-md px-3 text-[12px] font-semibold transition-colors ${
+                cat === c.id
+                  ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)]"
+                  : "bg-[var(--color-bg-2)] text-[var(--color-ink-1)] hover:bg-[var(--color-bg-3)]"
               }`}
             >
-              {c}
+              {c.Icon && <c.Icon className="h-3.5 w-3.5" />}
+              {c.label}
             </button>
           ))}
         </div>
+        <div className="ml-auto hidden items-center gap-1.5 text-[11px] text-[var(--color-ink-3)] md:flex">
+          <CasinoChipIcon className="h-3.5 w-3.5" />
+          247 games online
+        </div>
       </div>
 
-      {/* Games grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filtered.map((g) => (
-          <button
-            key={g.id}
-            className="group bg-[#111e2d] border border-white/5 hover:border-white/15 rounded-2xl p-4 text-left transition-all hover:scale-[1.02]"
-          >
-            <div
-              className="w-full h-24 rounded-xl flex items-center justify-center text-5xl mb-3 transition-all group-hover:scale-110"
-              style={{ backgroundColor: g.color + "25" }}
-            >
-              {g.icon}
-            </div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="font-semibold text-sm">{g.name}</p>
-              <Badge variant="gray">{g.category}</Badge>
-            </div>
-            <p className="text-xs text-gray-500">{g.provider}</p>
-            <div className="flex items-center justify-between mt-2">
-              <span className="text-xs text-green-400 font-semibold">RTP {g.rtp}%</span>
-              <span className="text-xs text-gray-600">Max {g.maxBet} USDT</span>
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* Hot row */}
+      {q === "" && cat === "All" && (
+        <section className="mt-6">
+          <SectionHeader title="Trending now" subtitle="Most played in the last hour" Icon={FlameIcon} accent="#ff8a00" />
+          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6">
+            {hot.map((g) => (
+              <GameTile key={g.id} game={g} />
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Responsible gambling */}
-      <div className="mt-8 text-center">
-        <p className="text-xs text-gray-600">
-          🔞 18+ only. Gamble responsibly. SportyStake promotes responsible gaming.
-          <span className="text-gray-500 ml-1">Set limits in your account settings.</span>
-        </p>
-      </div>
+      {/* All games */}
+      <section className="mt-6">
+        <SectionHeader
+          title={cat === "All" ? "All games" : cat}
+          subtitle={`${filtered.length} available`}
+          Icon={CasinoChipIcon}
+          accent="#a78bfa"
+        />
+        <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
+          {filtered.map((g) => (
+            <GameTile key={g.id} game={g} />
+          ))}
+        </div>
+      </section>
+
+      <p className="mt-10 text-center text-[11px] text-[var(--color-ink-4)]">
+        18+ only · Gamble responsibly · Self-exclusion & deposit limits available in account settings
+      </p>
     </div>
+  );
+}
+
+function CrashChart() {
+  const points: [number, number][] = [];
+  for (let i = 0; i <= 100; i++) {
+    const x = i / 100;
+    const y = Math.exp(x * 2.4) - 1;
+    points.push([x * 320, 200 - (y / (Math.exp(2.4) - 1)) * 180]);
+  }
+  const path = points.map(([x, y], i) => (i === 0 ? `M${x},${y}` : `L${x},${y}`)).join(" ");
+
+  return (
+    <svg viewBox="0 0 320 200" className="absolute inset-0 h-full w-full">
+      <defs>
+        <linearGradient id="crashFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#a78bfa" stopOpacity="0.45" />
+          <stop offset="1" stopColor="#a78bfa" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* Grid */}
+      <g stroke="rgba(255,255,255,0.05)" strokeWidth="1">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <line key={`h${i}`} x1="0" y1={i * 40} x2="320" y2={i * 40} />
+        ))}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <line key={`v${i}`} x1={i * 40} y1="0" x2={i * 40} y2="200" />
+        ))}
+      </g>
+      <path d={`${path} L320,200 L0,200 Z`} fill="url(#crashFill)" />
+      <path d={path} stroke="#a78bfa" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <circle cx={320} cy={20} r="5" fill="#a78bfa" />
+      <text x="40" y="60" fill="white" fontFamily="monospace" fontSize="48" fontWeight="900">
+        2.48
+        <tspan fontSize="32" fill="#a78bfa">×</tspan>
+      </text>
+    </svg>
   );
 }

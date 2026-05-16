@@ -1,22 +1,49 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
-import BetSlip from "@/components/layout/BetSlip";
+import SportsNav from "@/components/layout/SportsNav";
+import BetSlipRail from "@/components/layout/BetSlipRail";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
+import Footer from "@/components/layout/Footer";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "SportyStake — Non-Custodial Crypto Sportsbook",
+  title: "SportyStake — Non-Custodial Crypto Sportsbook & Casino",
   description:
-    "Bet on sports, play casino games, and earn yield — all with your crypto wallet. The next-generation decentralized sportsbook on Arc.",
+    "Bet on 40+ sports, play 200+ casino games, and earn yield from liquidity pools. Non-custodial, on-chain, instant settlement. Built on Arc.",
   icons: { icon: "/favicon.ico" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0b141b",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="h-full">
-      <body className="min-h-full bg-[#0a1520] text-white antialiased">
+    <html lang="en" className={`${inter.variable} ${mono.variable}`}>
+      <body className="min-h-screen bg-[var(--color-bg-0)] text-white antialiased">
         <Header />
-        <main className="flex-1">{children}</main>
-        <BetSlip />
+        <SportsNav />
+        <div className="relative">
+          <main className="pb-24 md:pb-16 lg:pr-[360px]">{children}</main>
+          <BetSlipRail />
+        </div>
+        <Footer />
+        <MobileBottomNav />
       </body>
     </html>
   );

@@ -9,7 +9,7 @@
     "build": "tsc -p .",
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "ping:naijabet": "bash scripts/ping-naijabet.sh",
     "ping:naijabet:extended": "bash scripts/ping-naijabet-extended.sh",

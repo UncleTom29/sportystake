@@ -54,10 +54,14 @@
     "wagmi": { "optional": true }
   },
   "devDependencies": {
+    "@tanstack/react-query": "^5.20.0",
     "@types/node": "^20",
+    "@types/react": "^19",
+    "react": "^19",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "viem": "^2.7.0",
-    "vitest": "^1.4.0"
+    "vitest": "^1.4.0",
+    "wagmi": "^2.5.0"
   }
 }

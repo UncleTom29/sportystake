@@ -11,10 +11,11 @@ node_modules
 !.yarn/releases
 !.yarn/versions
 
-# npm lockfiles anywhere in the monorepo — pnpm-lock.yaml at the root is the
-# single source of truth; a stray package-lock.json means npm ran somewhere
-# it shouldn't have.
-package-lock.json
+# The root app uses pnpm (pnpm-lock.yaml) — packages/oracle, packages/sdk,
+# and packages/contracts each intentionally use plain npm with their own
+# package-lock.json (see deploy/scripts/deploy.sh's comment on why oracle
+# builds separately via npm), so only the root lockfile is excluded here.
+/package-lock.json
 
 # testing
 /coverage

@@ -17,14 +17,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci --ignore-scripts
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: npx prisma generate
-      - run: npx tsc --noEmit
-      - run: npm run lint
+      - run: pnpm typecheck
+      - run: pnpm lint
 
   oracle:
     name: Oracle — typecheck + tests
@@ -40,7 +41,7 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: packages/oracle/package-lock.json
-      - run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - run: npm ci
       - run: npx tsc --noEmit
       - run: npm test --if-present
 
@@ -58,7 +59,7 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: packages/sdk/package-lock.json
-      - run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run build --if-present
 
@@ -76,7 +77,7 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: packages/contracts/package-lock.json
-      - run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - run: npm ci
       - run: npx hardhat compile
       - run: npx hardhat test
 
@@ -94,6 +95,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm --prefix packages/contracts ci --ignore-scripts || npm --prefix packages/contracts install --ignore-scripts
+          cache: npm
+          cache-dependency-path: packages/contracts/package-lock.json
+      - run: npm --prefix packages/contracts ci
       - run: cd packages/contracts && slither . --filter-paths "node_modules|mocks" --fail-medium
         continue-on-error: true # surface findings, don't gate yet

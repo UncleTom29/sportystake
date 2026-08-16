@@ -54,6 +54,22 @@ for unit in web oracle sync-worker settlement-worker crash-worker; do
   systemctl enable "sportystake-${unit}.service"
 done
 
+echo "==> sudoers: let sportystake restart its own units without a password"
+# sportystake's shell is nologin (no session), so a plain `systemctl
+# restart` as that user fails polkit's interactive-auth check even though
+# it owns these exact units — deploy.sh needs this to restart itself
+# after every deploy. One NOPASSWD entry per unit, not a wildcard, so the
+# grant can't be used to restart anything else on the box.
+cat > /etc/sudoers.d/sportystake-systemctl << 'SUDOERS'
+sportystake ALL=(root) NOPASSWD: /usr/bin/systemctl restart sportystake-web
+sportystake ALL=(root) NOPASSWD: /usr/bin/systemctl restart sportystake-oracle
+sportystake ALL=(root) NOPASSWD: /usr/bin/systemctl restart sportystake-sync-worker
+sportystake ALL=(root) NOPASSWD: /usr/bin/systemctl restart sportystake-settlement-worker
+sportystake ALL=(root) NOPASSWD: /usr/bin/systemctl restart sportystake-crash-worker
+SUDOERS
+chmod 440 /etc/sudoers.d/sportystake-systemctl
+visudo -cf /etc/sudoers.d/sportystake-systemctl
+
 echo "==> ufw: deny by default, allow SSH from admin IP + 443 from Cloudflare only"
 ufw --force reset
 ufw default deny incoming

@@ -67,7 +67,15 @@ pnpm build
 # firsthand on this exact box.
 (cd packages/oracle && rm -rf node_modules && npm ci --include=dev && npm run build)
 
-systemctl restart sportystake-web sportystake-oracle sportystake-sync-worker sportystake-settlement-worker sportystake-crash-worker
+# `sportystake` isn't root and has no login session, so plain `systemctl
+# restart` fails with a polkit "interactive authentication required"
+# error — sudo it, one unit per invocation so each matches an exact
+# NOPASSWD entry in /etc/sudoers.d/sportystake-systemctl (see
+# provision.sh). A single multi-unit systemctl call can't be whitelisted
+# that way since sudoers matches the literal command line.
+for unit in web oracle sync-worker settlement-worker crash-worker; do
+  sudo /usr/bin/systemctl restart "sportystake-${unit}"
+done
 
 echo "Deployed $(git rev-parse --short HEAD) — checking health"
 sleep 3

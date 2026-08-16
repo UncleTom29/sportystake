@@ -2,7 +2,7 @@
   "name": "@sportystake/oracle",
   "version": "0.1.0",
   "private": true,
-  "description": "SportyStake oracle service: ingests football data from API-Football with strict quota management and aggressive caching.",
+  "description": "SportyStake oracle service: ingests football data from Odds-API.io with hourly quota management and aggressive caching.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -10,7 +10,18 @@
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "ping:naijabet": "bash scripts/ping-naijabet.sh",
+    "ping:naijabet:extended": "bash scripts/ping-naijabet-extended.sh",
+    "ping:naijabet:sports": "bash scripts/ping-naijabet-sports.sh",
+    "ping:naijabet:compare:bet9ja": "bash scripts/ping-naijabet-compare-bet9ja.sh",
+    "ping:naijabet:allbooks": "docker run --rm -v \"$PWD/scripts:/work\" python:3.10-slim sh -lc 'pip install --no-cache-dir requests >/dev/null && python /work/naijabet_extended_probe.py --bookmaker all'",
+    "ping:naijabet:sportybet:playwright": "node scripts/sportybet_playwright_probe.mjs",
+    "ping:naijabet:allbooks:playwright": "node scripts/allbooks_playwright_probe.mjs",
+    "ping:multi-providers:all": "python3 scripts/naijabet_extended_probe.py --multi-providers all",
+    "ping:multi-providers:subset": "python3 scripts/naijabet_extended_probe.py --multi-providers subset",
+    "ping:multi-providers:custom": "python3 scripts/naijabet_extended_probe.py --provider-list",
+    "scrape:multi-providers:raw": "node scripts/multi_provider_scraper.mjs"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -28,6 +39,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.0",
     "@types/node-cron": "^3.0.11",
+    "playwright": "^1.60.0",
     "vitest": "^1.4.0"
   },
   "engines": {

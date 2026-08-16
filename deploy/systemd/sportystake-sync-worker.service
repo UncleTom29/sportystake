@@ -1,0 +1,17 @@
+[Unit]
+Description=SportyStake oracle-sync worker
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=sportystake
+WorkingDirectory=/opt/sportystake
+EnvironmentFile=/etc/sportystake/.env
+ExecStart=/usr/bin/npx tsx src/workers/oracle-sync.worker.ts
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

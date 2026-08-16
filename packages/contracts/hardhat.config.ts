@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-ethers";
+import "@openzeppelin/hardhat-upgrades";
 import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
@@ -26,6 +27,10 @@ const config: HardhatUserConfig = {
         runs: 200,
       },
       viaIR: false,
+      // Cancun required by @openzeppelin/contracts ^5.6's Bytes.sol (MCOPY).
+      // Confirmed Arc Testnet's EVM supports MCOPY via a direct eth_call probe
+      // before enabling this — verify the same on any other target network.
+      evmVersion: "cancun",
     },
   },
   networks: {
@@ -35,14 +40,14 @@ const config: HardhatUserConfig = {
     },
     arcTestnet: {
       url: ARC_RPC_URL,
-      chainId: ARC_CHAIN_ID || 4242,
+      chainId: ARC_CHAIN_ID || 5042002,
       accounts,
       live: true,
       saveDeployments: true,
     },
     arcMainnet: {
       url: ARC_RPC_URL,
-      chainId: ARC_CHAIN_ID || 4243,
+      chainId: ARC_CHAIN_ID || 5042,
       accounts,
       live: true,
       saveDeployments: true,

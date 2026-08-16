@@ -3,28 +3,88 @@ import { useState, useEffect } from "react";
 import { useBetSlip, type BetSelection } from "@/lib/betSlipStore";
 import { CloseIcon, TicketIcon, ChevronDown, ChevronUp, ZapIcon, UsdtIcon } from "@/components/icons/UIIcons";
 import { useWallet } from "@/lib/walletStore";
+import { usePrivyLogin } from "@/lib/usePrivyLogin";
+import { useUsdcBalance } from "@/lib/useWalletBalance";
 import { useNotifications } from "@/lib/notificationStore";
 import { placeSingleBets, placeParlay } from "@/lib/placeBet";
+import { BetSlip } from "@/lib/api-client";
+import BookedBetModal from "@/components/sportsbook/BookedBetModal";
 
 type Tab = "singles" | "parlay";
 
 export default function BetSlipRail() {
-  const { selections, isOpen, removeSelection, updateStake, clearAll, toggle } = useBetSlip();
+  const { selections, isOpen, removeSelection, updateStake, clearAll, toggle, loadSelections } = useBetSlip();
   const [tab, setTab] = useState<Tab>("singles");
   const [singleStake, setSingleStake] = useState(0);
   const [parlayStake, setParlayStake] = useState(0);
   const [accept, setAccept] = useState<"any" | "better" | "none">("any");
   const [placing, setPlacing] = useState(false);
-  const walletStatus = useWallet((s) => s.status);
-  const balance = useWallet((s) => s.balanceUsdc);
-  const connect = useWallet((s) => s.connect);
+  const [booking, setBooking] = useState(false);
+  const [bookedData, setBookedData] = useState<{ code: string; totalOdds: number; selections: BetSelection[] } | null>(null);
+  const address = useWallet((s) => s.address);
+  const authStatus = useWallet((s) => s.authStatus);
+  const { signIn } = usePrivyLogin();
+  const { balanceFormatted } = useUsdcBalance({ address: address ?? undefined });
   const pushToast = useNotifications((s) => s.pushToast);
 
+  const [accountMode, setAccountMode] = useState<"main" | "bonus">("main");
+  const [bonusBalance, setBonusBalance] = useState<number>(0);
+  const [bonusActive, setBonusActive] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (authStatus === "authenticated") {
+      fetch("/api/bonus/status")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.data?.status) {
+            setBonusBalance(data.data.status.bonusBalanceUsdc || 0);
+            setBonusActive(data.data.status.bonusStatus === "ACTIVE");
+          }
+        })
+        .catch(() => {});
+    }
+  }, [authStatus]);
+
   const handlePlace = async () => {
-    if (walletStatus !== "connected") { await connect(); return; }
+    if (authStatus !== "authenticated") { void signIn(); return; }
     if (!selections.length) return;
     setPlacing(true);
     try {
+      if (accountMode === "bonus") {
+        if (tab === "singles") {
+          pushToast({ kind: "error", title: "Single bets disallowed", body: "Bonus bets must be accumulators with min 10 selections." });
+          return;
+        }
+        if (parlayStake <= 0) { pushToast({ kind: "warn", title: "Enter a stake" }); return; }
+        const res = await fetch("/api/bonus/place-bet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stakeUsdc: parlayStake,
+            selections: selections.map((s) => ({
+              matchId: s.matchId,
+              marketType: s.market,
+              outcome: 0,
+              selectionLabel: s.selection,
+              oddsX1000: Math.round(s.odds * 1000),
+            })),
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          pushToast({
+            kind: "success",
+            title: "🎁 Bonus Accumulator Placed!",
+            body: `Stake: $${parlayStake} USDC · Remaining Bonus: $${data.data.remainingBonusBalanceUsdc.toFixed(2)}`,
+          });
+          setBonusBalance(data.data.remainingBonusBalanceUsdc);
+          clearAll();
+        } else {
+          pushToast({ kind: "error", title: "Bonus Bet Failed", body: data.message || "Qualifying rules not met" });
+        }
+        return;
+      }
+
       if (tab === "singles") {
         if (singleStake <= 0) { pushToast({ kind: "warn", title: "Enter a stake" }); return; }
         const { placed, failures } = await placeSingleBets(selections, singleStake);
@@ -41,6 +101,36 @@ export default function BetSlipRail() {
       pushToast({ kind: "error", title: "Place bet failed", body: (e as Error).message });
     } finally {
       setPlacing(false);
+    }
+  };
+
+  const handleBookBet = async () => {
+    if (!selections.length) return;
+    setBooking(true);
+    try {
+      const res = await BetSlip.book(selections);
+      setBookedData({ code: res.code, totalOdds: res.totalOdds, selections });
+    } catch (e) {
+      pushToast({ kind: "error", title: "Booking failed", body: (e as Error).message });
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  const handleLoadCode = async (code: string) => {
+    if (!code.trim()) return;
+    try {
+      const res = await BetSlip.loadBooked(code.trim());
+      if (res.selections && res.selections.length) {
+        loadSelections(res.selections as BetSelection[]);
+        pushToast({
+          kind: "success",
+          title: "Ticket loaded",
+          body: `Code ${res.code} loaded (${res.selections.length} selections)`,
+        });
+      }
+    } catch (e) {
+      pushToast({ kind: "error", title: "Load code failed", body: (e as Error).message });
     }
   };
 
@@ -65,8 +155,13 @@ export default function BetSlipRail() {
     accept, setAccept,
     updateStake,
     placing,
-    walletConnected: walletStatus === "connected",
-    balance,
+    booking,
+    onBook: handleBookBet,
+    onLoadCode: handleLoadCode,
+    walletConnected: authStatus === "authenticated",
+    balance: balanceFormatted,
+    accountMode, setAccountMode,
+    bonusActive, bonusBalance,
     onPlace: handlePlace,
   };
 
@@ -86,6 +181,16 @@ export default function BetSlipRail() {
       <aside className="fixed right-0 top-[104px] z-30 hidden h-[calc(100vh-104px-64px)] w-[340px] border-l border-[var(--color-line-1)] bg-[var(--color-bg-1)] lg:block">
         <SlipContent {...shared} />
       </aside>
+
+      {/* Booked Bet Modal */}
+      {bookedData && (
+        <BookedBetModal
+          code={bookedData.code}
+          totalOdds={bookedData.totalOdds}
+          selections={bookedData.selections}
+          onClose={() => setBookedData(null)}
+        />
+      )}
     </>
   );
 }
@@ -112,8 +217,15 @@ function SlipContent({
   onClose,
   updateStake,
   placing,
+  booking,
+  onBook,
+  onLoadCode,
   walletConnected,
   balance,
+  accountMode,
+  setAccountMode,
+  bonusActive,
+  bonusBalance,
   onPlace,
 }: {
   selections: Sel[];
@@ -135,10 +247,26 @@ function SlipContent({
   onClose?: () => void;
   updateStake: (matchId: string, market: string, stake: number) => void;
   placing: boolean;
+  booking: boolean;
+  onBook: () => void;
+  onLoadCode: (code: string) => void;
   walletConnected: boolean;
   balance: string;
+  accountMode: "main" | "bonus";
+  setAccountMode: (m: "main" | "bonus") => void;
+  bonusActive: boolean;
+  bonusBalance: number;
   onPlace: () => void;
 }) {
+  const [loadInput, setLoadInput] = useState("");
+
+  const handleTriggerLoad = () => {
+    if (loadInput.trim()) {
+      onLoadCode(loadInput.trim());
+      setLoadInput("");
+    }
+  };
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -166,6 +294,57 @@ function SlipContent({
         </div>
       </div>
 
+      {/* Load Code Bar */}
+      <div className="border-b border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-2">
+        <div className="flex items-center gap-1.5 rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-2 py-1 focus-within:border-[var(--color-brand-500)]/50">
+          <TicketIcon className="h-3.5 w-3.5 text-[var(--color-ink-3)]" />
+          <input
+            type="text"
+            value={loadInput}
+            onChange={(e) => setLoadInput(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && handleTriggerLoad()}
+            placeholder="Load Code (e.g. 7X9K2W)"
+            className="mono w-full bg-transparent text-[11px] font-semibold text-white outline-none placeholder:text-[var(--color-ink-4)]"
+          />
+          <button
+            onClick={handleTriggerLoad}
+            disabled={!loadInput.trim()}
+            className="rounded bg-[var(--color-bg-3)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] transition-colors hover:bg-[var(--color-bg-4)] disabled:opacity-40"
+          >
+            Load
+          </button>
+        </div>
+      </div>
+
+      {/* Account Selector Pill: Main USDC vs Virtual Bonus Account */}
+      {walletConnected && (bonusActive || bonusBalance > 0) && (
+        <div className="border-b border-[var(--color-line-1)] bg-[var(--color-bg-2)]/80 p-2">
+          <div className="grid grid-cols-2 gap-1 rounded-lg bg-[var(--color-bg-1)] p-1">
+            <button
+              onClick={() => setAccountMode("main")}
+              className={`rounded-md py-1.5 text-[11px] font-bold transition-all ${
+                accountMode === "main"
+                  ? "bg-[var(--color-bg-3)] text-white shadow"
+                  : "text-[var(--color-ink-3)] hover:text-white"
+              }`}
+            >
+              Main USDC ({balance})
+            </button>
+            <button
+              onClick={() => setAccountMode("bonus")}
+              className={`rounded-md py-1.5 text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+                accountMode === "bonus"
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow"
+                  : "text-[var(--color-ink-3)] hover:text-white"
+              }`}
+            >
+              <span>🎁 Bonus</span>
+              <span className="mono font-mono text-[10px]">${bonusBalance.toFixed(2)}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="grid grid-cols-2 border-b border-[var(--color-line-1)] bg-[var(--color-bg-1)]">
         {(["singles", "parlay"] as Tab[]).map((t) => {
@@ -189,7 +368,7 @@ function SlipContent({
       {/* Selections */}
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {!hasSelections ? (
-          <EmptyState />
+          <EmptyState onLoadCode={onLoadCode} />
         ) : (
           <div className="space-y-2 p-3">
             {selections.map((sel) => (
@@ -211,7 +390,7 @@ function SlipContent({
         <div className="border-t border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
           {tab === "singles" ? (
             <>
-              <StakeInput value={singleStake} onChange={setSingleStake} label="Stake per single" />
+              <StakeInput value={singleStake} onChange={setSingleStake} label="Stake per single" balance={balance} />
               <Quick chips={[10, 25, 50, 100]} onPick={(v) => setSingleStake(v)} />
               <Row label="Total stake" value={`${singlesTotalStake.toFixed(2)} USDT`} />
               <Row label="Potential return" value={`${singlesTotalReturn.toFixed(2)} USDT`} accent />
@@ -222,7 +401,7 @@ function SlipContent({
                 <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Combined odds</span>
                 <span className="mono text-base font-bold text-[var(--color-brand-500)]">{parlayOdds.toFixed(2)}×</span>
               </div>
-              <StakeInput value={parlayStake} onChange={setParlayStake} label="Stake" />
+              <StakeInput value={parlayStake} onChange={setParlayStake} label="Stake" balance={balance} />
               <Quick chips={[10, 25, 50, 100]} onPick={(v) => setParlayStake(v)} />
               <Row label="Stake" value={`${parlayStake.toFixed(2)} USDT`} />
               <Row label="Potential return" value={`${parlayReturn.toFixed(2)} USDT`} accent />
@@ -246,20 +425,33 @@ function SlipContent({
             </div>
           </div>
 
-          <button
-            onClick={onPlace}
-            disabled={placing}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-md bg-[var(--color-brand-500)] text-[14px] font-black uppercase tracking-wider text-[var(--color-bg-0)] transition-colors hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <ZapIcon className="h-4 w-4" />
-            {placing
-              ? "Submitting…"
-              : !walletConnected
-              ? "Connect wallet to bet"
-              : tab === "singles"
-              ? `Place ${selections.length} bet${selections.length > 1 ? "s" : ""}`
-              : "Place parlay"}
-          </button>
+          {/* Action Buttons: Book Bet & Place Bet */}
+          <div className="flex gap-2">
+            <button
+              onClick={onBook}
+              disabled={booking || placing}
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md border border-[var(--color-brand-500)]/40 bg-[var(--color-bg-2)] text-[13px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] transition-colors hover:bg-[var(--color-brand-500)]/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <TicketIcon className="h-4 w-4" />
+              {booking ? "Booking…" : "Book Bet"}
+            </button>
+
+            <button
+              onClick={onPlace}
+              disabled={placing || booking}
+              className="flex h-11 flex-[2] items-center justify-center gap-2 rounded-md bg-[var(--color-brand-500)] text-[14px] font-black uppercase tracking-wider text-[var(--color-bg-0)] transition-colors hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <ZapIcon className="h-4 w-4" />
+              {placing
+                ? "Submitting…"
+                : !walletConnected
+                ? "Sign in to bet"
+                : tab === "singles"
+                ? `Place ${selections.length} bet${selections.length > 1 ? "s" : ""}`
+                : "Place parlay"}
+            </button>
+          </div>
+
           <p className="mt-2 text-center text-[10px] text-[var(--color-ink-4)]">
             {walletConnected ? `Balance: ${balance} USDC · ` : ""}On-chain · settled by smart contract · zero gas to you
           </p>
@@ -269,16 +461,40 @@ function SlipContent({
   );
 }
 
-function EmptyState() {
+function EmptyState({ onLoadCode }: { onLoadCode?: (code: string) => void }) {
+  const [code, setCode] = useState("");
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-bg-2)]">
-        <TicketIcon className="h-6 w-6 text-[var(--color-ink-3)]" />
+    <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-bg-2)] ring-1 ring-[var(--color-line-1)]">
+        <TicketIcon className="h-6 w-6 text-[var(--color-brand-500)]" />
       </div>
       <div>
-        <p className="text-[13px] font-semibold text-[var(--color-ink-1)]">Your slip is empty</p>
-        <p className="mt-1 text-[11px] text-[var(--color-ink-3)]">Tap any odds to add a selection</p>
+        <p className="text-[14px] font-bold text-white">Your slip is empty</p>
+        <p className="mt-1 text-[11px] text-[var(--color-ink-3)]">Tap any odds or load a booked ticket</p>
       </div>
+
+      {onLoadCode && (
+        <div className="w-full max-w-xs mt-2 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)] mb-2">Have a Booking Code?</p>
+          <div className="flex gap-1.5">
+            <input
+              type="text"
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && code.trim() && onLoadCode(code.trim())}
+              placeholder="e.g. 7X9K2W"
+              className="mono h-9 w-full rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-2.5 text-[12px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)] focus:border-[var(--color-brand-500)]"
+            />
+            <button
+              onClick={() => code.trim() && onLoadCode(code.trim())}
+              disabled={!code.trim()}
+              className="h-9 rounded-md bg-[var(--color-brand-500)] px-3 text-[12px] font-bold text-[var(--color-bg-0)] transition-colors hover:bg-[var(--color-brand-400)] disabled:opacity-40"
+            >
+              Load
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -317,12 +533,13 @@ function SelectionRow({
   );
 }
 
-function StakeInput({ value, onChange, label }: { value: number; onChange: (n: number) => void; label: string }) {
+function StakeInput({ value, onChange, label, balance }: { value: number; onChange: (n: number) => void; label: string; balance?: string }) {
+  const maxAmount = parseFloat(balance?.replace(/,/g, "") ?? "0") || 0;
   return (
     <div className="mb-2">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</span>
-        <span className="mono text-[10px] text-[var(--color-ink-4)]">Bal 1,250.00</span>
+        <span className="mono text-[10px] text-[var(--color-ink-4)]">{balance ? `Bal ${balance}` : "—"}</span>
       </div>
       <div className="flex h-10 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-2 focus-within:border-[var(--color-brand-500)]/40">
         <UsdtIcon className="h-4 w-4" />
@@ -336,7 +553,7 @@ function StakeInput({ value, onChange, label }: { value: number; onChange: (n: n
           placeholder="0.00"
           className="mono ml-2 w-full bg-transparent text-[14px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)]"
         />
-        <button onClick={() => onChange(1250)} className="ml-2 rounded bg-[var(--color-bg-3)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-1)] hover:bg-[var(--color-bg-4)]">
+        <button onClick={() => onChange(maxAmount)} className="ml-2 rounded bg-[var(--color-bg-3)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-1)] hover:bg-[var(--color-bg-4)]">
           Max
         </button>
       </div>

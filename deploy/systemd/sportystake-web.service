@@ -1,0 +1,18 @@
+[Unit]
+Description=SportyStake web (next start)
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=sportystake
+WorkingDirectory=/opt/sportystake
+EnvironmentFile=/etc/sportystake/.env
+ExecStart=/opt/sportystake/node_modules/.bin/next start -p 3000
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

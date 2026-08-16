@@ -1,0 +1,374 @@
+// SportyStake — Prisma schema.
+// Target Postgres 16. Run `npm run db:migrate` after editing.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Identity ────────────────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  /// Privy user DID (e.g. did:privy:...)
+  privyId         String?   @unique
+  walletAddress   String    @unique @db.VarChar(42)
+  username        String?   @unique
+  avatar          String?   @default("🎯")
+  referralCode    String    @unique @db.VarChar(16)
+  referredById    String?
+  isPublic        Boolean   @default(true)
+  isBanned        Boolean   @default(false)
+  banReason       String?
+  roles           Role[]    @default([USER])
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  lastSeenAt      DateTime?
+
+  // Welcome Bonus & Virtual Bonus Balance fields
+  bonusOptIn           Boolean   @default(false)
+  bonusBalance         BigInt    @default(0) // USDC 6 decimals (virtual bonus USDC)
+  initialBonusAmount   BigInt    @default(0) // Initial awarded bonus USDC
+  bonusRolloverWagered BigInt    @default(0) // Cumulative bonus wagered towards 10x rollover
+  bonusClaimedAt       DateTime?
+  bonusExpiresAt       DateTime?
+  bonusStatus          String    @default("IDLE") // IDLE, QUALIFIED_PENDING, ACTIVE, COMPLETED, EXPIRED, FORFEITED
+
+  bets            Bet[]
+  parlays         Parlay[]
+  lpPosition      LpPosition?
+  casinoBets      CasinoBet[]
+  notifications   Notification[]
+  follows         Follow[]  @relation("Follower")
+  followedBy      Follow[]  @relation("Following")
+  favorites       Favorite[]
+  auditEntries    AuditLog[]
+  bookedBets      BookedBet[]
+
+  @@index([walletAddress])
+  @@index([username])
+}
+
+enum Role {
+  USER
+  OPERATOR
+  ADMIN
+}
+
+// ─── Sportsbook markets ──────────────────────────────────────────────────────
+
+model Market {
+  id                  String        @id // bytes32 hex from on-chain marketId
+  externalId          String        @unique // e.g. apifootball:1234567
+  fixtureId           BigInt        @unique
+  leagueId            Int
+  leagueName          String
+  leagueLogo          String?
+  country             String
+  countryCode         String?       @db.VarChar(8)
+  season              Int
+  round               String
+  homeTeam            String
+  homeTeamId          BigInt
+  homeTeamLogo        String?
+  awayTeam            String
+  awayTeamId          BigInt
+  awayTeamLogo        String?
+  startTime           DateTime
+  closesAt            DateTime
+  status              MarketStatus  @default(OPEN)
+  winningOutcome      Int?
+  homeScore           Int?
+  awayScore           Int?
+  liveMinute          Int?
+  isFeatured          Boolean       @default(false)
+  sport               String        @default("football")
+  metadata            Json?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  oddsSnapshots       OddsSnapshot[]
+  bets                Bet[]
+  parlayLegs          ParlayLeg[]
+  favorites           Favorite[]
+
+  @@index([status, startTime])
+  @@index([leagueId, startTime])
+  @@index([sport, status, startTime])
+  @@index([startTime])
+}
+
+enum FavoriteKind {
+  MARKET
+  LEAGUE
+}
+
+model Favorite {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        FavoriteKind
+  key         String
+  marketId    String?
+  market      Market?      @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  leagueId    Int?
+  createdAt   DateTime     @default(now())
+
+  @@unique([userId, key])
+  @@index([userId, kind, createdAt(sort: Desc)])
+  @@index([marketId])
+  @@index([leagueId])
+}
+
+enum MarketStatus {
+  OPEN
+  SUSPENDED
+  LIVE
+  SETTLED
+  CANCELLED
+}
+
+model OddsSnapshot {
+  id          String   @id @default(cuid())
+  marketId    String
+  market      Market   @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  marketType  String   // e.g. "1X2", "over_under_25"
+  bookmaker   String
+  capturedAt  DateTime @default(now())
+  outcomes    Json     // [{outcome:0, label:"Home", valueX1000:1850}, ...]
+
+  @@index([marketId, marketType, capturedAt])
+}
+
+// ─── Bets ────────────────────────────────────────────────────────────────────
+
+model Bet {
+  id                String      @id // matches on-chain betId
+  userId            String
+  user              User        @relation(fields: [userId], references: [id])
+  marketId          String
+  market            Market      @relation(fields: [marketId], references: [id])
+  marketType        String
+  outcome           Int
+  selectionLabel    String
+  amount            BigInt      // USDC base units (6 decimals)
+  oddsX1000         Int
+  potentialPayout   BigInt
+  status            BetStatus   @default(PENDING)
+  isLive            Boolean     @default(false)
+  isPublic          Boolean     @default(true)
+  isBonusBet        Boolean     @default(false)
+  parlayId          String?
+  parlay            Parlay?     @relation(fields: [parlayId], references: [id])
+  txHash            String?     @db.VarChar(66)
+  blockNumber       BigInt?
+  placedAt          DateTime    @default(now())
+  settledAt         DateTime?
+  claimedAt         DateTime?
+
+  @@index([userId, placedAt(sort: Desc)])
+  @@index([marketId, status])
+  @@index([status, settledAt])
+}
+
+enum BetStatus {
+  PENDING
+  WON
+  LOST
+  CANCELLED
+  CLAIMED
+}
+
+model Parlay {
+  id                String      @id // bytes32 hex from on-chain parlayId, same convention as Bet.id
+  userId            String
+  user              User        @relation(fields: [userId], references: [id])
+  stake             BigInt
+  combinedOddsX1000 BigInt
+  potentialPayout   BigInt
+  status            BetStatus   @default(PENDING)
+  isBonusBet        Boolean     @default(false)
+  txHash            String?     @db.VarChar(66)
+  placedAt          DateTime    @default(now())
+  settledAt         DateTime?
+
+  legs              ParlayLeg[]
+  Bet               Bet[]
+
+  @@index([userId, placedAt(sort: Desc)])
+}
+
+model ParlayLeg {
+  id              String   @id @default(cuid())
+  parlayId        String
+  parlay          Parlay   @relation(fields: [parlayId], references: [id], onDelete: Cascade)
+  marketId        String
+  market          Market   @relation(fields: [marketId], references: [id])
+  outcome         Int
+  selectionLabel  String
+  // Nullable: legs placed before this column existed have no value here and
+  // fall back to a generic label in the UI — never backfilled/guessed.
+  marketType      String?
+  oddsX1000       Int
+  result          LegResult @default(PENDING)
+
+  @@index([parlayId])
+}
+
+enum LegResult {
+  PENDING
+  WON
+  LOST
+  VOID
+}
+
+// ─── Liquidity ───────────────────────────────────────────────────────────────
+// One shared, protocol-wide LiquidityPool contract backs every market — a
+// position is per-user, not per-market. `onchainShares`/`currentValueUsdc`
+// are a cache of on-chain state, refreshed via LpRepo.syncFromChain.
+
+model LpPosition {
+  id                String        @id @default(cuid())
+  userId            String        @unique
+  user              User          @relation(fields: [userId], references: [id])
+  onchainShares     BigInt
+  depositedUsdc     BigInt
+  currentValueUsdc  BigInt        @default(0)
+  status            LpStatus      @default(ACTIVE)
+  withdrawalRequestedAt DateTime?
+  depositTxHash     String?       @db.VarChar(66)
+  withdrawTxHash    String?       @db.VarChar(66)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([status])
+}
+
+enum LpStatus {
+  ACTIVE
+  WITHDRAW_REQUESTED
+  WITHDRAWN
+}
+
+// ─── Casino ──────────────────────────────────────────────────────────────────
+
+model CasinoBet {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  game          CasinoGame
+  amount        BigInt
+  multiplierX100 Int?
+  payout        BigInt       @default(0)
+  status        CasinoStatus @default(PENDING)
+  /// On-chain requestId (bytes32 hex) from CasinoHouse.BetReceived — the
+  /// canonical link between this row and the on-chain bet record.
+  requestId     String?      @unique @db.VarChar(66)
+  seedClientHash String?     // commit phase
+  seedServerHash String?
+  seedClient    String?      // reveal phase
+  seedServer    String?
+  nonce         Int          @default(0)
+  metadata      Json?
+  txHash        String?      @unique @db.VarChar(66)
+  placedAt      DateTime     @default(now())
+  resolvedAt    DateTime?
+
+  @@index([userId, placedAt(sort: Desc)])
+  @@index([game, placedAt(sort: Desc)])
+}
+
+enum CasinoGame {
+  CRASH
+  DICE
+  SLOTS
+  BLACKJACK
+  ROULETTE
+  BACCARAT
+}
+
+enum CasinoStatus {
+  PENDING
+  WON
+  LOST
+  CANCELLED
+  REFUNDED
+}
+
+// ─── Social ──────────────────────────────────────────────────────────────────
+
+model Follow {
+  id            String   @id @default(cuid())
+  followerId    String
+  follower      User     @relation("Follower", fields: [followerId], references: [id])
+  followingId   String
+  following     User     @relation("Following", fields: [followingId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  kind        String
+  title       String
+  body        String?
+  data        Json?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, read])
+}
+
+// ─── Audit ───────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actor       User?    @relation(fields: [actorId], references: [id])
+  action      String
+  target      String?
+  ip          String?
+  userAgent   String?
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+}
+
+// ─── Betslip Persistence ─────────────────────────────────────────────────────
+
+model BetSlipStore {
+  ipAddress   String   @id
+  selections  Json     // BetSelection[]
+  updatedAt   DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
+// ─── Booked Bets (Shareable Bet Tickets) ─────────────────────────────────────
+
+model BookedBet {
+  id          String   @id @default(cuid())
+  code        String   @unique @db.VarChar(12) // e.g. ST-7X9K2
+  selections  Json     // Array of BetSelection: { matchId, matchLabel, market, selection, odds }
+  totalOdds   Float
+  itemCount   Int
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  @@index([code])
+  @@index([createdAt(sort: Desc)])
+}

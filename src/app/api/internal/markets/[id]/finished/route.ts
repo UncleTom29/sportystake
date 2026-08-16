@@ -1,21 +1,33 @@
 import { NextRequest } from "next/server";
 import { ok, withRequestId } from "@/lib/server/api-response";
-import { store } from "@/lib/server/store";
 import { requireInternalKey } from "@/lib/server/auth";
-import { publish } from "@/lib/server/event-bus";
+import { prisma } from "@/lib/server/db";
+import { redisPublisher } from "@/lib/server/redis";
 
 export const runtime = "nodejs";
 
-export const POST = withRequestId(async (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
-  requireInternalKey(req);
-  const { id } = await ctx.params;
-  const body = (await req.json()) as { homeScore: number; awayScore: number };
-  const m = store().markets.find((x) => x.externalId === id || x.id === id);
-  if (!m) return ok({ skipped: true });
-  m.status = "SETTLED";
-  m.homeScore = body.homeScore;
-  m.awayScore = body.awayScore;
-  m.winningOutcome = body.homeScore > body.awayScore ? 0 : body.homeScore === body.awayScore ? 1 : 2;
-  publish("market:finished", { marketId: m.id, homeScore: body.homeScore, awayScore: body.awayScore });
-  return ok({ settled: true });
-});
+/**
+ * Manual override for fixture-finished. Triggers both the oracle-sync
+ * worker (to flip the market status) and the on-chain settlement worker
+ * (to call BettingCore.settleMarket).
+ */
+export const POST = withRequestId(
+  async (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
+    requireInternalKey(req);
+    const { id } = await ctx.params;
+    const body = (await req.json()) as { homeScore: number; awayScore: number };
+    const market = id.startsWith("0x")
+      ? await prisma.market.findUnique({ where: { id }, select: { fixtureId: true } })
+      : await prisma.market.findUnique({ where: { externalId: id }, select: { fixtureId: true } });
+    if (!market) return ok({ skipped: true, reason: "market not found" });
+
+    await redisPublisher().publish("market:finished", JSON.stringify({
+      type: "market:finished",
+      fixtureId: Number(market.fixtureId),
+      homeScore: body.homeScore,
+      awayScore: body.awayScore,
+      ts: new Date().toISOString(),
+    }));
+    return ok({ settled: true });
+  },
+);

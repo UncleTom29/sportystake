@@ -1,40 +1,67 @@
 import { NextRequest } from "next/server";
 import { ok, withRequestId } from "@/lib/server/api-response";
-import { store, utils } from "@/lib/server/store";
 import { requireAdmin } from "@/lib/server/auth";
+import { prisma } from "@/lib/server/db";
+import { usdcToString } from "@/lib/server/repos/bets.repo";
 
 export const runtime = "nodejs";
 
+/**
+ * Time-bucketed GGR + volume + active-user counts. All aggregates run in
+ * SQL via Prisma's groupBy / aggregate so we never load every bet into
+ * memory.
+ */
 export const GET = withRequestId(async (req: NextRequest) => {
   await requireAdmin(req);
-  const s = store();
-  const now = Date.now();
-  const dayMs = 86400_000;
-  const weekMs = 7 * dayMs;
-  const monthMs = 30 * dayMs;
+  const now = new Date();
+  const day = new Date(now.getTime() - 86_400_000);
+  const week = new Date(now.getTime() - 7 * 86_400_000);
+  const month = new Date(now.getTime() - 30 * 86_400_000);
 
-  let volToday = 0n, volWeek = 0n, volMonth = 0n;
-  let ggrToday = 0n, ggrWeek = 0n, ggrMonth = 0n;
-  for (const b of s.bets) {
-    const t = new Date(b.createdAt).getTime();
-    const amt = utils.fromUsdc(b.amount);
-    const payout = b.status === "WON" || b.status === "CASHED" ? utils.fromUsdc(b.potentialPayout) : 0n;
-    const ggr = amt - payout;
-    if (now - t < dayMs) { volToday += amt; ggrToday += ggr; }
-    if (now - t < weekMs) { volWeek += amt; ggrWeek += ggr; }
-    if (now - t < monthMs) { volMonth += amt; ggrMonth += ggr; }
+  const [betsToday, betsWeek, betsMonth, totalBets, openMarkets, lpAgg, activeUsersToday] = await Promise.all([
+    prisma.bet.findMany({
+      where: { placedAt: { gte: day } },
+      select: { amount: true, potentialPayout: true, status: true },
+    }),
+    prisma.bet.findMany({
+      where: { placedAt: { gte: week } },
+      select: { amount: true, potentialPayout: true, status: true },
+    }),
+    prisma.bet.findMany({
+      where: { placedAt: { gte: month } },
+      select: { amount: true, potentialPayout: true, status: true },
+    }),
+    prisma.bet.count(),
+    prisma.market.count({ where: { status: "OPEN" } }),
+    prisma.lpPosition.aggregate({
+      where: { status: { in: ["ACTIVE", "WITHDRAW_REQUESTED"] } },
+      _sum: { depositedUsdc: true },
+    }),
+    prisma.bet.groupBy({
+      by: ["userId"],
+      where: { placedAt: { gte: day } },
+    }),
+  ]);
+
+  function sumVolAndGgr(bets: { amount: bigint; potentialPayout: bigint; status: string }[]) {
+    let vol = 0n, ggr = 0n;
+    for (const b of bets) {
+      vol += b.amount;
+      const payout = b.status === "WON" || b.status === "CLAIMED" ? b.potentialPayout : 0n;
+      ggr += b.amount - payout;
+    }
+    return { vol, ggr };
   }
-
-  const lpTvl = s.markets.reduce((acc, m) => acc + utils.fromUsdc(m.poolTvl), 0n);
-  const activeUsers = new Set(s.bets.filter((b) => now - new Date(b.createdAt).getTime() < dayMs).map((b) => b.userId)).size;
-  const openLpMarkets = s.markets.filter((m) => m.status === "OPEN").length;
+  const today = sumVolAndGgr(betsToday);
+  const wk = sumVolAndGgr(betsWeek);
+  const mo = sumVolAndGgr(betsMonth);
 
   return ok({
-    ggr: { today: utils.toUsdc(ggrToday), week: utils.toUsdc(ggrWeek), month: utils.toUsdc(ggrMonth) },
-    volume: { today: utils.toUsdc(volToday), week: utils.toUsdc(volWeek), month: utils.toUsdc(volMonth) },
-    activeUsersToday: activeUsers,
-    bets: s.bets.length,
-    lpTvl: utils.toUsdc(lpTvl),
-    openLpMarkets,
+    ggr: { today: usdcToString(today.ggr), week: usdcToString(wk.ggr), month: usdcToString(mo.ggr) },
+    volume: { today: usdcToString(today.vol), week: usdcToString(wk.vol), month: usdcToString(mo.vol) },
+    activeUsersToday: activeUsersToday.length,
+    bets: totalBets,
+    lpTvl: usdcToString(lpAgg._sum.depositedUsdc ?? 0n),
+    openLpMarkets: openMarkets,
   });
 });

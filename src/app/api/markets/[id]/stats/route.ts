@@ -1,57 +1,144 @@
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { ok, fail, withRequestId } from "@/lib/server/api-response";
-import { store } from "@/lib/server/store";
+import { prisma } from "@/lib/server/db";
 
 export const runtime = "nodejs";
 
-const FORMS = ["W", "D", "L"];
-function buildForm(seed: number): string[] {
-  const out: string[] = [];
-  let n = seed >>> 0;
-  for (let i = 0; i < 5; i++) { n = (n * 1664525 + 1013904223) >>> 0; out.push(FORMS[n % 3]); }
-  return out;
-}
+type SnapshotOutcome = { outcome: number; label: string; valueX1000: number };
 
-export const GET = withRequestId(async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
-  const { id } = await ctx.params;
-  const s = store();
-  const m = s.markets.find((x) => x.id === id || x.externalId === id);
-  if (!m) return fail("NotFound", "Market not found", 404);
+/**
+ * Match stats endpoint.
+ * Computes implied win probabilities, bookmaker margin, and available markets
+ * from OddsSnapshot rows already stored in Postgres.
+ * On first call the computed stats are cached in market.metadata so subsequent
+ * reads skip the computation (satisfying the "fetch once, save to DB" contract).
+ * If no 1X2 odds have been captured yet the endpoint returns a 404-like empty.
+ */
+export const GET = withRequestId(
+  async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
+    const { id } = await ctx.params;
+    const market = await prisma.market.findUnique({
+      where: { id },
+      include: {
+        oddsSnapshots: {
+          orderBy: { capturedAt: "desc" },
+          take: 200,
+        },
+      },
+    });
+    if (!market) return fail("NotFound", "Market not found", 404);
 
-  const stats = {
-    home: {
-      form: buildForm(m.homeTeamId),
-      possession: 50 + Math.round(Math.sin(m.fixtureId) * 8),
-      shots: 8 + (m.homeTeamId % 6),
-      shotsOnTarget: 3 + (m.homeTeamId % 4),
-      corners: 4 + (m.homeTeamId % 4),
-      fouls: 8 + (m.homeTeamId % 5),
-      yellow: 1 + (m.homeTeamId % 3),
-      red: 0,
-    },
-    away: {
-      form: buildForm(m.awayTeamId),
-      possession: 50 - Math.round(Math.sin(m.fixtureId) * 8),
-      shots: 7 + (m.awayTeamId % 6),
-      shotsOnTarget: 2 + (m.awayTeamId % 4),
-      corners: 3 + (m.awayTeamId % 4),
-      fouls: 9 + (m.awayTeamId % 5),
-      yellow: 1 + (m.awayTeamId % 3),
-      red: 0,
-    },
-    h2h: [
-      { date: "2025-11-12", home: m.homeTeam, away: m.awayTeam, homeScore: 2, awayScore: 1 },
-      { date: "2025-04-22", home: m.awayTeam, away: m.homeTeam, homeScore: 1, awayScore: 1 },
-      { date: "2024-10-08", home: m.homeTeam, away: m.awayTeam, homeScore: 0, awayScore: 2 },
-      { date: "2024-03-17", home: m.awayTeam, away: m.homeTeam, homeScore: 3, awayScore: 1 },
-      { date: "2023-09-30", home: m.homeTeam, away: m.awayTeam, homeScore: 1, awayScore: 0 },
-    ],
-    oddsHistory: Array.from({ length: 24 }, (_, i) => ({
-      hour: -23 + i,
-      home: 2.0 + Math.sin(i / 3) * 0.2 + Math.random() * 0.05,
-      draw: 3.3 + Math.cos(i / 4) * 0.15,
-      away: 3.0 + Math.sin(i / 5 + 1) * 0.2,
-    })),
-  };
-  return ok(stats);
-});
+    // Return cached stats if they exist and we have recent data (< 5 min old).
+    const meta = (market.metadata ?? {}) as Record<string, unknown>;
+    const cached = meta.stats as Record<string, unknown> | undefined;
+    if (cached && typeof cached.computedAt === "string") {
+      const age = Date.now() - new Date(cached.computedAt).getTime();
+      if (age < 5 * 60_000) return ok(cached);
+    }
+
+    // ── Aggregate latest snapshot per (bookmaker, marketType) ──────────────
+    const seenKey = new Set<string>();
+    const latestByBkMt = new Map<string, SnapshotOutcome[]>();
+    for (const snap of market.oddsSnapshots) {
+      const key = `${snap.bookmaker}:${snap.marketType}`;
+      if (seenKey.has(key)) continue;
+      seenKey.add(key);
+      latestByBkMt.set(key, snap.outcomes as SnapshotOutcome[]);
+    }
+
+    // ── 1X2: best odds per outcome across all bookmakers ──────────────────
+    let bestHome = 0, bestDraw = 0, bestAway = 0;
+    let x2BookmakerCount = 0;
+    for (const [key, outs] of latestByBkMt) {
+      if (!key.endsWith(":1X2")) continue;
+      x2BookmakerCount++;
+      const threeWay = outs.length === 3;
+      const h = outs.find((o) => o.outcome === 0)?.valueX1000 ?? 0;
+      const d = threeWay ? (outs.find((o) => o.outcome === 1)?.valueX1000 ?? 0) : 0;
+      const a = outs.find((o) => o.outcome === (threeWay ? 2 : 1))?.valueX1000 ?? 0;
+      if (h > bestHome) bestHome = h;
+      if (d > bestDraw) bestDraw = d;
+      if (a > bestAway) bestAway = a;
+    }
+
+    if (x2BookmakerCount === 0) {
+      // No 1X2 odds yet — return minimal fixture data.
+      return ok({
+        marketId: id,
+        homeTeam: market.homeTeam,
+        awayTeam: market.awayTeam,
+        status: market.status,
+        winProb: null,
+        margin: null,
+        bookmakerCount: 0,
+        over25Prob: null,
+        bttsProb: null,
+        marketTypes: [],
+        computedAt: new Date().toISOString(),
+      });
+    }
+
+    const hasDraw = bestDraw > 1000;
+    const iH = bestHome > 1000 ? 1000 / bestHome : 0;
+    const iD = hasDraw ? 1000 / bestDraw : 0;
+    const iA = bestAway > 1000 ? 1000 / bestAway : 0;
+    const total = iH + iD + iA;
+
+    const pHome = total > 0 ? Math.round((iH / total) * 100) : 0;
+    const pDraw = total > 0 && hasDraw ? Math.round((iD / total) * 100) : 0;
+    const winProb = total > 0 ? {
+      home: pHome,
+      draw: pDraw,
+      away: 100 - pHome - pDraw,
+    } : null;
+    const margin = total > 1 ? Math.round((total - 1) * 1000) / 10 : null;
+
+    // ── O/U 2.5: best Over odds across bookmakers ─────────────────────────
+    let bestOver25 = 0;
+    for (const [key, outs] of latestByBkMt) {
+      if (!key.endsWith(":over_under_25")) continue;
+      const over = outs.find((o) => o.label?.toLowerCase().includes("over"))?.valueX1000 ?? 0;
+      if (over > bestOver25) bestOver25 = over;
+    }
+    const over25Prob = bestOver25 > 1000 ? Math.round((1000 / bestOver25) * 100) : null;
+
+    // ── BTTS: best Yes odds across bookmakers ─────────────────────────────
+    let bestBttsYes = 0;
+    for (const [key, outs] of latestByBkMt) {
+      if (!key.endsWith(":btts")) continue;
+      const yes = outs.find((o) => o.label?.toLowerCase() === "yes")?.valueX1000 ?? 0;
+      if (yes > bestBttsYes) bestBttsYes = yes;
+    }
+    const bttsProb = bestBttsYes > 1000 ? Math.round((1000 / bestBttsYes) * 100) : null;
+
+    // ── Available market types ────────────────────────────────────────────
+    const marketTypes = [...new Set(market.oddsSnapshots.map((s) => s.marketType))];
+
+    const stats = {
+      marketId: id,
+      homeTeam: market.homeTeam,
+      awayTeam: market.awayTeam,
+      homeScore: market.homeScore,
+      awayScore: market.awayScore,
+      status: market.status,
+      winProb,
+      margin,
+      bookmakerCount: x2BookmakerCount,
+      over25Prob,
+      bttsProb,
+      marketTypes,
+      computedAt: new Date().toISOString(),
+    };
+
+    // Save to metadata so subsequent calls skip computation.
+    if (winProb) {
+      await prisma.market.update({
+        where: { id },
+        data: { metadata: { ...meta, stats } },
+      });
+    }
+
+    return ok(stats);
+  },
+);

@@ -26,7 +26,7 @@ export default function EsportsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black tracking-tight">Esports</h1>
-            <p className="text-[13px] text-[var(--color-ink-2)]">CS2 · Valorant · Dota 2 · LoL · live odds, in-play, map markets</p>
+            <p className="text-[13px] text-[var(--color-ink-2)]">CS2 · Valorant · Dota 2 · LoL · pre-match, map, and series markets</p>
           </div>
         </div>
       </div>
@@ -100,8 +100,24 @@ function EsportsMatchCard({ match }: { match: typeof esportsMatches[number] }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
-        <OddsButton matchId={match.id} matchLabel={label} market="Match Winner" selection={match.team1} label={match.team1Short} odds={match.team1Odds} />
-        <OddsButton matchId={match.id} matchLabel={label} market="Match Winner" selection={match.team2} label={match.team2Short} odds={match.team2Odds} />
+        <OddsButton
+          matchId={match.id}
+          matchLabel={label}
+          market="Match Winner"
+          selection={match.team1}
+          label={match.team1Short}
+          odds={match.team1Odds}
+          disabled={match.isLive}
+        />
+        <OddsButton
+          matchId={match.id}
+          matchLabel={label}
+          market="Match Winner"
+          selection={match.team2}
+          label={match.team2Short}
+          odds={match.team2Odds}
+          disabled={match.isLive}
+        />
       </div>
     </div>
   );

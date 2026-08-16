@@ -1,0 +1,49 @@
+# Optional containerized infrastructure for SportyStake development.
+# Not part of the default `npm run dev` flow — that uses native Homebrew
+# Postgres/Redis instead (see scripts/init.mjs and scripts/wait-for-infra.mjs).
+# Bring these up manually with `docker compose up -d postgres redis` if you
+# want a containerized setup instead; update DATABASE_URL/REDIS_URL in .env
+# to match (see the port comments below).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sportystake-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sportystake
+      POSTGRES_PASSWORD: sportystake
+      POSTGRES_DB: sportystake
+    ports:
+      # Host port 5433, not 5432 — this machine already has a native Postgres
+      # and other projects' containers bound to 5432. Internal port stays
+      # 5432 since scripts/init.mjs talks to the container via `docker exec`.
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sportystake -d sportystake"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: sportystake-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      # Host port 6381, not 6379 — same reason as postgres above (6380 was
+      # also already taken, by an unrelated project's redis container).
+      - "6381:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:

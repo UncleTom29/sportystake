@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useWallet } from "@/lib/walletStore";
 import { useEventStream } from "@/lib/useEventStream";
 import { useLiveOdds } from "@/lib/liveOddsStore";
 import { useQuotaStore } from "@/lib/quotaStore";
@@ -9,24 +7,20 @@ import { useNotifications } from "@/lib/notificationStore";
 import type { OddsBundle, QuotaMode } from "@/lib/types";
 
 /**
- * Boots wallet auth (auto-restore on page load) and subscribes to the
- * server-sent event stream for live odds, scores, bet confirmations,
- * LP settlements, quota alerts, and feed events.
+ * Subscribes to the server-sent event stream for odds snapshots, live scores,
+ * bet confirmations, LP settlements, quota alerts, and feed events.
+ *
+ * Wallet rehydration moved to <WalletSync /> (mounted inside
+ * <Web3Provider>) as part of the wagmi migration.
  *
  * Drop a single instance high in the tree (e.g. in app/layout.tsx).
  */
 export default function IntegrationProvider() {
-  const bootstrap = useWallet((s) => s.bootstrap);
-  const refreshWallet = useWallet((s) => s.refresh);
   const ingestOdds = useLiveOdds((s) => s.ingest);
   const ingestScore = useLiveOdds((s) => s.ingestScore);
   const setQuota = useQuotaStore((s) => s.setStatus);
   const pushToast = useNotifications((s) => s.pushToast);
   const pushNotification = useNotifications((s) => s.pushNotification);
-
-  useEffect(() => {
-    bootstrap();
-  }, [bootstrap]);
 
   useEventStream(
     ["odds:update", "market:live", "market:finished", "bet:confirmed", "bet:settled", "lp:settled", "quota:alert", "feed:new", "casino:win"],
@@ -53,7 +47,6 @@ export default function IntegrationProvider() {
         case "bet:confirmed": {
           pushToast({ kind: "success", title: "Bet confirmed", body: "On-chain confirmation received." });
           pushNotification({ kind: "bet_confirmed", message: "Your bet was confirmed on-chain." });
-          refreshWallet();
           break;
         }
         case "bet:settled": {

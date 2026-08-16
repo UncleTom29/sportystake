@@ -1,83 +1,108 @@
+// Regenerated from the compiled artifact (packages/contracts/artifacts/contracts/CrashGame.sol/CrashGame.json)
+// — the previous version of this file didn't match CrashGame.sol at all
+// (wrong function names/signatures, e.g. `placeBet`/`cashout`/`settleRound`
+// instead of the real `joinRound`/`cashOut`/`lockRound`+`resolveRound`),
+// same kind of staleness found in CasinoHouse.ts. Had zero callers before now.
 export const crashGameAbi = [
   // --- Functions ---
   {
     type: 'function',
-    name: 'placeBet',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'amount', type: 'uint256' },
-      { name: 'autoCashoutX100', type: 'uint256' },
-    ],
-    outputs: [{ name: 'roundId', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'cashout',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'roundId', type: 'uint256' }],
-    outputs: [{ name: 'payout', type: 'uint256' }],
-  },
-  {
-    type: 'function',
     name: 'startRound',
     stateMutability: 'nonpayable',
-    inputs: [{ name: 'commitment', type: 'bytes32' }],
+    inputs: [{ name: 'serverSeedHash', type: 'bytes32' }],
     outputs: [{ name: 'roundId', type: 'uint256' }],
   },
   {
     type: 'function',
-    name: 'settleRound',
+    name: 'joinRound',
     stateMutability: 'nonpayable',
     inputs: [
       { name: 'roundId', type: 'uint256' },
-      { name: 'seed', type: 'bytes32' },
-      { name: 'crashPointX100', type: 'uint256' },
+      { name: 'amount', type: 'uint256' },
+      { name: 'autoCashoutX100', type: 'uint256' },
     ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'lockRound',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'roundId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'cashOut',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'roundId', type: 'uint256' },
+      { name: 'multiplierX100', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'resolveRound',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'roundId', type: 'uint256' },
+      { name: 'serverSeed', type: 'bytes32' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'claim',
+    stateMutability: 'nonpayable',
+    inputs: [],
     outputs: [],
   },
   {
     type: 'function',
     name: 'rounds',
     stateMutability: 'view',
-    inputs: [{ name: 'roundId', type: 'uint256' }],
+    inputs: [{ name: '', type: 'uint256' }],
     outputs: [
-      { name: 'commitment', type: 'bytes32' },
-      { name: 'seed', type: 'bytes32' },
-      { name: 'crashPointX100', type: 'uint256' },
+      { name: 'id', type: 'uint256' },
+      { name: 'serverSeedHash', type: 'bytes32' },
+      { name: 'serverSeed', type: 'bytes32' },
       { name: 'startedAt', type: 'uint64' },
-      { name: 'settledAt', type: 'uint64' },
+      { name: 'resolvedAt', type: 'uint64' },
+      { name: 'crashMultiplierX100', type: 'uint256' },
+      { name: 'totalStaked', type: 'uint256' },
+      { name: 'maxPotentialPayout', type: 'uint256' },
       { name: 'status', type: 'uint8' },
     ],
   },
   {
     type: 'function',
-    name: 'bets',
+    name: 'roundPlayers',
     stateMutability: 'view',
     inputs: [
-      { name: 'roundId', type: 'uint256' },
-      { name: 'player', type: 'address' },
+      { name: '', type: 'uint256' },
+      { name: '', type: 'uint256' },
     ],
     outputs: [
+      { name: 'player', type: 'address' },
       { name: 'amount', type: 'uint256' },
       { name: 'autoCashoutX100', type: 'uint256' },
       { name: 'cashedOutAtX100', type: 'uint256' },
-      { name: 'payout', type: 'uint256' },
-      { name: 'status', type: 'uint8' },
+      { name: 'resolved', type: 'bool' },
     ],
   },
   {
     type: 'function',
-    name: 'casinoHouse',
+    name: 'pendingPayout',
     stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'address' }],
+    inputs: [{ name: '', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }],
   },
   {
     type: 'function',
-    name: 'usdc',
+    name: 'getRoundPlayerCount',
     stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'address' }],
+    inputs: [{ name: 'roundId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint256' }],
   },
   {
     type: 'function',
@@ -88,24 +113,24 @@ export const crashGameAbi = [
   },
   {
     type: 'function',
-    name: 'houseEdgeBps',
+    name: 'MIN_STAKE',
     stateMutability: 'view',
     inputs: [],
     outputs: [{ name: '', type: 'uint256' }],
   },
   {
     type: 'function',
-    name: 'minBet',
+    name: 'MAX_STAKE',
     stateMutability: 'view',
     inputs: [],
     outputs: [{ name: '', type: 'uint256' }],
   },
   {
     type: 'function',
-    name: 'maxBet',
+    name: 'usdc',
     stateMutability: 'view',
     inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
+    outputs: [{ name: '', type: 'address' }],
   },
   // --- Events ---
   {
@@ -113,14 +138,22 @@ export const crashGameAbi = [
     name: 'RoundStarted',
     inputs: [
       { name: 'roundId', type: 'uint256', indexed: true },
-      { name: 'commitment', type: 'bytes32', indexed: false },
+      { name: 'serverSeedHash', type: 'bytes32', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'RoundLocked',
+    inputs: [
+      { name: 'roundId', type: 'uint256', indexed: true },
       { name: 'startedAt', type: 'uint64', indexed: false },
     ],
     anonymous: false,
   },
   {
     type: 'event',
-    name: 'BetPlaced',
+    name: 'PlayerJoined',
     inputs: [
       { name: 'roundId', type: 'uint256', indexed: true },
       { name: 'player', type: 'address', indexed: true },
@@ -131,23 +164,99 @@ export const crashGameAbi = [
   },
   {
     type: 'event',
-    name: 'CashedOut',
+    name: 'PlayerCashedOut',
     inputs: [
       { name: 'roundId', type: 'uint256', indexed: true },
       { name: 'player', type: 'address', indexed: true },
       { name: 'multiplierX100', type: 'uint256', indexed: false },
-      { name: 'payout', type: 'uint256', indexed: false },
     ],
     anonymous: false,
   },
   {
     type: 'event',
-    name: 'RoundSettled',
+    name: 'RoundResolved',
     inputs: [
       { name: 'roundId', type: 'uint256', indexed: true },
-      { name: 'crashPointX100', type: 'uint256', indexed: false },
-      { name: 'seed', type: 'bytes32', indexed: false },
+      { name: 'crashMultiplierX100', type: 'uint256', indexed: false },
+      { name: 'serverSeed', type: 'bytes32', indexed: false },
     ],
     anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'PayoutCredited',
+    inputs: [
+      { name: 'roundId', type: 'uint256', indexed: true },
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'PayoutClaimed',
+    inputs: [
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'RoundCancelled',
+    inputs: [
+      { name: 'roundId', type: 'uint256', indexed: true },
+    ],
+    anonymous: false,
+  },
+  // --- New functions (Fix #5: escape hatch) ---
+  {
+    type: 'function',
+    name: 'cancelStuckRound',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'roundId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'cancelPendingRound',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'roundId', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'ROUND_TIMEOUT',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  // --- Access control views (Fix #4: governance verification) ---
+  {
+    type: 'function',
+    name: 'DEFAULT_ADMIN_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'getRoleMember',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'index', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'hasRole',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
   },
 ] as const;

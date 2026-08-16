@@ -1,57 +1,64 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
-import { ok, fail, withRequestId } from "@/lib/server/api-response";
-import { store, utils } from "@/lib/server/store";
-import { requireAdmin } from "@/lib/server/auth";
-import type { MarketDTO } from "@/lib/types";
-import { shortId } from "@/lib/uid";
+import { ok, fail, withRequestId, ApiError } from "@/lib/server/api-response";
+import { readAuthFromRequest } from "@/lib/server/auth";
+import { prisma } from "@/lib/server/db";
+import { MarketStatus } from "@prisma/client";
 
 export const runtime = "nodejs";
 
-const Body = z.object({
-  externalId: z.string(),
-  leagueId: z.number().int(),
-  leagueName: z.string(),
-  country: z.string(),
-  countryCode: z.string(),
-  homeTeam: z.string(),
-  awayTeam: z.string(),
-  startTime: z.string(),
-  isFeatured: z.boolean().default(false),
-});
-
 export const GET = withRequestId(async (req: NextRequest) => {
-  await requireAdmin(req);
-  return ok({ items: store().markets });
-});
+  const auth = await readAuthFromRequest(req);
+  if (!auth || (!auth.roles.includes("ADMIN") && !auth.roles.includes("OPERATOR"))) {
+    throw new ApiError("Forbidden", "Admin or Operator access required", 403);
+  }
 
-export const POST = withRequestId(async (req: NextRequest) => {
-  await requireAdmin(req);
-  const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  if (!parsed.success) return fail("ValidationError", "Invalid body", 400, { details: parsed.error.issues });
-  const s = store();
-  const m: MarketDTO = {
-    id: `mkt-${shortId()}`,
-    externalId: parsed.data.externalId,
-    fixtureId: Date.now() % 9_999_999,
-    leagueId: parsed.data.leagueId,
-    leagueName: parsed.data.leagueName,
-    country: parsed.data.country,
-    countryCode: parsed.data.countryCode,
-    homeTeam: parsed.data.homeTeam,
-    homeTeamId: 0,
-    awayTeam: parsed.data.awayTeam,
-    awayTeamId: 0,
-    startTime: parsed.data.startTime,
-    status: "OPEN",
-    poolAddress: utils.randAddr(),
-    poolTvl: "0.000000",
-    poolLocked: "0.000000",
-    poolBetVolume: "0.000000",
-    isFeatured: parsed.data.isFeatured,
-    odds: [],
-    marketsCount: 0,
+  const { searchParams } = new URL(req.url);
+  const statusParam = searchParams.get("status") as MarketStatus | null;
+  const search = searchParams.get("q") || "";
+  const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit")) || 50));
+  const offset = Math.max(0, Number(searchParams.get("offset")) || 0);
+
+  const where = {
+    ...(statusParam && Object.values(MarketStatus).includes(statusParam) ? { status: statusParam } : {}),
+    ...(search
+      ? {
+          OR: [
+            { homeTeam: { contains: search, mode: "insensitive" as const } },
+            { awayTeam: { contains: search, mode: "insensitive" as const } },
+            { leagueName: { contains: search, mode: "insensitive" as const } },
+            { id: { equals: search } },
+          ],
+        }
+      : {}),
   };
-  s.markets.push(m);
-  return ok(m, { status: 201 });
+
+  const [items, total] = await Promise.all([
+    prisma.market.findMany({
+      where,
+      orderBy: { startTime: "desc" },
+      take: limit,
+      skip: offset,
+      include: {
+        _count: { select: { bets: true } },
+      },
+    }),
+    prisma.market.count({ where }),
+  ]);
+
+  return ok({
+    items: items.map((m) => ({
+      ...m,
+      startTime: m.startTime.toISOString(),
+      closesAt: m.closesAt.toISOString(),
+      createdAt: m.createdAt.toISOString(),
+      updatedAt: m.updatedAt.toISOString(),
+      fixtureId: Number(m.fixtureId),
+      homeTeamId: Number(m.homeTeamId),
+      awayTeamId: Number(m.awayTeamId),
+      betsCount: m._count.bets,
+    })),
+    total,
+    limit,
+    offset,
+  });
 });

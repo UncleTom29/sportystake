@@ -1,51 +1,81 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import Link from "next/link";
 import { casinoGames } from "@/lib/mockData";
 import GameTile from "@/components/casino/GameTile";
+import DailyCasinoWinnersLeaderboard from "@/components/casino/DailyCasinoWinnersLeaderboard";
 import SectionHeader from "@/components/ui/SectionHeader";
 import {
   SearchIcon,
   FlameIcon,
-  SparkleIcon,
   TrophyIcon,
   CasinoChipIcon,
+  ShieldIcon,
   ZapIcon,
   ArrowUpRight,
 } from "@/components/icons/UIIcons";
 
-type Cat = "All" | "Originals" | "Slots" | "Live" | "Table" | "Crash" | "Dice";
+type Cat = "All" | "Slots" | "Table" | "Crash" | "Dice";
 
 const cats: { id: Cat; label: string; Icon?: (p: { className?: string }) => React.ReactElement }[] = [
   { id: "All", label: "All" },
-  { id: "Originals", label: "Originals", Icon: SparkleIcon },
-  { id: "Slots", label: "Slots", Icon: FlameIcon },
-  { id: "Live", label: "Live", Icon: ZapIcon },
-  { id: "Table", label: "Table", Icon: TrophyIcon },
   { id: "Crash", label: "Crash" },
   { id: "Dice", label: "Dice" },
+  { id: "Slots", label: "Slots", Icon: FlameIcon },
+  { id: "Table", label: "Table", Icon: TrophyIcon },
 ];
 
 export default function CasinoPage() {
   const [cat, setCat] = useState<Cat>("All");
   const [q, setQ] = useState("");
+  const [vaultLabel, setVaultLabel] = useState<string>("Loading…");
+
+  // Read casino vault liquidity (real on-chain USDC balance of CasinoHouse + admin virtual liquidity)
+  useEffect(() => {
+    fetch("/api/casino/vault")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data?.formattedTotal) {
+          setVaultLabel(json.data.formattedTotal);
+        }
+      })
+      .catch(() => setVaultLabel("$25,000.00 USDC"));
+  }, []);
 
   const filtered = useMemo(() => {
     return casinoGames.filter((g) => {
-      if (cat !== "All") {
-        if (cat === "Originals") {
-          if (g.category !== "Original" && g.provider !== "SportyStake") return false;
-        } else if (g.category !== cat) return false;
-      }
+      if (cat !== "All" && g.category !== cat) return false;
       if (q && !g.name.toLowerCase().includes(q.toLowerCase())) return false;
       return true;
     });
   }, [cat, q]);
 
-  const hot = casinoGames.filter((g) => g.tag === "HOT").slice(0, 6);
+  const featured = casinoGames.find((g) => g.id === "crash")!;
 
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
-      {/* Featured hero — Crash */}
+      <h1 className="sr-only">
+        Provably Fair On-Chain Crypto Casino — Crash, Dice, Slots, Table Games
+      </h1>
+      {/* Total Casino Vault Liquidity Banner */}
+      <div className="mb-6 rounded-2xl border border-[var(--color-brand-500)]/30 bg-[var(--color-bg-2)] p-5 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
+            <ZapIcon className="h-6 w-6" />
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-ink-3)]">Total Casino Vault Liquidity</span>
+            <p className="mono text-2xl font-black text-white mt-0.5">{vaultLabel}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-xl bg-[var(--color-bg-1)] px-4 py-2 border border-[var(--color-line-1)]">
+          <span className="h-2 w-2 rounded-full bg-[var(--color-brand-500)] animate-pulse" />
+          <span className="mono text-xs font-bold text-white">Single-Bankroll Isolated Vaults · 100% Solvency</span>
+        </div>
+      </div>
+
+      {/* Featured hero — Aviator */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
         <div
           className="absolute inset-0"
@@ -57,35 +87,32 @@ export default function CasinoPage() {
         <div className="relative grid items-center gap-4 p-5 md:grid-cols-[1.4fr_1fr] md:p-8">
           <div>
             <span className="mono inline-flex items-center gap-1 rounded-md bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-300">
-              <SparkleIcon className="h-3 w-3" /> Featured · Original
+              <FlameIcon className="h-3 w-3" /> Featured
             </span>
-            <h1 className="mt-3 text-3xl font-black tracking-tight md:text-4xl">Crash Rocket</h1>
+            <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl text-white">Aviator</h2>
             <p className="mt-2 max-w-md text-[13px] text-[var(--color-ink-2)] md:text-sm">
-              Watch the multiplier climb. Cash out before it busts. 100% provably fair —
-              every round verified by an on-chain VRF seed.
+              Watch the multiplier climb. Cash out before it busts. Commit-reveal on-chain —
+              every round&apos;s seed is verifiable after it resolves.
             </p>
             <div className="mt-5 grid grid-cols-3 gap-3 max-w-md">
               <div>
-                <p className="mono text-2xl font-black text-violet-300">2.48×</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Last bust</p>
+                <p className="mono text-2xl font-black text-white">Provable</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Fair RNG</p>
               </div>
               <div>
-                <p className="mono text-2xl font-black text-[var(--color-brand-500)]">2,204</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Players</p>
+                <p className="mono text-2xl font-black text-violet-300">24/7</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Live Rounds</p>
               </div>
               <div>
-                <p className="mono text-2xl font-black text-white">97.00%</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">RTP</p>
+                <p className="mono text-2xl font-black text-[var(--color-brand-500)]">On-chain</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Settlement</p>
               </div>
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              <button className="inline-flex h-11 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-5 text-[14px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]">
+              <Link href={featured.href} className="inline-flex h-11 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-5 text-[14px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]">
                 Play now
                 <ArrowUpRight className="h-4 w-4" />
-              </button>
-              <button className="inline-flex h-11 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--color-bg-3)]">
-                View results
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -103,7 +130,7 @@ export default function CasinoPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search 200+ games…"
+            placeholder="Search games…"
             className="h-10 w-full rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-2)] pl-9 pr-3 text-sm text-white placeholder:text-[var(--color-ink-3)] focus:border-[var(--color-brand-500)]/40 focus:outline-none"
           />
         </div>
@@ -123,23 +150,13 @@ export default function CasinoPage() {
             </button>
           ))}
         </div>
-        <div className="ml-auto hidden items-center gap-1.5 text-[11px] text-[var(--color-ink-3)] md:flex">
-          <CasinoChipIcon className="h-3.5 w-3.5" />
-          247 games online
+        {/* Was hidden below md — exactly the audience (first-time, unsure
+            mobile bettors) who benefit most from seeing this reassurance. */}
+        <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-3)] md:ml-auto">
+          <ShieldIcon className="h-3.5 w-3.5 shrink-0" />
+          Non-custodial · settled by smart contract
         </div>
       </div>
-
-      {/* Hot row */}
-      {q === "" && cat === "All" && (
-        <section className="mt-6">
-          <SectionHeader title="Trending now" subtitle="Most played in the last hour" Icon={FlameIcon} accent="#ff8a00" />
-          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6">
-            {hot.map((g) => (
-              <GameTile key={g.id} game={g} />
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* All games */}
       <section className="mt-6">
@@ -155,6 +172,9 @@ export default function CasinoPage() {
           ))}
         </div>
       </section>
+
+      {/* Daily Casino Winners & High Rollers Leaderboard */}
+      <DailyCasinoWinnersLeaderboard />
 
       <p className="mt-10 text-center text-[11px] text-[var(--color-ink-4)]">
         18+ only · Gamble responsibly · Self-exclusion & deposit limits available in account settings
@@ -192,10 +212,6 @@ function CrashChart() {
       <path d={`${path} L320,200 L0,200 Z`} fill="url(#crashFill)" />
       <path d={path} stroke="#a78bfa" strokeWidth="2.5" fill="none" strokeLinecap="round" />
       <circle cx={320} cy={20} r="5" fill="#a78bfa" />
-      <text x="40" y="60" fill="white" fontFamily="monospace" fontSize="48" fontWeight="900">
-        2.48
-        <tspan fontSize="32" fill="#a78bfa">×</tspan>
-      </text>
     </svg>
   );
 }

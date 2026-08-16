@@ -135,37 +135,107 @@ export function GlobeIcon(props: Props) {
 }
 
 export type SportSlug =
-  | "soccer"
+  // Odds API slugs
+  | "football"
   | "basketball"
   | "tennis"
-  | "hockey"
   | "baseball"
-  | "mma"
-  | "football"
-  | "cricket"
-  | "rugby"
-  | "volleyball"
-  | "tabletennis"
+  | "american-football"
+  | "ice-hockey"
   | "esports"
+  | "darts"
+  | "mixed-martial-arts"
+  | "boxing"
+  | "handball"
+  | "volleyball"
+  | "snooker"
+  | "table-tennis"
+  | "rugby"
+  | "cricket"
+  | "water-polo"
+  | "futsal"
+  | "beach-volleyball"
+  | "aussie-rules"
+  | "floorball"
+  | "squash"
+  | "beach-soccer"
+  | "lacrosse"
+  | "curling"
+  | "padel"
+  | "bandy"
+  | "gaelic-football"
+  | "beach-handball"
+  | "athletics"
+  | "badminton"
+  | "cross-country"
+  | "golf"
+  | "cycling"
+  | "prediction-markets"
+  // Legacy slugs kept for backwards compatibility
+  | "soccer"
+  | "hockey"
+  | "mma"
+  | "tabletennis"
   | "horse"
   | "all";
 
 export function SportIcon({ sport, ...rest }: { sport: SportSlug } & Props) {
   switch (sport) {
-    case "soccer": return <SoccerIcon {...rest} />;
-    case "basketball": return <BasketballIcon {...rest} />;
-    case "tennis": return <TennisIcon {...rest} />;
-    case "hockey": return <HockeyIcon {...rest} />;
-    case "baseball": return <BaseballIcon {...rest} />;
-    case "mma": return <MMAIcon {...rest} />;
-    case "football": return <FootballIcon {...rest} />;
-    case "cricket": return <CricketIcon {...rest} />;
-    case "rugby": return <RugbyIcon {...rest} />;
-    case "volleyball": return <VolleyballIcon {...rest} />;
-    case "tabletennis": return <TableTennisIcon {...rest} />;
-    case "esports": return <EsportsIcon {...rest} />;
-    case "horse": return <HorseIcon {...rest} />;
+    case "football":
+    case "soccer":
+    case "futsal":
+    case "beach-soccer":
+      return <SoccerIcon {...rest} />;
+    case "basketball":
+      return <BasketballIcon {...rest} />;
+    case "tennis":
+    case "squash":
+    case "padel":
+    case "badminton":
+      return <TennisIcon {...rest} />;
+    case "ice-hockey":
+    case "hockey":
+    case "floorball":
+    case "bandy":
+    case "lacrosse":
+      return <HockeyIcon {...rest} />;
+    case "baseball":
+      return <BaseballIcon {...rest} />;
+    case "mixed-martial-arts":
+    case "mma":
+    case "boxing":
+    case "darts":
+      return <MMAIcon {...rest} />;
+    case "american-football":
+    case "gaelic-football":
+    case "aussie-rules":
+      return <FootballIcon {...rest} />;
+    case "cricket":
+      return <CricketIcon {...rest} />;
+    case "rugby":
+      return <RugbyIcon {...rest} />;
+    case "volleyball":
+    case "beach-volleyball":
+    case "water-polo":
+    case "handball":
+    case "beach-handball":
+      return <VolleyballIcon {...rest} />;
+    case "table-tennis":
+    case "tabletennis":
+    case "snooker":
+    case "curling":
+      return <TableTennisIcon {...rest} />;
+    case "esports":
+      return <EsportsIcon {...rest} />;
+    case "horse":
+      return <HorseIcon {...rest} />;
+    case "athletics":
+    case "cycling":
+    case "golf":
+    case "cross-country":
+    case "prediction-markets":
     case "all":
-    default: return <GlobeIcon {...rest} />;
+    default:
+      return <GlobeIcon {...rest} />;
   }
 }

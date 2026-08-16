@@ -18,7 +18,8 @@ export function formatUsdc(raw: bigint, digits = 2): string {
 
 /**
  * Deterministic marketId derivation: keccak256(abi.encodePacked(fixtureId, market)).
- * Must match the contract-side derivation in MarketPoolFactory.sol.
+ * Must match however the operator derives the `marketId` passed to
+ * BettingCore.createMarket.
  */
 export function encodeMarketId(fixtureId: number | bigint, market: string): `0x${string}` {
   return keccak256(

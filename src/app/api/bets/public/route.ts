@@ -1,12 +1,12 @@
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { ok, withRequestId } from "@/lib/server/api-response";
-import { store } from "@/lib/server/store";
+import { BetsRepo } from "@/lib/server/repos/bets.repo";
 
 export const runtime = "nodejs";
 
 export const GET = withRequestId(async (req: NextRequest) => {
-  const limit = Math.min(100, Number(req.nextUrl.searchParams.get("limit") ?? "30"));
-  const s = store();
-  const items = s.bets.filter((b) => b.isPublic).slice(0, limit);
+  const limit = Math.min(100, Number(req.nextUrl.searchParams.get("limit") ?? 30));
+  const items = await BetsRepo.publicFeed(limit);
   return ok({ items });
 });

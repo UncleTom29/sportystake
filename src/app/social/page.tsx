@@ -1,196 +1,302 @@
-import Badge from "@/components/ui/Badge";
-import Button from "@/components/ui/Button";
-import SectionHeader from "@/components/ui/SectionHeader";
-import { FlameIcon, TrophyIcon, BadgeCheck, CopyIcon, ChevronRight, HeartIcon } from "@/components/icons/UIIcons";
+"use client";
 
-const topBettors = [
-  { rank: 1, handle: "CryptoTipster.eth", color: "#f59e0b", followers: 4820, winRate: 67.2, roi: 22.4, streak: 8, verified: true },
-  { rank: 2, handle: "GoalMachine99", color: "#22c55e", followers: 2940, winRate: 61.5, roi: 18.1, streak: 5 },
-  { rank: 3, handle: "OddsWizard.arc", color: "#8b5cf6", followers: 1870, winRate: 59.8, roi: 14.8, streak: 3 },
-  { rank: 4, handle: "SlateBreaker", color: "#06b6d4", followers: 1240, winRate: 58.3, roi: 11.2, streak: 0 },
-  { rank: 5, handle: "QuantBet_", color: "#f43f5e", followers: 980, winRate: 56.7, roi: 9.8, streak: 4 },
-];
-
-const publicSlips = [
-  {
-    id: "ps1",
-    user: "CryptoTipster.eth",
-    color: "#f59e0b",
-    time: "2h ago",
-    selections: [
-      { match: "Arsenal vs Man City", pick: "Arsenal Win", odds: 2.85 },
-      { match: "Real Madrid vs Barça", pick: "Over 2.5", odds: 1.80 },
-    ],
-    stake: 100,
-    status: "open" as const,
-    copies: 142,
-    likes: 318,
-  },
-  {
-    id: "ps2",
-    user: "GoalMachine99",
-    color: "#22c55e",
-    time: "4h ago",
-    selections: [{ match: "Bayern vs Dortmund", pick: "Bayern Win", odds: 1.65 }],
-    stake: 50,
-    status: "won" as const,
-    copies: 89,
-    likes: 204,
-    result: "+32.50 USDT",
-  },
-  {
-    id: "ps3",
-    user: "OddsWizard.arc",
-    color: "#8b5cf6",
-    time: "6h ago",
-    selections: [
-      { match: "Chelsea vs Liverpool", pick: "Draw", odds: 3.20 },
-      { match: "Inter vs Milan", pick: "Inter Win", odds: 2.30 },
-      { match: "Lakers vs Celtics", pick: "Over 221.5", odds: 1.90 },
-    ],
-    stake: 30,
-    status: "open" as const,
-    copies: 67,
-    likes: 142,
-  },
-];
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useBetSlip, type BetSelection } from "@/lib/betSlipStore";
+import { useNotifications } from "@/lib/notificationStore";
+import { BetSlip, SocialApi } from "@/lib/api-client";
+import {
+  FlameIcon,
+  TrophyIcon,
+  BadgeCheck,
+  CopyIcon,
+  HeartIcon,
+  TicketIcon,
+} from "@/components/icons/UIIcons";
 
 export default function SocialPage() {
+  const [slips, setSlips] = useState<any[]>([]);
+  const [tipsters, setTipsters] = useState<any[]>([]);
+  const [loadingSlips, setLoadingSlips] = useState(true);
+  const [loadingTipsters, setLoadingTipsters] = useState(true);
+  const [feedFilter, setFeedFilter] = useState<"all" | "parlay" | "won">("all");
+  const [searchCode, setSearchCode] = useState("");
+  const [loadingCode, setLoadingCode] = useState(false);
+
+  const appendSelections = useBetSlip((s) => s.appendSelections);
+  const pushToast = useNotifications((s) => s.pushToast);
+
+  const fetchSocialData = useCallback(() => {
+    setLoadingSlips(true);
+    setLoadingTipsters(true);
+
+    SocialApi.feed(50)
+      .then((res) => setSlips(res.items))
+      .catch(() => {})
+      .finally(() => setLoadingSlips(false));
+
+    SocialApi.tipsters()
+      .then((res) => setTipsters(res.items))
+      .catch(() => {})
+      .finally(() => setLoadingTipsters(false));
+  }, []);
+
+  useEffect(() => {
+    fetchSocialData();
+  }, [fetchSocialData]);
+
+  const handleCopySlip = (slip: any) => {
+    const converted: BetSelection[] = [
+      {
+        matchId: slip.marketId || `social-${slip.id}`,
+        matchLabel: slip.marketLabel || "Match",
+        market: "1X2",
+        selection: slip.selectionLabel || "Selection",
+        odds: Number(slip.oddsX1000 ? slip.oddsX1000 / 1000 : 2.0),
+        stake: Math.max(1, Math.round(Number(slip.amount || 10))),
+      },
+    ];
+
+    appendSelections(converted);
+    pushToast({
+      kind: "success",
+      title: "Picks Tailed! 🎟️",
+      body: `Copied ticket from ${slip.user?.username || "user"} to your betslip`,
+    });
+  };
+
+  const handleLoadByCode = async () => {
+    if (!searchCode.trim()) return;
+    setLoadingCode(true);
+    try {
+      const codeClean = searchCode.trim().toUpperCase();
+      const res = await BetSlip.loadBooked(codeClean);
+      if (res.selections && res.selections.length) {
+        appendSelections(res.selections);
+        pushToast({
+          kind: "success",
+          title: `Ticket ${codeClean} Loaded!`,
+          body: `Added ${res.selections.length} selections to your betslip`,
+        });
+        setSearchCode("");
+      }
+    } catch (e) {
+      pushToast({ kind: "error", title: "Ticket Not Found", body: (e as Error).message });
+    } finally {
+      setLoadingCode(false);
+    }
+  };
+
+  const filteredSlips = slips.filter((s) => {
+    if (feedFilter === "won") return s.status === "WON";
+    return true;
+  });
+
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
-        <div className="bg-mesh absolute inset-0" />
-        <div className="relative">
-          <Badge variant="violet">Social betting</Badge>
-          <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">Tail the sharpest wallets</h1>
-          <p className="mt-2 max-w-xl text-[13px] text-[var(--color-ink-2)] md:text-sm">
-            Follow top bettors, copy their picks one-tap, compete on a fully verifiable on-chain
-            leaderboard. Every record is signed by the user&apos;s wallet.
-          </p>
+      {/* Hero Header */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[var(--color-brand-500)]/10 blur-3xl" />
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+          <div className="max-w-2xl">
+            <span className="mono rounded-full bg-[var(--color-brand-500)]/15 px-3 py-1 text-[11px] font-bold uppercase text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
+              LIVE SOCIAL BETTING FEED
+            </span>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">
+              Tail Verified Bettors & Share Tickets
+            </h1>
+            <p className="mt-2 text-[13px] text-[var(--color-ink-2)] md:text-sm">
+              Explore public bets placed across the platform, follow top-ranked crypto tipsters, or load any 6-character booking code.
+            </p>
+          </div>
+
+          {/* Booking Code Quick Loader */}
+          <div className="w-full max-w-sm rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3.5 shadow-xl">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)] flex items-center gap-1.5">
+              <TicketIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)]" />
+              Load Share Ticket Code
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={searchCode}
+                onChange={(e) => setSearchCode(e.target.value.toUpperCase())}
+                onKeyDown={(e) => e.key === "Enter" && handleLoadByCode()}
+                placeholder="Enter 6-char code (e.g. 7X9K2W)"
+                className="mono h-10 w-full rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-3 text-[13px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)] focus:border-[var(--color-brand-500)]"
+              />
+              <button
+                onClick={handleLoadByCode}
+                disabled={loadingCode || !searchCode.trim()}
+                className="h-10 shrink-0 rounded-lg bg-[var(--color-brand-500)] px-4 text-[12px] font-bold text-[var(--color-bg-0)] transition-all hover:bg-[var(--color-brand-400)] disabled:opacity-40"
+              >
+                {loadingCode ? "Loading…" : "Load"}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <div>
-          <SectionHeader title="Public slips" subtitle="Verified bets — wallet-signed" Icon={FlameIcon} accent="var(--color-warn)" />
-          <div className="space-y-3">
-            {publicSlips.map((s) => {
-              const parlay = s.selections.reduce((acc, sel) => acc * sel.odds, 1);
-              return (
-                <div key={s.id} className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <Avatar color={s.color} initials={s.user.slice(0, 2).toUpperCase()} />
+      {/* Main Grid */}
+      <div className="mt-6 grid gap-6 lg:grid-cols-[2.2fr_1fr]">
+        {/* Left Column: Community Feed */}
+        <div className="space-y-4">
+          {/* Feed Filter Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3">
+            <div className="flex items-center gap-2">
+              <FlameIcon className="h-4 w-4 text-[var(--color-warn)]" />
+              <span className="text-sm font-bold text-white">Live Public Bets Feed</span>
+            </div>
+            <div className="flex gap-1.5">
+              {[
+                { id: "all", label: "🔥 All Live Shares" },
+                { id: "won", label: "🏆 Winning Bets" },
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => setFeedFilter(f.id as any)}
+                  className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all ${
+                    feedFilter === f.id
+                      ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)] shadow"
+                      : "bg-[var(--color-bg-1)] text-[var(--color-ink-3)] hover:text-white"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Shared Slips List */}
+          {loadingSlips ? (
+            <div className="h-48 animate-pulse rounded-2xl bg-[var(--color-bg-2)]" />
+          ) : filteredSlips.length === 0 ? (
+            <div className="p-12 text-center rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] text-[13px] text-[var(--color-ink-3)]">
+              <TicketIcon className="mx-auto h-8 w-8 text-[var(--color-brand-500)] mb-2" />
+              No public bets placed yet. Be the first to share a ticket or place a public bet in Sportsbook!
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredSlips.map((s) => (
+                <div
+                  key={s.id}
+                  className="rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5 shadow-lg transition-all hover:border-[var(--color-line-2)]"
+                >
+                  {/* Card Header */}
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-brand-500)]/20 text-xs font-black text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
+                        {(s.user?.username || s.user?.walletAddress || "U").slice(0, 2).toUpperCase()}
+                      </div>
                       <div>
-                        <p className="text-[13px] font-bold text-white">{s.user}</p>
-                        <p className="text-[11px] text-[var(--color-ink-3)]">{s.time}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {s.status === "won" ? (
-                        <Badge variant="brand">Won</Badge>
-                      ) : (
-                        <Badge variant="neutral">Open</Badge>
-                      )}
-                      {s.result && <span className="mono text-[13px] font-bold text-[var(--color-brand-500)]">{s.result}</span>}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    {s.selections.map((sel, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-md bg-[var(--color-bg-1)] px-3 py-2">
-                        <div className="min-w-0">
-                          <p className="text-[11px] text-[var(--color-ink-3)]">{sel.match}</p>
-                          <p className="truncate text-[13px] font-semibold text-white">{sel.pick}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[14px] font-bold text-white">
+                            {s.user?.username ? `@${s.user.username}` : `${s.user?.walletAddress?.slice(0, 6)}…${s.user?.walletAddress?.slice(-4)}`}
+                          </p>
+                          {s.user?.username && <BadgeCheck className="h-4 w-4 text-[var(--color-info)]" />}
                         </div>
-                        <span className="mono shrink-0 text-[14px] font-bold text-[var(--color-brand-500)]">
-                          {sel.odds.toFixed(2)}
-                        </span>
+                        <p className="text-[11px] text-[var(--color-ink-3)]">
+                          Placed {new Date(s.createdAt).toLocaleTimeString()}
+                        </p>
                       </div>
-                    ))}
+                    </div>
+
+                    <span
+                      className={`mono rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${
+                        s.status === "WON"
+                          ? "bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)]"
+                          : s.status === "LOST"
+                          ? "bg-[var(--color-live)]/20 text-[var(--color-live)]"
+                          : "bg-[var(--color-bg-3)] text-white"
+                      }`}
+                    >
+                      {s.status}
+                    </span>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                    <div className="flex items-center gap-3 text-[var(--color-ink-3)]">
-                      <span>
-                        Stake <span className="mono font-bold text-white">{s.stake} USDT</span>
-                      </span>
-                      {s.selections.length > 1 && (
-                        <span>
-                          Multi <span className="mono font-bold text-[var(--color-warn)]">{parlay.toFixed(2)}×</span>
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <HeartIcon className="h-3 w-3" /> {s.likes}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <CopyIcon className="h-3 w-3" /> {s.copies}
-                      </span>
+                  {/* Selection Detail */}
+                  <div className="flex items-center justify-between rounded-xl bg-[var(--color-bg-1)] p-3 ring-1 ring-white/5">
+                    <div>
+                      <p className="text-[11px] text-[var(--color-ink-3)]">{s.marketLabel}</p>
+                      <p className="text-[13px] font-bold text-white mt-0.5">{s.selectionLabel}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button size="sm" variant="outline">Copy</Button>
-                      <Button size="sm">Tail bet</Button>
-                    </div>
+                    <span className="mono text-sm font-black text-[var(--color-brand-500)]">
+                      {(s.oddsX1000 / 1000).toFixed(2)}
+                    </span>
+                  </div>
+
+                  {/* Footer Action Bar */}
+                  <div className="mt-4 flex items-center justify-between border-t border-[var(--color-line-1)] pt-3 text-[12px]">
+                    <span className="text-[var(--color-ink-3)]">
+                      Stake: <span className="mono font-bold text-white">${s.amount} USDC</span>
+                    </span>
+                    <button
+                      onClick={() => handleCopySlip(s)}
+                      className="flex items-center gap-1.5 rounded-lg bg-[var(--color-brand-500)] px-4 py-2 text-[12px] font-bold text-[var(--color-bg-0)] shadow-md transition-all hover:bg-[var(--color-brand-400)] active:scale-95"
+                    >
+                      <CopyIcon className="h-3.5 w-3.5" /> Tail Pick
+                    </button>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div>
-          <SectionHeader title="Top bettors" subtitle="Last 30 days" Icon={TrophyIcon} accent="var(--color-warn)" />
-          <div className="space-y-2">
-            {topBettors.map((b) => (
-              <div key={b.rank} className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3">
-                <div className="mb-2 flex items-center gap-2.5">
-                  <div className="mono flex h-7 w-7 items-center justify-center rounded-md bg-[var(--color-bg-3)] text-[11px] font-black text-white">
-                    #{b.rank}
-                  </div>
-                  <Avatar color={b.color} initials={b.handle.slice(0, 2).toUpperCase()} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1">
-                      <p className="truncate text-[13px] font-bold text-white">{b.handle}</p>
-                      {b.verified && <BadgeCheck className="h-3.5 w-3.5 text-[var(--color-info)]" />}
-                    </div>
-                    <p className="text-[11px] text-[var(--color-ink-3)]">{b.followers.toLocaleString()} followers</p>
-                  </div>
-                  <Button size="sm" variant="outline">Follow</Button>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  <Stat label="Win" value={`${b.winRate}%`} accent="var(--color-brand-500)" />
-                  <Stat label="ROI" value={`+${b.roi}%`} accent="var(--color-info)" />
-                  <Stat label="Streak" value={`${b.streak}`} accent="var(--color-warn)" />
-                </div>
+        {/* Right Column: Top Database Tipsters */}
+        <div className="space-y-6">
+          <div className="rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrophyIcon className="h-4 w-4 text-[var(--color-warn)]" />
+                <h3 className="text-sm font-bold text-white">Top Database Tipsters</h3>
               </div>
-            ))}
-            <button className="flex w-full items-center justify-between rounded-md bg-[var(--color-bg-2)] px-3 py-2 text-[12px] text-[var(--color-ink-2)] hover:bg-[var(--color-bg-3)]">
-              See full leaderboard
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
+              <Link href="/leaderboard" className="text-[11px] font-bold text-[var(--color-brand-500)] hover:underline">
+                Full Leaderboard →
+              </Link>
+            </div>
+
+            {loadingTipsters ? (
+              <div className="h-32 animate-pulse rounded-xl bg-[var(--color-bg-1)]" />
+            ) : tipsters.length === 0 ? (
+              <p className="text-[12px] text-[var(--color-ink-3)] p-4 text-center">No active tipsters yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {tipsters.map((t) => (
+                  <div
+                    key={t.userId}
+                    className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3 transition-all hover:border-[var(--color-line-2)]"
+                  >
+                    <div className="mb-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <span className="mono flex h-6 w-6 items-center justify-center rounded bg-[var(--color-bg-3)] text-[10px] font-black text-white">
+                          #{t.rank}
+                        </span>
+                        <div
+                          className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-black text-white"
+                          style={{ background: `linear-gradient(135deg, ${t.color}, ${t.color}99)` }}
+                        >
+                          {t.handle.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1">
+                            <p className="truncate text-[12px] font-bold text-white">{t.handle}</p>
+                            {t.verified && <BadgeCheck className="h-3.5 w-3.5 text-[var(--color-info)]" />}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="mono text-[11px] font-bold text-[var(--color-brand-500)]">
+                        {t.winRate}% WR
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Avatar({ color, initials }: { color: string; initials: string }) {
-  return (
-    <div
-      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-black text-white"
-      style={{ background: `linear-gradient(135deg, ${color}, ${color}99)` }}
-    >
-      {initials}
-    </div>
-  );
-}
-
-function Stat({ label, value, accent }: { label: string; value: string; accent: string }) {
-  return (
-    <div className="rounded-md bg-[var(--color-bg-1)] px-2 py-1.5">
-      <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</p>
-      <p className="mono text-[13px] font-black" style={{ color: accent }}>{value}</p>
     </div>
   );
 }

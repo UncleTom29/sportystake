@@ -1,4 +1,20 @@
+/**
+ * @deprecated Static fixtures used by pages that haven't migrated to the
+ * real API yet. The runtime data is now served from:
+ *   - `Markets.list()` / `Markets.live()` / `Markets.detail(id)`  → matches
+ *   - `Casino.games()`                                            → casinoGames
+ *   - `Liquidity.pool()`                                          → the single, protocol-wide pool
+ *
+ * The TYPE exports (`Match`, `CasinoGame`, etc.) remain valid and are still
+ * used as the structural shape inside `MatchCard`, `GameTile`, etc. Pages
+ * that import the const arrays below should be migrated to fetch+useState
+ * (see `LiveScoreTicker.tsx` for the canonical pattern).
+ *
+ * Tracked in PRODUCTION_TODO.md → P1 "Replace mockData.ts consumption".
+ */
 import type { SportSlug } from "@/components/icons/SportIcons";
+
+import type { OddsBundle } from "./types";
 
 export type Match = {
   id: string;
@@ -27,32 +43,23 @@ export type Match = {
   totalLine?: number;
   markets: number;          // count of additional markets
   isHot?: boolean;
+  odds?: OddsBundle[];
 };
 
 export type CasinoGame = {
   id: string;
   name: string;
-  category: "Slots" | "Table" | "Live" | "Crash" | "Dice" | "Original";
+  href: string;
+  category: "Slots" | "Table" | "Crash" | "Dice";
   provider: string;
+  /** Derived from the on-chain house edge (houseEdgeBps in src/lib/server/casino.ts), not a marketing figure. */
   rtp: number;
   minBet: number;
   maxBet: number;
   color: string;
   accent: string;
-  tag?: "HOT" | "NEW" | "JACKPOT";
-  players?: number;
-};
-
-export type LiquidityPool = {
-  id: string;
-  name: string;
-  asset: "USDT" | "USDC" | "ETH";
-  tvl: number;
-  apy: number;
-  volume24h: number;
-  myStake: number;
-  myEarnings: number;
-  utilization: number; // 0-1
+  tag?: "HOT" | "NEW";
+  description: string;
 };
 
 export type EsportsMatch = {
@@ -208,26 +215,16 @@ export const matches: Match[] = [
   },
 ];
 
+// Every game here is real — built on CasinoHouse.sol / CrashGame.sol, signed
+// on-chain via Circle, settled by the operator. RTP is `100% - houseEdgeBps/100`
+// straight from src/lib/server/casino.ts, not a marketing number.
 export const casinoGames: CasinoGame[] = [
-  { id: "cg1", name: "Book of Dead", category: "Slots", provider: "Play'n GO", rtp: 96.21, minBet: 0.10, maxBet: 100, color: "#c9920a", accent: "#ffd86b", tag: "HOT", players: 412 },
-  { id: "cg2", name: "Blackjack Pro", category: "Table", provider: "SportyStake", rtp: 99.50, minBet: 1, maxBet: 10000, color: "#0f6b34", accent: "#21d36b", players: 218 },
-  { id: "cg3", name: "Mega Roulette", category: "Live", provider: "Pragmatic", rtp: 97.30, minBet: 0.50, maxBet: 5000, color: "#7a0e0e", accent: "#ff5a5a", tag: "JACKPOT", players: 1841 },
-  { id: "cg4", name: "Crash Rocket", category: "Crash", provider: "SportyStake", rtp: 97.00, minBet: 0.10, maxBet: 500, color: "#5b21b6", accent: "#a78bfa", tag: "HOT", players: 2204 },
-  { id: "cg5", name: "Sweet Bonanza", category: "Slots", provider: "Pragmatic", rtp: 96.51, minBet: 0.20, maxBet: 125, color: "#a01e60", accent: "#f472b6", players: 982 },
-  { id: "cg6", name: "Dice Duel", category: "Dice", provider: "SportyStake", rtp: 99.00, minBet: 0.10, maxBet: 1000, color: "#0e6f88", accent: "#22d3ee", tag: "NEW", players: 521 },
-  { id: "cg7", name: "Baccarat Live", category: "Live", provider: "Evolution", rtp: 98.76, minBet: 5, maxBet: 25000, color: "#054432", accent: "#10b981", players: 312 },
-  { id: "cg8", name: "Gates of Olympus", category: "Slots", provider: "Pragmatic", rtp: 96.50, minBet: 0.20, maxBet: 125, color: "#0c2b6b", accent: "#3b82f6", tag: "HOT", players: 1432 },
-  { id: "cg9", name: "Plinko XY", category: "Original", provider: "SportyStake", rtp: 99.00, minBet: 0.10, maxBet: 1000, color: "#0a4d3c", accent: "#34d399", players: 644 },
-  { id: "cg10", name: "Mines", category: "Original", provider: "SportyStake", rtp: 99.00, minBet: 0.10, maxBet: 5000, color: "#3a0a4d", accent: "#a855f7", players: 388 },
-  { id: "cg11", name: "Sugar Rush", category: "Slots", provider: "Pragmatic", rtp: 96.50, minBet: 0.20, maxBet: 100, color: "#7a1361", accent: "#ec4899", players: 712 },
-  { id: "cg12", name: "Lightning Roulette", category: "Live", provider: "Evolution", rtp: 97.30, minBet: 0.20, maxBet: 5000, color: "#3a0c14", accent: "#ffb020", tag: "HOT", players: 1124 },
-];
-
-export const liquidityPools: LiquidityPool[] = [
-  { id: "lp1", name: "Sportsbook Main", asset: "USDT", tvl: 4_250_000, apy: 12.4, volume24h: 890_000, myStake: 5000, myEarnings: 62.3, utilization: 0.62 },
-  { id: "lp2", name: "Casino Reserve", asset: "USDC", tvl: 2_180_000, apy: 9.8, volume24h: 430_000, myStake: 0, myEarnings: 0, utilization: 0.48 },
-  { id: "lp3", name: "High Yield", asset: "ETH", tvl: 1_640_000, apy: 18.2, volume24h: 210_000, myStake: 0, myEarnings: 0, utilization: 0.81 },
-  { id: "lp4", name: "Stable Yield", asset: "USDT", tvl: 870_000, apy: 7.5, volume24h: 95_000, myStake: 0, myEarnings: 0, utilization: 0.34 },
+  { id: "crash", name: "Aviator", href: "/casino/crash", category: "Crash", provider: "SportyStake", rtp: 99.00, minBet: 1, maxBet: 5000, color: "#5b21b6", accent: "#a78bfa", tag: "HOT", description: "Cash out before the plane flies away. Commit-reveal on-chain." },
+  { id: "dice", name: "Dice", href: "/casino/dice", category: "Dice", provider: "SportyStake", rtp: 99.00, minBet: 1, maxBet: 5000, color: "#0e6f88", accent: "#22d3ee", tag: "HOT", description: "Roll over or under. Adjust the threshold, adjust the odds." },
+  { id: "slots", name: "Slots", href: "/casino/slots", category: "Slots", provider: "SportyStake", rtp: 96.50, minBet: 1, maxBet: 5000, color: "#a01e60", accent: "#f472b6", tag: "HOT", description: "5 reels, provably-fair symbol grid. Wilds pay big." },
+  { id: "roulette", name: "Roulette", href: "/casino/roulette", category: "Table", provider: "SportyStake", rtp: 97.30, minBet: 1, maxBet: 5000, color: "#7a0e0e", accent: "#ff5a5a", tag: "NEW", description: "European single-zero wheel. Straight-up pays 36×." },
+  { id: "blackjack", name: "Blackjack", href: "/casino/blackjack", category: "Table", provider: "SportyStake", rtp: 99.50, minBet: 1, maxBet: 5000, color: "#0f6b34", accent: "#21d36b", tag: "NEW", description: "Beat the dealer's 17 without busting." },
+  { id: "baccarat", name: "Baccarat", href: "/casino/baccarat", category: "Table", provider: "SportyStake", rtp: 98.80, minBet: 1, maxBet: 5000, color: "#054432", accent: "#10b981", tag: "NEW", description: "Player, Banker, or Tie — closest to 9 wins." },
 ];
 
 export const esportsMatches: EsportsMatch[] = [
@@ -240,7 +237,6 @@ export const esportsMatches: EsportsMatch[] = [
 export const stats = {
   totalVolume: "124.8M",
   activePlayers: "48,204",
-  poolsLiquidity: "8.94M",
   sportsMarkets: "12,400+",
   liveMarkets: 248,
 };
@@ -248,61 +244,118 @@ export const stats = {
 export const promos = [
   {
     id: "p1",
-    tag: "Welcome",
-    title: "Wager $50, get a $25 free bet",
-    subtitle: "New non-custodial wallets only · Auto-credited on first settled bet",
-    cta: "Claim",
+    tag: "Welcome Bonus",
+    title: "100% Match up to $2,000 Wager Bonus",
+    subtitle: "100% bonus match on your first settled wager on-chain · No KYC required · T&C apply",
+    cta: "Claim $2,000 Bonus",
     href: "/sportsbook",
-    gradient: "from-emerald-500/30 via-emerald-700/20 to-transparent",
+    gradient: "from-emerald-500/35 via-emerald-700/20 to-transparent",
     accent: "#00e701",
+    tnc: "100% bonus match up to $2,000 USDC on your first settled wager. Non-custodial Web3 settlement. Terms apply.",
   },
   {
     id: "p2",
-    tag: "Boost",
-    title: "Acca insurance up to $100",
-    subtitle: "Five+ legs · One leg lets you down, your stake is refunded",
-    cta: "Build acca",
-    href: "/sportsbook",
-    gradient: "from-cyan-500/30 via-cyan-700/15 to-transparent",
+    tag: "Lifetime Referrals",
+    title: "Earn Lifetime Revenue Cut from Wagers",
+    subtitle: "Invite friends & get a perpetual percentage of all wagers placed by your referred users for life · T&C apply",
+    cta: "Get Referral Link",
+    href: "/profile",
+    gradient: "from-cyan-500/35 via-cyan-700/20 to-transparent",
     accent: "#2dc4ff",
+    tnc: "Referrers receive up to 25% house margin share on all settled wagers. No earnings cap. Terms apply.",
   },
   {
     id: "p3",
-    tag: "LP",
-    title: "Earn up to 18.2% APY",
-    subtitle: "Back the house · Real yield from sportsbook and casino margin",
-    cta: "Provide liquidity",
+    tag: "Affiliate Promo",
+    title: "Earn on Shared Bet Tickets",
+    subtitle: "Share your bet slips on X & Telegram · Earn instant affiliate commissions whenever users copy your ticket code",
+    cta: "Share & Earn",
+    href: "/sportsbook",
+    gradient: "from-amber-500/35 via-amber-700/20 to-transparent",
+    accent: "#ffb800",
+    tnc: "Earn 2% on total wagered volume copied via your shared ticket code (e.g. ST-7X9K2).",
+  },
+  {
+    id: "p4",
+    tag: "Be The House",
+    title: "Earn Up to 22,000% APY on LP Deposits",
+    subtitle: "Deposit USDC into the single shared on-chain pool · Anyone can bank the house & earn real game margin",
+    cta: "Provide Liquidity",
     href: "/pools",
-    gradient: "from-violet-500/30 via-violet-700/15 to-transparent",
+    gradient: "from-violet-500/35 via-violet-700/20 to-transparent",
     accent: "#a78bfa",
+    tnc: "Returns derived from platform wagering volume & margin. Variable yield based on pool utilization.",
+  },
+  {
+    id: "p5",
+    tag: "Mega Jackpot",
+    title: "$5,000,000 Protocol Liquidity Pool",
+    subtitle: "Bettors can win massive multi-million dollar payouts backed directly by protocol liquidity · Instant on-chain settlement",
+    cta: "Explore $5M Pool",
+    href: "/pools",
+    gradient: "from-rose-500/35 via-rose-700/20 to-transparent",
+    accent: "#ff2d55",
+    tnc: "All sports & casino payouts backed 100% on-chain by audited liquidity pool contracts.",
+  },
+  {
+    id: "p6",
+    tag: "Free AI Intelligence",
+    title: "Free LLM Powered Analytics & Match Insights",
+    subtitle: "Claude Fable AI powered predictive analytics for every fixture · Real-time value odds & AI match circuits · 100% Free",
+    cta: "Open AI Analytics",
+    href: "/ai-analytics",
+    gradient: "from-sky-500/35 via-indigo-700/20 to-transparent",
+    accent: "#38bdf8",
+    tnc: "Free LLM sports predictions & value odds analysis available to all connected Web3 wallets.",
   },
 ];
 
 export const topLeagues = [
-  { slug: "epl", name: "Premier League", sport: "soccer" as const, country: "ENG", live: 3, today: 6 },
-  { slug: "ucl", name: "Champions League", sport: "soccer" as const, country: "EUR", live: 1, today: 4 },
-  { slug: "lal", name: "La Liga", sport: "soccer" as const, country: "ESP", live: 2, today: 5 },
-  { slug: "sea", name: "Serie A", sport: "soccer" as const, country: "ITA", live: 0, today: 4 },
-  { slug: "bun", name: "Bundesliga", sport: "soccer" as const, country: "GER", live: 1, today: 3 },
-  { slug: "li1", name: "Ligue 1", sport: "soccer" as const, country: "FRA", live: 0, today: 2 },
-  { slug: "nba", name: "NBA", sport: "basketball" as const, country: "USA", live: 4, today: 8 },
-  { slug: "nhl", name: "NHL", sport: "hockey" as const, country: "USA", live: 2, today: 6 },
-  { slug: "atp", name: "ATP Tour", sport: "tennis" as const, country: "INT", live: 1, today: 12 },
-  { slug: "ufc", name: "UFC", sport: "mma" as const, country: "INT", live: 0, today: 1 },
+  { slug: "epl", name: "Premier League", sport: "football" as const, country: "ENG", live: 0, today: 0 },
+  { slug: "ucl", name: "Champions League", sport: "football" as const, country: "EUR", live: 0, today: 0 },
+  { slug: "lal", name: "La Liga", sport: "football" as const, country: "ESP", live: 0, today: 0 },
+  { slug: "sea", name: "Serie A", sport: "football" as const, country: "ITA", live: 0, today: 0 },
+  { slug: "bun", name: "Bundesliga", sport: "football" as const, country: "GER", live: 0, today: 0 },
+  { slug: "li1", name: "Ligue 1", sport: "football" as const, country: "FRA", live: 0, today: 0 },
+  { slug: "nba", name: "NBA", sport: "basketball" as const, country: "USA", live: 0, today: 0 },
+  { slug: "nhl", name: "NHL", sport: "ice-hockey" as const, country: "USA", live: 0, today: 0 },
+  { slug: "atp", name: "ATP Tour", sport: "tennis" as const, country: "INT", live: 0, today: 0 },
+  { slug: "ufc", name: "UFC", sport: "mixed-martial-arts" as const, country: "INT", live: 0, today: 0 },
 ];
 
 export const sportsList = [
-  { slug: "soccer" as const, name: "Soccer", count: 1284 },
-  { slug: "basketball" as const, name: "Basketball", count: 312 },
-  { slug: "tennis" as const, name: "Tennis", count: 188 },
-  { slug: "hockey" as const, name: "Ice Hockey", count: 96 },
-  { slug: "baseball" as const, name: "Baseball", count: 84 },
-  { slug: "mma" as const, name: "MMA / UFC", count: 32 },
-  { slug: "football" as const, name: "American FB", count: 48 },
-  { slug: "cricket" as const, name: "Cricket", count: 64 },
-  { slug: "rugby" as const, name: "Rugby", count: 28 },
-  { slug: "volleyball" as const, name: "Volleyball", count: 44 },
-  { slug: "tabletennis" as const, name: "Table Tennis", count: 56 },
-  { slug: "esports" as const, name: "Esports", count: 124 },
-  { slug: "horse" as const, name: "Horse Racing", count: 38 },
+  { slug: "football" as const, name: "Football", count: 0 },
+  { slug: "basketball" as const, name: "Basketball", count: 0 },
+  { slug: "tennis" as const, name: "Tennis", count: 0 },
+  { slug: "baseball" as const, name: "Baseball", count: 0 },
+  { slug: "american-football" as const, name: "American Football", count: 0 },
+  { slug: "ice-hockey" as const, name: "Ice Hockey", count: 0 },
+  { slug: "esports" as const, name: "Esports", count: 0 },
+  { slug: "darts" as const, name: "Darts", count: 0 },
+  { slug: "mixed-martial-arts" as const, name: "MMA", count: 0 },
+  { slug: "boxing" as const, name: "Boxing", count: 0 },
+  { slug: "handball" as const, name: "Handball", count: 0 },
+  { slug: "volleyball" as const, name: "Volleyball", count: 0 },
+  { slug: "snooker" as const, name: "Snooker", count: 0 },
+  { slug: "table-tennis" as const, name: "Table Tennis", count: 0 },
+  { slug: "rugby" as const, name: "Rugby", count: 0 },
+  { slug: "cricket" as const, name: "Cricket", count: 0 },
+  { slug: "water-polo" as const, name: "Waterpolo", count: 0 },
+  { slug: "futsal" as const, name: "Futsal", count: 0 },
+  { slug: "beach-volleyball" as const, name: "Beach Volley", count: 0 },
+  { slug: "aussie-rules" as const, name: "Aussie Rules", count: 0 },
+  { slug: "floorball" as const, name: "Floorball", count: 0 },
+  { slug: "squash" as const, name: "Squash", count: 0 },
+  { slug: "beach-soccer" as const, name: "Beach Soccer", count: 0 },
+  { slug: "lacrosse" as const, name: "Lacrosse", count: 0 },
+  { slug: "curling" as const, name: "Curling", count: 0 },
+  { slug: "padel" as const, name: "Padel", count: 0 },
+  { slug: "bandy" as const, name: "Bandy", count: 0 },
+  { slug: "gaelic-football" as const, name: "Gaelic Football", count: 0 },
+  { slug: "beach-handball" as const, name: "Beach Handball", count: 0 },
+  { slug: "athletics" as const, name: "Athletics", count: 0 },
+  { slug: "badminton" as const, name: "Badminton", count: 0 },
+  { slug: "cross-country" as const, name: "Cross-Country", count: 0 },
+  { slug: "golf" as const, name: "Golf", count: 0 },
+  { slug: "cycling" as const, name: "Cycling", count: 0 },
 ];

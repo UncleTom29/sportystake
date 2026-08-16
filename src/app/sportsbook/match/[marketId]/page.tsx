@@ -1,399 +1,521 @@
 "use client";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { matches } from "@/lib/mockData";
-import { useBetSlip } from "@/lib/betSlipStore";
+import { Markets } from "@/lib/api-client";
+import { marketToMatch } from "@/lib/adapters/marketToMatch";
+import type { Match } from "@/lib/mockData";
+import type { MarketDTO, OddsBundle } from "@/lib/types";
 import OddsButton from "@/components/sportsbook/OddsButton";
-import Badge from "@/components/ui/Badge";
 import {
-  ChevronLeft, LiveIcon, ZapIcon, ShieldIcon, TrendUp, TrendDown, SparkleIcon,
+  ChevronLeft, LiveIcon, ShieldIcon, ZapIcon,
 } from "@/components/icons/UIIcons";
 
-type MarketSection = {
+interface MarketRow {
+  label: string;
+  selections: { label: string; outcome: number; odds: number }[];
+}
+interface MarketSection {
   id: string;
   label: string;
-  rows: { label: string; selections: { label: string; odds: number }[] }[];
-};
-
-function buildMarkets(m: typeof matches[0]): MarketSection[] {
-  return [
-    {
-      id: "1X2",
-      label: "Match Result",
-      rows: [
-        {
-          label: "1X2",
-          selections: [
-            { label: m.homeTeam + " Win", odds: m.homeOdds },
-            ...(m.drawOdds ? [{ label: "Draw", odds: m.drawOdds }] : []),
-            { label: m.awayTeam + " Win", odds: m.awayOdds },
-          ],
-        },
-        {
-          label: "Double Chance",
-          selections: [
-            { label: `${m.homeShort}/Draw`, odds: +(m.homeOdds * 0.6).toFixed(2) },
-            { label: `${m.homeShort}/${m.awayShort}`, odds: +(m.homeOdds * 0.55).toFixed(2) },
-            { label: `Draw/${m.awayShort}`, odds: +(m.awayOdds * 0.6).toFixed(2) },
-          ],
-        },
-      ],
-    },
-    {
-      id: "over_under",
-      label: "Over / Under",
-      rows: [
-        {
-          label: "Goals",
-          selections: [
-            { label: "O 0.5", odds: 1.10 }, { label: "U 0.5", odds: 6.50 },
-            { label: "O 1.5", odds: 1.32 }, { label: "U 1.5", odds: 3.25 },
-            { label: "O 2.5", odds: m.totalOverOdds ?? 1.87 }, { label: "U 2.5", odds: m.totalUnderOdds ?? 1.93 },
-            { label: "O 3.5", odds: 2.85 }, { label: "U 3.5", odds: 1.42 },
-            { label: "O 4.5", odds: 4.60 }, { label: "U 4.5", odds: 1.15 },
-          ],
-        },
-      ],
-    },
-    {
-      id: "btts",
-      label: "Both Teams to Score",
-      rows: [
-        {
-          label: "BTTS",
-          selections: [
-            { label: "Yes", odds: 1.68 },
-            { label: "No", odds: 2.10 },
-          ],
-        },
-      ],
-    },
-    {
-      id: "handicap",
-      label: "Asian Handicap",
-      rows: [
-        {
-          label: `${m.homeTeam} -0.5`,
-          selections: [
-            { label: m.homeTeam, odds: +(m.homeOdds * 1.1).toFixed(2) },
-            { label: m.awayTeam, odds: +(m.awayOdds * 0.9).toFixed(2) },
-          ],
-        },
-        {
-          label: `${m.homeTeam} -1.5`,
-          selections: [
-            { label: m.homeTeam, odds: +(m.homeOdds * 1.5).toFixed(2) },
-            { label: m.awayTeam, odds: +(m.awayOdds * 0.7).toFixed(2) },
-          ],
-        },
-      ],
-    },
-  ];
+  rows: MarketRow[];
 }
 
-const FORM_HOME = ["W", "W", "D", "W", "L"] as const;
-const FORM_AWAY = ["W", "D", "L", "W", "W"] as const;
+/** Build market sections from real OddsBundle data the oracle has captured. */
+function buildMarkets(odds: OddsBundle[]): MarketSection[] {
+  function findBundle(type: string): OddsBundle | undefined {
+    return odds.find((o) => o.marketType === type);
+  }
+  function selsFor(type: string): MarketRow["selections"] {
+    const b = findBundle(type);
+    if (!b) return [];
+    return b.selections.map((s) => ({
+      label: s.label,
+      outcome: s.outcome,
+      odds: s.valueX1000 / 1000,
+    }));
+  }
 
-const H2H = [
-  { date: "12 Jan 2025", home: "Arsenal", away: "Man City", score: "2–1", winner: "home" },
-  { date: "05 Oct 2024", home: "Man City", away: "Arsenal", score: "3–1", winner: "home" },
-  { date: "31 Mar 2024", home: "Arsenal", away: "Man City", score: "0–0", winner: "draw" },
-  { date: "08 Oct 2023", home: "Man City", away: "Arsenal", score: "1–0", winner: "home" },
-  { date: "26 Apr 2023", home: "Arsenal", away: "Man City", score: "3–3", winner: "draw" },
-];
+  const out: MarketSection[] = [];
 
-type Tab = "1X2" | "over_under" | "btts" | "handicap";
+  const binary = selsFor("binary");
+  if (binary.length > 0) {
+    out.push({
+      id: "binary",
+      label: "Prediction",
+      rows: [{ label: "Outcome", selections: binary }],
+    });
+  }
+
+  const oneX2 = selsFor("1X2");
+  if (oneX2.length > 0) {
+    out.push({
+      id: "1X2",
+      label: "Match Result",
+      rows: [{ label: "1X2", selections: oneX2 }],
+    });
+  }
+
+  // Over / Under — collect ALL over_under_* market types, sort by line value.
+  // Key encoding: line × 10, stored as integer (e.g. 0.5→5, 2.5→25, 3.0→30, 47.5→475)
+  const ouLineVal = (key: string) => parseInt(key.replace("over_under_", ""), 10) / 10;
+  const allOuTypes = [...new Set(
+    odds.filter((o) => o.marketType.startsWith("over_under_")).map((o) => o.marketType),
+  )].sort((a, b) => ouLineVal(a) - ouLineVal(b));
+  const ouRows: MarketRow[] = [];
+  for (const lineType of allOuTypes) {
+    const sels = selsFor(lineType);
+    if (sels.length === 0) continue;
+    const lineNum = ouLineVal(lineType);
+    const numStr = lineNum % 1 === 0 ? `${lineNum}.0` : lineNum.toFixed(1);
+    const lineLabel = lineNum <= 15 ? `Goals ${numStr}` : `Total ${numStr}`;
+    ouRows.push({ label: lineLabel, selections: sels });
+  }
+  if (ouRows.length > 0) out.push({ id: "over_under", label: "Over / Under", rows: ouRows });
+
+  const btts = selsFor("btts");
+  if (btts.length > 0) {
+    out.push({ id: "btts", label: "Both Teams to Score", rows: [{ label: "BTTS", selections: btts }] });
+  }
+
+  const dc = selsFor("double_chance");
+  if (dc.length > 0) {
+    out.push({ id: "double_chance", label: "Double Chance", rows: [{ label: "Double Chance", selections: dc }] });
+  }
+
+  const dnb = selsFor("draw_no_bet");
+  if (dnb.length > 0) {
+    out.push({ id: "draw_no_bet", label: "Draw No Bet", rows: [{ label: "Draw No Bet", selections: dnb }] });
+  }
+
+  const ht = selsFor("half_time_result");
+  if (ht.length > 0) {
+    out.push({ id: "half_time", label: "Half-Time Result", rows: [{ label: "Half Time", selections: ht }] });
+  }
+
+  // Asian Handicap — one entry per line (e.g. asian_handicap_-15 = −1.5)
+  const ahTypes = [...new Set(
+    odds.filter((o) => o.marketType.startsWith("asian_handicap_")).map((o) => o.marketType),
+  )].sort((a, b) => {
+    const parse = (k: string) => parseFloat(k.replace("asian_handicap_", "").replace(/(\d)(\d)$/, "$1.$2"));
+    return parse(a) - parse(b);
+  });
+  const ahRows: MarketRow[] = [];
+  for (const ahType of ahTypes) {
+    const sels = selsFor(ahType);
+    if (sels.length === 0) continue;
+    const raw = ahType.replace("asian_handicap_", "");
+    const lineLabel = raw.replace(/(-?)(\d)(\d)$/, "$1$2.$3") || raw;
+    ahRows.push({ label: `Handicap ${lineLabel}`, selections: sels });
+  }
+  if (ahRows.length > 0) out.push({ id: "asian_handicap", label: "Asian Handicap", rows: ahRows });
+
+  // Team Totals — one entry per (team, line) combination (e.g. team_total_home_15 = home O/U 1.5)
+  const ttTypes = [...new Set(
+    odds.filter((o) => o.marketType.startsWith("team_total_")).map((o) => o.marketType),
+  )].sort();
+  const ttRows: MarketRow[] = [];
+  for (const ttType of ttTypes) {
+    const sels = selsFor(ttType);
+    if (sels.length === 0) continue;
+    const parts = ttType.replace("team_total_", "").split("_");
+    const teamPart = parts[0] ?? "";
+    const linePart = parts.slice(1).join("_");
+    const lineDisplay = linePart.replace(/(-?)(\d)(\d)$/, "$1$2.$3");
+    const teamLabel = teamPart === "home" ? "Home" : teamPart === "away" ? "Away" : teamPart;
+    ttRows.push({ label: `${teamLabel} ${lineDisplay}`, selections: sels });
+  }
+  if (ttRows.length > 0) out.push({ id: "team_totals", label: "Team Totals", rows: ttRows });
+
+  return out;
+}
 
 export default function MatchDetailPage({ params }: { params: Promise<{ marketId: string }> }) {
   const { marketId } = use(params);
-  const match = matches.find((m) => m.id === marketId);
-  const [tab, setTab] = useState<Tab>("1X2");
-  const { addSelection, hasSelection } = useBetSlip();
+  const [market, setMarket] = useState<MarketDTO | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<string>("1X2");
+  const [nowTs, setNowTs] = useState<number | null>(null);
 
-  if (!match) return notFound();
+  useEffect(() => {
+    let cancelled = false;
+    Markets.detail(marketId)
+      .then((m) => {
+        if (cancelled) return;
+        setMarket(m);
+      })
+      .catch((err: Error) => { if (!cancelled) setError(err.message ?? "Failed to load market"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [marketId]);
 
-  const markets = buildMarkets(match);
+  useEffect(() => {
+    setNowTs(Date.now());
+  }, [market?.id, market?.startTime, market?.status]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-[1400px] px-3 py-20 text-center text-[13px] text-[var(--color-ink-3)]">
+        Loading match…
+      </div>
+    );
+  }
+  if (error?.toLowerCase().includes("not found")) {
+    notFound();
+  }
+  if (error || !market) {
+    return (
+      <div className="mx-auto max-w-[1400px] px-3 py-20 text-center">
+        <p className="text-[15px] font-bold text-[var(--color-live)]">Failed to load match</p>
+        <p className="mt-1 text-[13px] text-[var(--color-ink-3)]">{error ?? "Unknown error"}</p>
+        <Link href="/sportsbook" className="mt-4 inline-block text-[12px] text-[var(--color-brand-500)] hover:underline">
+          ← Back to sportsbook
+        </Link>
+      </div>
+    );
+  }
+
+  const matchUi: Match = marketToMatch(market);
+  const markets = buildMarkets(market.odds ?? []);
   const activeMarket = markets.find((m) => m.id === tab) ?? markets[0];
+  const question = typeof market.metadata?.question === "string" ? market.metadata.question : null;
+  const isPrediction = market.sport === "prediction-markets" || Boolean(question);
+  const backHref = isPrediction ? "/prediction-markets" : "/sportsbook";
+  const backLabel = isPrediction ? "Prediction Markets" : "Sportsbook";
+  const title = question ?? `${market.homeTeam} vs ${market.awayTeam}`;
+  const category = typeof market.metadata?.category === "string" ? market.metadata.category : market.country;
+  const description = typeof market.metadata?.description === "string" ? market.metadata.description : null;
+  const kickoffAt = Date.parse(market.startTime);
+  const bettingLocked = market.status !== "OPEN" || nowTs === null || (Number.isFinite(kickoffAt) && kickoffAt <= nowTs);
 
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
       {/* Breadcrumb */}
-      <div className="mb-4 flex items-center gap-2 text-[12px] text-[var(--color-ink-3)]">
-        <Link href="/sportsbook" className="flex items-center gap-1 hover:text-white">
+      <div className="mb-4 flex items-center gap-1.5 text-[12px] text-[var(--color-ink-3)] flex-wrap">
+        <Link href={backHref} className="flex items-center gap-1 hover:text-white shrink-0">
           <ChevronLeft className="h-3.5 w-3.5" />
-          Sportsbook
+          {backLabel}
         </Link>
         <span>/</span>
-        <span>{match.league}</span>
+        <span className="truncate max-w-[140px]">{market.leagueName}</span>
         <span>/</span>
-        <span className="text-white">{match.homeTeam} vs {match.awayTeam}</span>
+        <span className="text-white truncate max-w-[200px]">{title}</span>
       </div>
 
       {/* Match header */}
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6">
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4 sm:p-6">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(0,231,1,0.06),transparent_60%)]" />
         <div className="relative">
-          <div className="mb-4 flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">
-              {match.league} · {match.country}
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)] truncate">
+              {market.leagueName} · {category}
             </span>
-            {match.isLive ? (
-              <Badge variant="danger" className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-                LIVE {match.liveMinute}
-              </Badge>
+            {market.status === "LIVE" ? (
+              <span className="mono inline-flex items-center gap-1.5 rounded-md bg-live/15 px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-live border border-live/25 shrink-0">
+                <span className="h-1.5 w-1.5 rounded-full bg-live animate-pulse" />
+                LIVE {market.liveMinute ? `${market.liveMinute}'` : ""}
+              </span>
             ) : (
-              <span className="mono text-[12px] text-[var(--color-ink-2)]">{match.time}</span>
+              <span className="mono text-[12px] text-[var(--color-ink-2)] shrink-0">{matchUi.time}</span>
             )}
           </div>
-
-          <div className="flex items-center justify-center gap-8">
-            <div className="text-center flex-1">
-              <div
-                className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 text-xl font-black"
-                style={{ borderColor: match.homeColor, background: `${match.homeColor}20` }}
-              >
-                {match.homeShort}
+          {isPrediction ? (
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-xl sm:text-2xl md:text-3xl font-black leading-tight text-white">{title}</p>
+              {description && <p className="mx-auto mt-3 max-w-2xl text-[13px] text-[var(--color-ink-2)]">{description}</p>}
+              <p className="mono mt-4 text-[12px] text-[var(--color-ink-3)]">Resolves {matchUi.time}</p>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center gap-3 sm:gap-8">
+              {/* Home Team */}
+              <div className="text-center flex-1 min-w-0">
+                <div
+                  className="mx-auto mb-2 sm:mb-3 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 text-sm sm:text-xl font-black shadow-lg"
+                  style={{ borderColor: matchUi.homeColor, background: `${matchUi.homeColor}20` }}
+                >
+                  {matchUi.homeShort}
+                </div>
+                <p className="text-[13px] sm:text-[15px] font-bold text-white leading-tight break-words max-w-[130px] sm:max-w-none mx-auto">
+                  {market.homeTeam}
+                </p>
               </div>
-              <p className="text-[15px] font-bold text-white">{match.homeTeam}</p>
-              <div className="mt-1 flex items-center justify-center gap-1">
-                {FORM_HOME.map((r, i) => (
-                  <FormBadge key={i} result={r} />
-                ))}
+
+              {/* Center VS / Live Score */}
+              <div className="text-center shrink-0 px-1 sm:px-2">
+                {market.status === "LIVE" ? (
+                  <>
+                    <p className="mono text-3xl sm:text-5xl font-black text-white">
+                      {market.homeScore ?? 0}–{market.awayScore ?? 0}
+                    </p>
+                    <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] sm:text-[12px] text-[var(--color-live)] font-bold">
+                      <LiveIcon className="h-3.5 w-3.5" />
+                      {market.liveMinute ? `${market.liveMinute}'` : "LIVE"}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[12px] sm:text-[13px] font-bold text-[var(--color-ink-2)]">VS</p>
+                    <p className="mono mt-1 text-[10px] sm:text-[11px] text-[var(--color-ink-3)]">{matchUi.time}</p>
+                  </>
+                )}
+              </div>
+
+              {/* Away Team */}
+              <div className="text-center flex-1 min-w-0">
+                <div
+                  className="mx-auto mb-2 sm:mb-3 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full border-2 text-sm sm:text-xl font-black shadow-lg"
+                  style={{ borderColor: matchUi.awayColor, background: `${matchUi.awayColor}20` }}
+                >
+                  {matchUi.awayShort}
+                </div>
+                <p className="text-[13px] sm:text-[15px] font-bold text-white leading-tight break-words max-w-[130px] sm:max-w-none mx-auto">
+                  {market.awayTeam}
+                </p>
               </div>
             </div>
+          )}
 
-            <div className="text-center">
-              {match.isLive ? (
-                <>
-                  <p className="mono text-5xl font-black">
-                    {match.homeScore ?? 0}–{match.awayScore ?? 0}
-                  </p>
-                  <div className="mt-1 flex items-center justify-center gap-1.5 text-[12px] text-[var(--color-live)]">
-                    <LiveIcon className="h-3.5 w-3.5" />
-                    {match.liveMinute}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="text-[13px] font-bold text-[var(--color-ink-2)]">VS</p>
-                  <p className="mono mt-1 text-[11px] text-[var(--color-ink-3)]">{match.time}</p>
-                </>
-              )}
-            </div>
-
-            <div className="text-center flex-1">
-              <div
-                className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full border-2 text-xl font-black"
-                style={{ borderColor: match.awayColor, background: `${match.awayColor}20` }}
-              >
-                {match.awayShort}
-              </div>
-              <p className="text-[15px] font-bold text-white">{match.awayTeam}</p>
-              <div className="mt-1 flex items-center justify-center gap-1">
-                {FORM_AWAY.map((r, i) => (
-                  <FormBadge key={i} result={r} />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Pool info */}
-          <div className="mt-4 flex items-center justify-center gap-4 rounded-md bg-[var(--color-bg-1)] py-2 text-[12px]">
+          {/* Pool CTA — one shared pool backs every market, not a per-market pool */}
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 rounded-md bg-[var(--color-bg-1)] p-2.5 sm:py-2 text-[12px]">
             <div className="flex items-center gap-1.5 text-[var(--color-ink-2)]">
-              <ShieldIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)]" />
-              Pool TVL: <span className="mono font-bold text-white">$4,280 USDC</span>
+              <ShieldIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)] shrink-0" />
+              Backed by the shared liquidity pool
             </div>
-            <div className="h-4 w-px bg-[var(--color-line-1)]" />
-            <Link href="/pools" className="flex items-center gap-1 text-[var(--color-brand-500)] hover:underline">
-              <SparkleIcon className="h-3 w-3" />
+            <div className="hidden sm:block h-4 w-px bg-[var(--color-line-1)]" />
+            <Link href="/pools" className="flex items-center gap-1 text-[var(--color-brand-500)] hover:underline font-semibold">
+              <ZapIcon className="h-3 w-3" />
               Add liquidity
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Market tabs */}
-      <div className="mt-4 flex items-center gap-1 overflow-x-auto scrollbar-none rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1">
-        {markets.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => setTab(m.id as Tab)}
-            className={`h-8 shrink-0 rounded px-3 text-[12px] font-semibold transition-colors ${
-              tab === m.id
-                ? "bg-[var(--color-bg-3)] text-white"
-                : "text-[var(--color-ink-2)] hover:text-white"
-            }`}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
+      {markets.length === 0 ? (
+        <div className="mt-4 rounded-xl border border-dashed border-[var(--color-line-1)] bg-[var(--color-bg-2)]/40 p-8 text-center text-[12px] text-[var(--color-ink-3)]">
+          No odds available yet for this fixture. The oracle scrapes every 3 minutes —
+          markets typically appear within a few minutes of kick-off listing.
+        </div>
+      ) : (
+        <>
+          {/* Market tabs */}
+          <div className="mt-4 flex items-center gap-1 overflow-x-auto scrollbar-none rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1">
+            {markets.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setTab(m.id)}
+                className={`h-8 shrink-0 rounded px-3 text-[12px] font-semibold transition-colors ${
+                  tab === m.id
+                    ? "bg-[var(--color-bg-3)] text-white"
+                    : "text-[var(--color-ink-2)] hover:text-white"
+                }`}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
 
-      {/* Market selections */}
-      <div className="mt-3 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-        {tab === "over_under" ? (
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-[var(--color-line-1)] text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">
-                <th className="pb-2 text-left">Goals</th>
-                <th className="pb-2 text-center">Over</th>
-                <th className="pb-2 text-center">Under</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeMarket.rows[0].selections.reduce((pairs, sel, i) => {
-                if (i % 2 === 0) pairs.push([sel]);
-                else pairs[pairs.length - 1].push(sel);
-                return pairs;
-              }, [] as { label: string; odds: number }[][]).map((pair, i) => {
-                const line = pair[0].label.replace("O ", "");
-                return (
-                  <tr key={i} className="border-b border-[var(--color-line-1)] last:border-0">
-                    <td className="mono py-2 font-bold text-[var(--color-ink-2)]">{line}</td>
-                    {pair.map((sel) => (
-                      <td key={sel.label} className="py-2 text-center">
-                        <OddsButton
-                          matchId={match.id}
-                          market={`ou_${line}`}
-                          selection={sel.label}
-                          matchLabel={`${match.homeTeam} vs ${match.awayTeam}`}
-                          odds={sel.odds}
-                          isSelected={hasSelection(match.id, `ou_${line}_${sel.label}`)}
-                          onSelect={() => addSelection({ matchId: match.id, matchLabel: `${match.homeTeam} vs ${match.awayTeam}`, market: `ou_${line}_${sel.label}`, selection: sel.label, odds: sel.odds })}
-                          label={sel.label}
-                        />
-                      </td>
+          {/* Market selections */}
+          <div className="mt-3 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+            <div className="space-y-3">
+              {activeMarket.rows.map((row) => (
+                <div key={row.label}>
+                  <p className="mb-2 text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{row.label}</p>
+                  <div
+                    className="grid gap-2"
+                    style={{ gridTemplateColumns: `repeat(${Math.min(row.selections.length, 3)}, 1fr)` }}
+                  >
+                    {row.selections.map((sel) => (
+                      <OddsButton
+                        key={`${sel.outcome}-${sel.label}`}
+                        matchId={market.id}
+                        market={`${activeMarket.id}_${row.label}`}
+                        selection={sel.label}
+                        matchLabel={title}
+                        odds={sel.odds}
+                        label={sel.label}
+                        disabled={bettingLocked}
+                      />
                     ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="space-y-3">
-            {activeMarket.rows.map((row) => (
-              <div key={row.label}>
-                <p className="mb-2 text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{row.label}</p>
-                <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(row.selections.length, 3)}, 1fr)` }}>
-                  {row.selections.map((sel) => (
-                    <OddsButton
-                      key={sel.label}
-                      matchId={match.id}
-                      market={`${tab}_${row.label}`}
-                      selection={sel.label}
-                      matchLabel={`${match.homeTeam} vs ${match.awayTeam}`}
-                      odds={sel.odds}
-                      isSelected={hasSelection(match.id, `${tab}_${row.label}`)}
-                      onSelect={() => addSelection({ matchId: match.id, matchLabel: `${match.homeTeam} vs ${match.awayTeam}`, market: `${tab}_${row.label}`, selection: sel.label, odds: sel.odds })}
-                      label={sel.label}
-                    />
-                  ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      {/* Stats + H2H grid */}
-      <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {/* H2H */}
-        <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">Head to Head</p>
-          <div className="space-y-2">
-            {H2H.map((g, i) => (
-              <div key={i} className="flex items-center gap-2 text-[12px]">
-                <span className="w-20 shrink-0 text-[var(--color-ink-3)]">{g.date}</span>
-                <span className="flex-1 truncate text-white">{g.home} vs {g.away}</span>
-                <span
-                  className="mono font-bold"
-                  style={{
-                    color: g.winner === "draw"
-                      ? "var(--color-warn)"
-                      : g.winner === "home"
-                      ? "var(--color-brand-500)"
-                      : "var(--color-ink-2)",
-                  }}
-                >
-                  {g.score}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Odds movement chart placeholder */}
-        <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-          <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">Odds Movement (24h)</p>
-          <OddsChart match={match} />
-        </div>
-      </div>
+      {/* Match Analysis Panel */}
+      {!isPrediction && <MatchStatsPanel market={market} />}
     </div>
   );
 }
 
-function FormBadge({ result }: { result: "W" | "D" | "L" }) {
-  const color =
-    result === "W" ? "var(--color-brand-500)" :
-    result === "D" ? "var(--color-warn)" :
-    "var(--color-live)";
-  return (
-    <span
-      className="mono flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
-      style={{ background: `${color}20`, color }}
-    >
-      {result}
-    </span>
-  );
-}
+function MatchStatsPanel({ market }: { market: MarketDTO }) {
+  const x2Bundle = market.odds?.find((o) => o.marketType === "1X2");
+  if (!x2Bundle || x2Bundle.selections.length === 0) return null;
 
-function OddsChart({ match }: { match: typeof matches[0] }) {
-  const pts = Array.from({ length: 24 }, (_, i) => ({
-    h: match.homeOdds + (Math.sin(i * 0.5) * 0.15),
-    d: (match.drawOdds ?? 3.3) + (Math.cos(i * 0.4) * 0.1),
-    a: match.awayOdds + (Math.sin(i * 0.6 + 1) * 0.12),
-  }));
-  const allVals = pts.flatMap((p) => [p.h, p.d, p.a]);
-  const minV = Math.min(...allVals) - 0.05;
-  const maxV = Math.max(...allVals) + 0.05;
-  const range = maxV - minV;
-  const W = 280, H = 100;
-  const scaleX = (i: number) => (i / 23) * W;
-  const scaleY = (v: number) => H - ((v - minV) / range) * H;
-  const line = (getter: (p: typeof pts[0]) => number) =>
-    pts.map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(i).toFixed(1)},${scaleY(getter(p)).toFixed(1)}`).join(" ");
+  const hasDraw = x2Bundle.selections.length === 3;
+  const homeOdds = x2Bundle.selections.find((s) => s.outcome === 0)?.valueX1000 ?? 0;
+  const drawOdds = hasDraw ? (x2Bundle.selections.find((s) => s.outcome === 1)?.valueX1000 ?? 0) : 0;
+  const awayOdds = x2Bundle.selections.find((s) => s.outcome === (hasDraw ? 2 : 1))?.valueX1000 ?? 0;
+
+  const iH = homeOdds > 1000 ? 1000 / homeOdds : 0;
+  const iD = drawOdds > 1000 ? 1000 / drawOdds : 0;
+  const iA = awayOdds > 1000 ? 1000 / awayOdds : 0;
+  const total = iH + iD + iA;
+  if (total === 0) return null;
+
+  const pHome = Math.round((iH / total) * 100);
+  const pDraw = hasDraw ? Math.round((iD / total) * 100) : 0;
+  const pAway = 100 - pHome - pDraw;
+  const margin = Math.round((total - 1) * 1000) / 10;
+
+  const bookmakerCount = new Set(
+    (market.bookmakerOdds ?? []).filter((e) => e.marketType === "1X2").map((e) => e.bookmaker),
+  ).size;
+
+  const marketTypes = [...new Set((market.odds ?? []).map((o) => o.marketType))];
+
+  const ou25 = market.odds?.find((o) => o.marketType === "over_under_25");
+  const over25Odds = ou25?.selections.find((s) => s.label?.toLowerCase().includes("over"))?.valueX1000;
+  const over25Prob = over25Odds && over25Odds > 1000 ? Math.round((1000 / over25Odds) * 100) : null;
+
+  const bttsYes = market.odds?.find((o) => o.marketType === "btts")?.selections.find((s) => s.label?.toLowerCase() === "yes")?.valueX1000;
+  const bttsProb = bttsYes && bttsYes > 1000 ? Math.round((1000 / bttsYes) * 100) : null;
+
+  const marketLabel = (mt: string): string => {
+    const fixed: Record<string, string> = {
+      "1X2": "1X2", btts: "BTTS", draw_no_bet: "DNB", half_time_result: "HT Result", binary: "Binary",
+    };
+    if (fixed[mt]) return fixed[mt];
+    const ou = mt.match(/^over_under_(\d+)$/);
+    if (ou) {
+      const lineNum = parseInt(ou[1], 10) / 10;
+      const numStr = lineNum % 1 === 0 ? `${lineNum}.0` : lineNum.toFixed(1);
+      return `O/U ${numStr}`;
+    }
+    const ah = mt.match(/^asian_handicap_(-?\d+)$/);
+    if (ah) return `AH ${ah[1].replace(/(-?)(\d)(\d)$/, "$1$2.$3")}`;
+    const tt = mt.match(/^team_total_(home|away)_(\d+)$/);
+    if (tt) return `${tt[1] === "home" ? "H" : "A"} Total ${tt[2].replace(/(\d)(\d)$/, "$1.$2")}`;
+    return mt.replace(/_/g, " ");
+  };
 
   return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full">
-        <path d={line((p) => p.h)} stroke="var(--color-brand-500)" strokeWidth="1.5" fill="none" />
-        {match.drawOdds && <path d={line((p) => p.d)} stroke="var(--color-warn)" strokeWidth="1.5" fill="none" />}
-        <path d={line((p) => p.a)} stroke="var(--color-info)" strokeWidth="1.5" fill="none" />
-      </svg>
-      <div className="mt-2 flex items-center gap-3 text-[11px]">
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-4 rounded" style={{ background: "var(--color-brand-500)" }} />
-          <span className="text-[var(--color-ink-3)]">{match.homeShort}</span>
-          <span className="mono font-bold text-white">{match.homeOdds.toFixed(2)}</span>
-          <TrendDown className="h-3 w-3 text-[var(--color-live)]" />
-        </span>
-        {match.drawOdds && (
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-4 rounded" style={{ background: "var(--color-warn)" }} />
-            <span className="text-[var(--color-ink-3)]">Draw</span>
-            <span className="mono font-bold text-white">{match.drawOdds.toFixed(2)}</span>
-            <TrendUp className="h-3 w-3 text-[var(--color-brand-500)]" />
+    <div className="mt-4 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+      <p className="mb-4 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
+        Match Analysis
+      </p>
+
+      {/* Win probability bar */}
+      <div className="mb-5">
+        <p className="mb-2 text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Win Probability</p>
+        <div className="flex h-8 overflow-hidden rounded-lg">
+          {pHome > 0 && (
+            <div
+              className="flex items-center justify-center text-[11px] font-bold text-white"
+              style={{ width: `${pHome}%`, backgroundColor: "var(--color-brand-500)" }}
+            >
+              {pHome >= 10 ? `${pHome}%` : ""}
+            </div>
+          )}
+          {hasDraw && pDraw > 0 && (
+            <div
+              className="flex items-center justify-center text-[11px] font-bold text-white"
+              style={{ width: `${pDraw}%`, backgroundColor: "var(--color-warn)" }}
+            >
+              {pDraw >= 10 ? `${pDraw}%` : ""}
+            </div>
+          )}
+          {pAway > 0 && (
+            <div
+              className="flex items-center justify-center text-[11px] font-bold text-white"
+              style={{ width: `${pAway}%`, backgroundColor: "var(--color-info)" }}
+            >
+              {pAway >= 10 ? `${pAway}%` : ""}
+            </div>
+          )}
+        </div>
+        <div className="mt-2 flex items-start justify-between text-[11px]">
+          <span className="flex flex-col items-start gap-0.5">
+            <span className="flex items-center gap-1 text-[var(--color-ink-2)]">
+              <span className="h-2 w-3 rounded-sm" style={{ backgroundColor: "var(--color-brand-500)" }} />
+              {market.homeTeam}
+            </span>
+            <span className="mono font-bold text-white">{pHome}% · {(homeOdds / 1000).toFixed(2)}</span>
           </span>
-        )}
-        <span className="flex items-center gap-1">
-          <span className="h-2 w-4 rounded" style={{ background: "var(--color-info)" }} />
-          <span className="text-[var(--color-ink-3)]">{match.awayShort}</span>
-          <span className="mono font-bold text-white">{match.awayOdds.toFixed(2)}</span>
-          <TrendUp className="h-3 w-3 text-[var(--color-brand-500)]" />
-        </span>
+          {hasDraw && (
+            <span className="flex flex-col items-center gap-0.5">
+              <span className="flex items-center gap-1 text-[var(--color-ink-2)]">
+                <span className="h-2 w-3 rounded-sm" style={{ backgroundColor: "var(--color-warn)" }} />
+                Draw
+              </span>
+              <span className="mono font-bold text-white">{pDraw}% · {(drawOdds / 1000).toFixed(2)}</span>
+            </span>
+          )}
+          <span className="flex flex-col items-end gap-0.5">
+            <span className="flex items-center gap-1 text-[var(--color-ink-2)]">
+              {market.awayTeam}
+              <span className="h-2 w-3 rounded-sm" style={{ backgroundColor: "var(--color-info)" }} />
+            </span>
+            <span className="mono font-bold text-white">{pAway}% · {(awayOdds / 1000).toFixed(2)}</span>
+          </span>
+        </div>
       </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+        <div className="rounded-lg bg-[var(--color-bg-1)] p-3">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Bookmakers</p>
+          <p className="mono mt-1 text-[20px] font-black text-white">{Math.max(bookmakerCount, 1)}</p>
+        </div>
+        <div className="rounded-lg bg-[var(--color-bg-1)] p-3">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Vig / Margin</p>
+          <p className="mono mt-1 text-[20px] font-black text-white">{margin}%</p>
+        </div>
+        {over25Prob !== null ? (
+          <div className="rounded-lg bg-[var(--color-bg-1)] p-3">
+            <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Over 2.5 Goals</p>
+            <p className="mono mt-1 text-[20px] font-black text-white">{over25Prob}%</p>
+          </div>
+        ) : bttsProb !== null ? (
+          <div className="rounded-lg bg-[var(--color-bg-1)] p-3">
+            <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">BTTS Implied</p>
+            <p className="mono mt-1 text-[20px] font-black text-white">{bttsProb}%</p>
+          </div>
+        ) : null}
+        <div className="rounded-lg bg-[var(--color-bg-1)] p-3">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Markets</p>
+          <p className="mono mt-1 text-[20px] font-black text-white">{marketTypes.length}</p>
+        </div>
+      </div>
+
+      {/* Available market type tags */}
+      {marketTypes.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {marketTypes.slice(0, 12).map((mt) => (
+            <span
+              key={mt}
+              className="rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-1)] px-2 py-0.5 text-[10px] font-medium text-[var(--color-ink-2)]"
+            >
+              {marketLabel(mt)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Match context */}
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-[var(--color-line-1)] pt-3 text-[11px] text-[var(--color-ink-3)]">
+        {market.leagueName && <span>{market.leagueName}</span>}
+        {market.country && <span>{market.country}</span>}
+        {market.sport && market.sport !== "football" && (
+          <span className="capitalize">{market.sport.replace(/-/g, " ")}</span>
+        )}
+      </div>
+      <p className="mt-2 text-[10px] text-[var(--color-ink-3)]">
+        Win probabilities derived from market odds · Updated every 3 min
+      </p>
     </div>
   );
 }

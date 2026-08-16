@@ -56,7 +56,6 @@ function mockPrediction(m: MarketDTO): PredictionResult {
     `${m.homeTeam} have form indicators favouring this fixture`,
     `${m.awayTeam} away record sits in the middle tier this season`,
     `Head-to-head average over the last 5 meetings is ${(Math.random() * 2 + 1.5).toFixed(1)} goals`,
-    `Market liquidity (pool TVL ${Number(m.poolTvl).toFixed(0)} USDC) suggests bookmaker odds are well-priced`,
   ];
 
   return {
@@ -81,7 +80,7 @@ async function callAnthropic(m: MarketDTO): Promise<PredictionResult> {
   // Dynamic import so the SDK is only loaded when the key is present.
   const Anthropic = (await import("@anthropic-ai/sdk")).default;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  const prompt = `You are a structured football analyst. Output STRICT JSON only with keys: probabilities {home,draw,away in [0,1]}, factors (3-5 short strings), recommendation (VALUE_BET|AVOID|NEUTRAL), confidence (1-5), explanation (2-3 sentences). Fixture: ${m.homeTeam} vs ${m.awayTeam} in ${m.leagueName}. Bookmaker 1X2: ${JSON.stringify(m.odds[0])}. Pool TVL: ${m.poolTvl} USDC.`;
+  const prompt = `You are a structured football analyst. Output STRICT JSON only with keys: probabilities {home,draw,away in [0,1]}, factors (3-5 short strings), recommendation (VALUE_BET|AVOID|NEUTRAL), confidence (1-5), explanation (2-3 sentences). Fixture: ${m.homeTeam} vs ${m.awayTeam} in ${m.leagueName}. Bookmaker 1X2: ${JSON.stringify(m.odds[0])}.`;
   const resp = await client.messages.create({
     model: "claude-opus-4-7",
     max_tokens: 800,

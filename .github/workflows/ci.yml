@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  next-typecheck-lint:
+    name: Next.js — typecheck + lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
+      - run: npm run lint
+
+  oracle:
+    name: Oracle — typecheck + tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/oracle
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: packages/oracle/package-lock.json
+      - run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - run: npx tsc --noEmit
+      - run: npm test --if-present
+
+  sdk:
+    name: SDK — typecheck + build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: packages/sdk/package-lock.json
+      - run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - run: npx tsc --noEmit
+      - run: npm run build --if-present
+
+  contracts:
+    name: Contracts — compile + hardhat test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: packages/contracts/package-lock.json
+      - run: npm ci --ignore-scripts || npm install --ignore-scripts
+      - run: npx hardhat compile
+      - run: npx hardhat test
+
+  slither:
+    name: Contracts — Slither static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install slither-analyzer==0.10.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm --prefix packages/contracts ci --ignore-scripts || npm --prefix packages/contracts install --ignore-scripts
+      - run: cd packages/contracts && slither . --filter-paths "node_modules|mocks" --fail-medium
+        continue-on-error: true # surface findings, don't gate yet

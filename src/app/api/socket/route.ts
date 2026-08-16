@@ -1,9 +1,9 @@
-// Server-Sent Events endpoint. Clients open EventSource("/api/socket?topics=odds:update,bet:confirmed,...")
+// Server-Sent Events endpoint. Clients open
+//   EventSource("/api/socket?topics=odds:update,bet:confirmed,...")
 // Each message is `data: { topic, payload, at }\n\n`.
 
 import { NextRequest } from "next/server";
 import { subscribe, type EventTopic } from "@/lib/server/event-bus";
-import { store } from "@/lib/server/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,9 +16,6 @@ const ALL_TOPICS: EventTopic[] = [
 ];
 
 export async function GET(req: NextRequest) {
-  // Touch store so simulators boot.
-  store();
-
   const raw = req.nextUrl.searchParams.get("topics") ?? "";
   const topics: EventTopic[] = raw
     .split(",")
@@ -32,10 +29,9 @@ export async function GET(req: NextRequest) {
         try {
           controller.enqueue(enc.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch {
-          // closed
+          // already closed
         }
       };
-      // Initial hello
       send({ topic: "hello", payload: { topics, serverTime: Date.now() }, at: Date.now() });
 
       const heartbeat = setInterval(() => {

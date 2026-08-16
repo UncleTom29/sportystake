@@ -69,8 +69,12 @@ export function withRequestId<C = unknown>(handler: Handler<C>) {
     try {
       return await handler(req, ctx, requestId);
     } catch (err: unknown) {
-      if (err instanceof ApiError) {
-        return fail(err.code, err.message, err.status, { details: err.details, requestId });
+      if (
+        err instanceof ApiError ||
+        (err && typeof err === "object" && "status" in err && "code" in err && typeof (err as { status: unknown }).status === "number")
+      ) {
+        const e = err as ApiError;
+        return fail(e.code, e.message, e.status ?? 400, { details: e.details, requestId });
       }
       // Zod errors carry an `issues` array
       const e = err as { name?: string; issues?: unknown; message?: string };

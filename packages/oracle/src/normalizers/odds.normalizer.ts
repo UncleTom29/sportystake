@@ -1,26 +1,23 @@
-import type {
-  ApiFootballBet,
-  ApiFootballBookmaker,
-  ApiFootballOddsResponse,
-} from '../types/api-football.types.js';
+import type { OddsApiOddsEntry, OddsApiOddsMarket, OddsApiOddsResponse } from '../types/odds-api.types.js';
 
 export type MarketKey =
   | '1X2'
+  | 'binary'
   | 'over_under_15'
   | 'over_under_25'
   | 'over_under_35'
   | 'btts'
   | 'double_chance'
-  | 'asian_handicap';
+  | 'asian_handicap'
+  | 'draw_no_bet'
+  | 'half_time_result'
+  | 'next_team_to_score'
+  | string; // allow dynamic market types from GetLine
 
 export interface NormalizedOutcome {
-  /** Stable machine key, e.g. '1', 'X', '2', 'Over', 'Under 2.5'. */
   key: string;
-  /** Human label as supplied by API-Football. */
   label: string;
-  /** Decimal odds. */
   decimal: number;
-  /** Decimal odds * 1000 (integer) — what we publish on-chain & internally. */
   valueX1000: number;
 }
 
@@ -31,143 +28,113 @@ export interface NormalizedMarket {
 
 export interface NormalizedOdds {
   fixtureId: number;
-  bookmakerId: number;
   bookmakerName: string;
   updatedAt: string;
   markets: NormalizedMarket[];
 }
 
-const BET_NAME_TO_MARKET: Record<string, MarketKey> = {
-  'Match Winner': '1X2',
-  '1X2': '1X2',
-  'Goals Over/Under': 'over_under_25', // refined per line below
-  'Both Teams Score': 'btts',
-  'Both Teams To Score': 'btts',
-  'Double Chance': 'double_chance',
-  'Asian Handicap': 'asian_handicap',
-};
-
-function parseDecimal(odd: string): number {
+function parseDecimal(odd: string | undefined): number {
+  if (!odd) return 1.01;
   const n = Number.parseFloat(odd);
   if (!Number.isFinite(n) || n <= 1) return 1.01;
   return n;
 }
 
-function toOutcome(key: string, label: string, odd: string): NormalizedOutcome {
+function toOutcome(key: string, label: string, odd: string | undefined): NormalizedOutcome {
   const decimal = parseDecimal(odd);
-  return {
-    key,
-    label,
-    decimal,
-    valueX1000: Math.round(decimal * 1000),
-  };
+  return { key, label, decimal, valueX1000: Math.round(decimal * 1000) };
 }
 
-function normalize1X2(bet: ApiFootballBet): NormalizedMarket {
-  const map: Record<string, string> = { Home: '1', Draw: 'X', Away: '2' };
-  return {
-    market: '1X2',
-    outcomes: bet.values.map((v) =>
-      toOutcome(map[v.value] ?? v.value, v.value, v.odd),
-    ),
-  };
+function normalizeML(market: OddsApiOddsMarket): NormalizedMarket | null {
+  const entry = market.odds[0] as OddsApiOddsEntry | undefined;
+  if (!entry) return null;
+  const outcomes: NormalizedOutcome[] = [];
+  if (entry.home) outcomes.push(toOutcome('1', 'Home', entry.home));
+  if (entry.draw) outcomes.push(toOutcome('X', 'Draw', entry.draw));
+  if (entry.away) outcomes.push(toOutcome('2', 'Away', entry.away));
+  return outcomes.length > 0 ? { market: '1X2', outcomes } : null;
 }
 
-function normalizeOverUnder(bet: ApiFootballBet): NormalizedMarket[] {
-  // API-Football returns rows like { value: 'Over 1.5', odd: '...' }
-  const buckets: Record<string, NormalizedOutcome[]> = {
-    over_under_15: [],
-    over_under_25: [],
-    over_under_35: [],
-  };
-  for (const v of bet.values) {
-    const m = /^(Over|Under)\s+(\d+(?:\.\d+)?)/.exec(v.value);
-    if (!m) continue;
-    const side = m[1]; // Over | Under
-    const line = m[2];
-    let bucket: keyof typeof buckets | null = null;
-    if (line === '1.5' || line === '1') bucket = 'over_under_15';
-    else if (line === '2.5' || line === '2') bucket = 'over_under_25';
-    else if (line === '3.5' || line === '3') bucket = 'over_under_35';
-    if (!bucket) continue;
-    buckets[bucket].push(toOutcome(side, v.value, v.odd));
+function normalizeTotals(market: OddsApiOddsMarket): NormalizedMarket[] {
+  const results: NormalizedMarket[] = [];
+  for (const entry of market.odds) {
+    const line = entry.hdp !== undefined ? String(entry.hdp) : '2.5';
+    const n = Number.parseFloat(line);
+    let key: MarketKey | null = null;
+    if (n === 1.5 || n === 1) key = 'over_under_15';
+    else if (n === 2.5 || n === 2) key = 'over_under_25';
+    else if (n === 3.5 || n === 3) key = 'over_under_35';
+    if (!key) continue;
+    const outcomes: NormalizedOutcome[] = [];
+    if (entry.over)  outcomes.push(toOutcome('Over',  `Over ${line}`,  entry.over));
+    if (entry.under) outcomes.push(toOutcome('Under', `Under ${line}`, entry.under));
+    if (outcomes.length > 0) results.push({ market: key, outcomes });
   }
-  return (Object.keys(buckets) as MarketKey[])
-    .filter((k) => buckets[k].length > 0)
-    .map((k) => ({ market: k, outcomes: buckets[k] }));
+  return results;
 }
 
-function normalizeBtts(bet: ApiFootballBet): NormalizedMarket {
-  return {
-    market: 'btts',
-    outcomes: bet.values.map((v) =>
-      toOutcome(v.value.toLowerCase() === 'yes' ? 'yes' : 'no', v.value, v.odd),
-    ),
-  };
+function normalizeBtts(market: OddsApiOddsMarket): NormalizedMarket | null {
+  const entry = market.odds[0] as OddsApiOddsEntry | undefined;
+  if (!entry) return null;
+  const outcomes: NormalizedOutcome[] = [];
+  if (entry.yes) outcomes.push(toOutcome('yes', 'Yes', entry.yes));
+  if (entry.no)  outcomes.push(toOutcome('no',  'No',  entry.no));
+  return outcomes.length > 0 ? { market: 'btts', outcomes } : null;
 }
 
-function normalizeDoubleChance(bet: ApiFootballBet): NormalizedMarket {
-  const map: Record<string, string> = {
-    'Home/Draw': '1X',
-    'Home/Away': '12',
-    'Draw/Away': 'X2',
-  };
-  return {
-    market: 'double_chance',
-    outcomes: bet.values.map((v) =>
-      toOutcome(map[v.value] ?? v.value, v.value, v.odd),
-    ),
-  };
+function normalizeAsianHandicap(market: OddsApiOddsMarket): NormalizedMarket | null {
+  const entry = market.odds[0] as OddsApiOddsEntry | undefined;
+  if (!entry) return null;
+  const hdp = entry.hdp !== undefined ? String(entry.hdp) : '0';
+  const outcomes: NormalizedOutcome[] = [];
+  if (entry.home) outcomes.push(toOutcome(`home_${hdp}`, `Home (${hdp})`, entry.home));
+  if (entry.away) outcomes.push(toOutcome(`away_${hdp}`, `Away (${hdp})`, entry.away));
+  return outcomes.length > 0 ? { market: 'asian_handicap', outcomes } : null;
 }
 
-function normalizeAsianHandicap(bet: ApiFootballBet): NormalizedMarket {
-  return {
-    market: 'asian_handicap',
-    outcomes: bet.values.map((v) => toOutcome(v.value, v.value, v.odd)),
-  };
-}
-
-function normalizeBet(bet: ApiFootballBet): NormalizedMarket[] {
-  switch (bet.name) {
-    case 'Match Winner':
-    case '1X2':
-      return [normalize1X2(bet)];
-    case 'Goals Over/Under':
-      return normalizeOverUnder(bet);
-    case 'Both Teams Score':
-    case 'Both Teams To Score':
-      return [normalizeBtts(bet)];
-    case 'Double Chance':
-      return [normalizeDoubleChance(bet)];
+function normalizeMarket(market: OddsApiOddsMarket): NormalizedMarket[] {
+  switch (market.name) {
+    case 'ML':
+      return [normalizeML(market)].filter(Boolean) as NormalizedMarket[];
+    case 'Totals':
+      return normalizeTotals(market);
+    case 'Both Teams to Score':
+      return [normalizeBtts(market)].filter(Boolean) as NormalizedMarket[];
     case 'Asian Handicap':
-      return [normalizeAsianHandicap(bet)];
-    default: {
-      const market = BET_NAME_TO_MARKET[bet.name];
-      if (!market) return [];
-      return [{ market, outcomes: bet.values.map((v) => toOutcome(v.value, v.value, v.odd)) }];
-    }
+      return [normalizeAsianHandicap(market)].filter(Boolean) as NormalizedMarket[];
+    default:
+      return [];
   }
 }
 
+/**
+ * Normalizes odds for the preferred bookmaker (first in the list).
+ * Returns null if no bookmaker data is available.
+ */
 export function normalizeOdds(
   fixtureId: number,
-  raw: ApiFootballOddsResponse,
-  preferredBookmakerId: number,
+  raw: OddsApiOddsResponse,
+  preferredBookmakers: string[],
 ): NormalizedOdds | null {
-  const bookmaker: ApiFootballBookmaker | undefined =
-    raw.bookmakers.find((b) => b.id === preferredBookmakerId) ?? raw.bookmakers[0];
-  if (!bookmaker) return null;
+  const available = Object.keys(raw.bookmakers);
+  const availableByLower = new Map(available.map((name) => [name.toLowerCase(), name]));
+  // Pick the first preferred bookmaker that has data (case-insensitive).
+  const bookmakerName =
+    preferredBookmakers
+      .map((b) => availableByLower.get(b.toLowerCase()))
+      .find((name): name is string => Boolean(name)) ?? available[0];
+  if (!bookmakerName) return null;
+
+  const bookmakerMarkets = raw.bookmakers[bookmakerName];
+  if (!bookmakerMarkets?.length) return null;
 
   const markets: NormalizedMarket[] = [];
-  for (const bet of bookmaker.bets) {
-    markets.push(...normalizeBet(bet));
+  let updatedAt = new Date().toISOString();
+
+  for (const market of bookmakerMarkets) {
+    if (market.updatedAt) updatedAt = market.updatedAt;
+    markets.push(...normalizeMarket(market));
   }
 
-  return {
-    fixtureId,
-    bookmakerId: bookmaker.id,
-    bookmakerName: bookmaker.name,
-    updatedAt: raw.update,
-    markets,
-  };
+  return { fixtureId, bookmakerName, updatedAt, markets };
 }

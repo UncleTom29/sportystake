@@ -1,9 +1,10 @@
-import type { ApiFootballFixture } from '../types/api-football.types.js';
+import type { OddsApiEvent } from '../types/odds-api.types.js';
 import { mapStatus, type MarketStatus } from './status-map.js';
 
 export interface NormalizedFixture {
   fixtureId: number;
   externalId: string;
+  sport: string;
   leagueId: number;
   leagueName: string;
   leagueLogo: string;
@@ -26,64 +27,89 @@ export interface NormalizedFixture {
   venue: string | null;
 }
 
-const COUNTRY_CODE_MAP: Record<string, string> = {
-  England: 'GB',
-  Spain: 'ES',
-  Italy: 'IT',
-  Germany: 'DE',
-  France: 'FR',
-  World: 'WW',
-  Europe: 'EU',
-  Africa: 'AF',
-  Brazil: 'BR',
-  Argentina: 'AR',
-  Portugal: 'PT',
-  Netherlands: 'NL',
-  Belgium: 'BE',
-  Turkey: 'TR',
-  USA: 'US',
-  Mexico: 'MX',
-  Japan: 'JP',
-  'Saudi Arabia': 'SA',
+/** Maps well-known Odds-API league slugs to legacy numeric IDs. */
+const LEAGUE_SLUG_TO_ID: Record<string, number> = {
+  'england-premier-league': 39,
+  'spain-la-liga': 140,
+  'italy-serie-a': 135,
+  'germany-bundesliga': 78,
+  'france-ligue-1': 61,
+  'europe-champions-league': 2,
+  'europe-uefa-champions-league': 2,
+  'europe-europa-league': 3,
+  'england-championship': 40,
+  'spain-segunda': 141,
+  'italy-serie-b': 136,
+  'germany-2-bundesliga': 79,
+  'france-ligue-2': 62,
 };
 
-function resolveCountryCode(country: string, flag: string | null): string | null {
-  if (COUNTRY_CODE_MAP[country]) return COUNTRY_CODE_MAP[country];
-  if (flag) {
-    const m = flag.match(/\/flags\/([a-z]{2})\.svg$/i);
-    if (m) return m[1].toUpperCase();
-  }
-  return null;
+const SLUG_PREFIX_TO_COUNTRY: Record<string, { name: string; code: string }> = {
+  england:     { name: 'England',     code: 'GB' },
+  spain:       { name: 'Spain',       code: 'ES' },
+  italy:       { name: 'Italy',       code: 'IT' },
+  germany:     { name: 'Germany',     code: 'DE' },
+  france:      { name: 'France',      code: 'FR' },
+  europe:      { name: 'Europe',      code: 'EU' },
+  world:       { name: 'World',       code: 'WW' },
+  usa:         { name: 'USA',         code: 'US' },
+  brazil:      { name: 'Brazil',      code: 'BR' },
+  argentina:   { name: 'Argentina',   code: 'AR' },
+  portugal:    { name: 'Portugal',    code: 'PT' },
+  netherlands: { name: 'Netherlands', code: 'NL' },
+  belgium:     { name: 'Belgium',     code: 'BE' },
+  turkey:      { name: 'Turkey',      code: 'TR' },
+  mexico:      { name: 'Mexico',      code: 'MX' },
+  japan:       { name: 'Japan',       code: 'JP' },
+};
+
+function leagueIdFromSlug(slug: string): number {
+  return LEAGUE_SLUG_TO_ID[slug] ?? hashSlug(slug);
 }
 
-export function normalizeFixture(raw: ApiFootballFixture): NormalizedFixture {
-  const rawStatus = raw.fixture.status.short;
+function countryFromLeagueSlug(slug: string): { country: string; countryCode: string | null } {
+  const prefix = slug.split('-')[0]?.toLowerCase() ?? '';
+  const entry = SLUG_PREFIX_TO_COUNTRY[prefix];
+  if (entry) return { country: entry.name, countryCode: entry.code };
+  return { country: prefix.charAt(0).toUpperCase() + prefix.slice(1), countryCode: null };
+}
+
+/** Deterministic numeric ID in range [1_000_000, 1_999_999] for unknown slugs. */
+function hashSlug(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+  return 1_000_000 + (Math.abs(h >>> 0) % 1_000_000);
+}
+
+export function normalizeFixture(raw: OddsApiEvent): NormalizedFixture {
+  const { country, countryCode } = countryFromLeagueSlug(raw.league.slug);
   return {
-    fixtureId: raw.fixture.id,
-    externalId: `apifootball:${raw.fixture.id}`,
-    leagueId: raw.league.id,
+    fixtureId: raw.id,
+    externalId: `oddsapi:${raw.id}`,
+    sport: raw.sport?.slug ?? 'football',
+    leagueId: leagueIdFromSlug(raw.league.slug),
     leagueName: raw.league.name,
-    leagueLogo: raw.league.logo,
-    country: raw.league.country,
-    countryCode: resolveCountryCode(raw.league.country, raw.league.flag),
-    season: raw.league.season,
-    round: raw.league.round,
-    homeTeam: raw.teams.home.name,
-    homeTeamId: raw.teams.home.id,
-    homeTeamLogo: raw.teams.home.logo,
-    awayTeam: raw.teams.away.name,
-    awayTeamId: raw.teams.away.id,
-    awayTeamLogo: raw.teams.away.logo,
-    startTime: new Date(raw.fixture.date),
-    status: mapStatus(rawStatus),
-    rawStatus,
-    homeScore: raw.goals.home ?? 0,
-    awayScore: raw.goals.away ?? 0,
-    minute: raw.fixture.status.elapsed,
-    venue: raw.fixture.venue.name,
+    leagueLogo: '',
+    country,
+    countryCode,
+    season: new Date(raw.date).getUTCFullYear(),
+    round: '',
+    homeTeam: raw.home,
+    homeTeamId: raw.homeId,
+    homeTeamLogo: '',
+    awayTeam: raw.away,
+    awayTeamId: raw.awayId,
+    awayTeamLogo: '',
+    startTime: new Date(raw.date),
+    status: mapStatus(raw.status),
+    rawStatus: raw.status,
+    homeScore: raw.scores?.home ?? 0,
+    awayScore: raw.scores?.away ?? 0,
+    minute: null,
+    venue: null,
   };
 }
 
-export function normalizeFixtures(items: ApiFootballFixture[]): NormalizedFixture[] {
-  return items.map(normalizeFixture);
+export function normalizeFixtures(events: OddsApiEvent[]): NormalizedFixture[] {
+  return events.map(normalizeFixture);
 }

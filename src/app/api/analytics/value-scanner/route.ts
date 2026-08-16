@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { ok, withRequestId } from "@/lib/server/api-response";
 import { valueScanner } from "@/lib/server/analytics";

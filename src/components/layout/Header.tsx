@@ -2,14 +2,34 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useBetSlip } from "@/lib/betSlipStore";
-import { LogoMark, SearchIcon, TicketIcon, GiftIcon } from "@/components/icons/UIIcons";
+import { LogoMark, SearchIcon, TicketIcon } from "@/components/icons/UIIcons";
 import WalletButton from "@/components/integration/WalletButton";
 import NotificationBell from "@/components/integration/NotificationBell";
+import LPAmountDropdown from "@/components/layout/LPAmountDropdown";
 import SearchModal from "@/components/integration/SearchModal";
+import SetUsernameModal from "@/components/integration/SetUsernameModal";
 
 export default function Header() {
   const { selections, toggle } = useBetSlip();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [isAdminOrOperator, setIsAdminOrOperator] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const [usernameModalOpen, setUsernameModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.data?.user) {
+          const u = data.data.user;
+          if (u.username) setUsername(u.username);
+          if (u.roles?.includes("ADMIN") || u.roles?.includes("OPERATOR")) {
+            setIsAdminOrOperator(true);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -28,7 +48,7 @@ export default function Header() {
       <div className="flex h-14 items-center gap-2 px-3 md:gap-3 md:px-5">
         <Link href="/" className="flex shrink-0 items-center gap-2">
           <LogoMark className="h-8 w-8" />
-          <span className="hidden text-[15px] font-black tracking-tight text-white sm:block">
+          <span className="text-[15px] font-black tracking-tight text-white block">
             sporty<span className="text-[var(--color-brand-500)]">stake</span>
           </span>
         </Link>
@@ -37,8 +57,9 @@ export default function Header() {
           <SegLink href="/sportsbook" label="Sports" />
           <SegLink href="/live" label="Live 🔴" />
           <SegLink href="/casino" label="Casino" />
-          <SegLink href="/pools" label="Pools" />
+          <SegLink href="/pools" label="Pool" />
           <SegLink href="/leaderboard" label="Leaderboard" />
+          {isAdminOrOperator && <SegLink href="/admin" label="Admin 🛡️" />}
         </nav>
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-2 md:max-w-md md:flex-none lg:ml-4 lg:max-w-lg lg:flex-1">
@@ -77,13 +98,7 @@ export default function Header() {
             )}
           </button>
 
-          <Link
-            href="/leaderboard"
-            aria-label="Leaderboard"
-            className="hidden h-9 w-9 items-center justify-center rounded-md text-[var(--color-ink-2)] hover:bg-[var(--color-bg-2)] hover:text-white md:flex"
-          >
-            <GiftIcon className="h-4 w-4" />
-          </Link>
+          <LPAmountDropdown />
 
           <NotificationBell />
           <WalletButton />

@@ -1,16 +1,33 @@
-import { ZapIcon, TrophyIcon, FlameIcon, SparkleIcon, LiveIcon } from "@/components/icons/UIIcons";
+import { ZapIcon, TrophyIcon, FlameIcon, LiveIcon, ShieldIcon } from "@/components/icons/UIIcons";
 
-const items = [
-  { Icon: ZapIcon, label: "$124.8M", sub: "total wagered" },
-  { Icon: LiveIcon, label: "248", sub: "live markets" },
-  { Icon: FlameIcon, label: "+18.4%", sub: "best LP APY" },
-  { Icon: TrophyIcon, label: "12,400", sub: "open events" },
-  { Icon: SparkleIcon, label: "48,204", sub: "active wallets" },
-  { Icon: ZapIcon, label: "$1.8M", sub: "biggest win this week" },
-];
+export interface StatsMarqueeProps {
+  totalWagered: string;
+  openMarkets: string | number;
+  todayMarkets: string | number;
+  solvencyPool: string;
+  activeWallets?: string | number;
+  maxWin?: string;
+}
 
-export default function StatsMarquee() {
+export default function StatsMarquee({
+  totalWagered,
+  openMarkets,
+  todayMarkets,
+  solvencyPool,
+  activeWallets = "—",
+  maxWin = "—",
+}: StatsMarqueeProps) {
+  const items = [
+    { Icon: ZapIcon, label: totalWagered, sub: "total wagered" },
+    { Icon: LiveIcon, label: String(openMarkets), sub: "open markets" },
+    { Icon: FlameIcon, label: String(todayMarkets), sub: "starting today" },
+    { Icon: ShieldIcon, label: solvencyPool, sub: "protocol pool solvency" },
+    ...(activeWallets && activeWallets !== "—" ? [{ Icon: ShieldIcon, label: String(activeWallets), sub: "active wallets" }] : []),
+    ...(maxWin && maxWin !== "—" ? [{ Icon: TrophyIcon, label: maxWin, sub: "biggest win this week" }] : []),
+  ];
+
   const list = [...items, ...items];
+
   return (
     <div className="overflow-hidden border-y border-[var(--color-line-1)] bg-[var(--color-bg-1)]/40">
       <div className="marquee-track flex w-max items-center gap-10 py-2.5 px-4">

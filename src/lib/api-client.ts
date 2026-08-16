@@ -4,8 +4,19 @@
 
 import type {
   MarketDTO, BetDTO, ParlayDTO, LPPositionDTO, PoolStats, UserDTO, UserStats,
-  LeaderboardEntry, CasinoGameMeta, CrashRound, PredictionResult, FeedItem, QuotaStatus,
+  LeaderboardEntry, CasinoGameMeta, PredictionResult, FeedItem, QuotaStatus,
 } from "@/lib/types";
+
+/** On-chain-backed crash round state — written by crash-scheduler.worker.ts, read from Redis. */
+export interface OnchainCrashRound {
+  id: number;
+  status: "waiting" | "running" | "crashed";
+  serverSeedHash: string;
+  waitingSince: number;
+  startedAt?: number;
+  crashMultiplierX100?: number;
+  serverSeed?: string;
+}
 
 export class ApiClientError extends Error {
   constructor(public code: string, message: string, public status: number, public details?: unknown) {
@@ -43,36 +54,67 @@ export const api = {
   post: <T,>(path: string, body?: unknown) => call<T>("POST", path, body),
   patch: <T,>(path: string, body?: unknown) => call<T>("PATCH", path, body),
   put:  <T,>(path: string, body?: unknown) => call<T>("PUT", path, body),
-  delete: <T,>(path: string) => call<T>("DELETE", path),
+  delete: <T,>(path: string, init?: RequestInit) => call<T>("DELETE", path, undefined, init),
 };
 
 // --- typed endpoints ------------------------------------------------------
 
 export const Markets = {
-  list: (params?: { status?: string; leagueId?: number; featured?: boolean; limit?: number; offset?: number }) => {
+  list: (params?: { status?: string; leagueId?: number; sport?: string; featured?: boolean; limit?: number; offset?: number }) => {
     const q = new URLSearchParams();
     if (params?.status) q.set("status", params.status);
     if (params?.leagueId) q.set("leagueId", String(params.leagueId));
+    if (params?.sport) q.set("sport", params.sport);
     if (params?.featured) q.set("featured", "1");
     if (params?.limit) q.set("limit", String(params.limit));
     if (params?.offset) q.set("offset", String(params.offset));
     return api.get<{ items: MarketDTO[]; total: number }>(`/api/markets?${q}`);
   },
-  live: () => api.get<{ items: MarketDTO[] }>(`/api/markets/live`),
-  featured: () => api.get<{ items: MarketDTO[] }>(`/api/markets/featured`),
-  today: () => api.get<{ items: MarketDTO[] }>(`/api/markets/today`),
-  upcoming: () => api.get<{ items: MarketDTO[] }>(`/api/markets/upcoming`),
+  live: (sport?: string, leagueId?: number) => {
+    const q = new URLSearchParams();
+    if (sport) q.set("sport", sport);
+    if (leagueId) q.set("leagueId", String(leagueId));
+    return api.get<{ items: MarketDTO[] }>(`/api/markets/live${q.toString() ? `?${q}` : ""}`);
+  },
+  featured: () => api.get<{ items: MarketDTO[]; total: number }>(`/api/markets/featured`),
+  today: (sport?: string, leagueId?: number) => {
+    const q = new URLSearchParams();
+    if (sport) q.set("sport", sport);
+    if (leagueId) q.set("leagueId", String(leagueId));
+    return api.get<{ items: MarketDTO[] }>(`/api/markets/today${q.toString() ? `?${q}` : ""}`);
+  },
+  upcoming: (sport?: string, leagueId?: number) => {
+    const q = new URLSearchParams();
+    if (sport) q.set("sport", sport);
+    if (leagueId) q.set("leagueId", String(leagueId));
+    return api.get<{ items: MarketDTO[] }>(`/api/markets/upcoming${q.toString() ? `?${q}` : ""}`);
+  },
+  tomorrow: (sport?: string, leagueId?: number) => {
+    const q = new URLSearchParams();
+    if (sport) q.set("sport", sport);
+    if (leagueId) q.set("leagueId", String(leagueId));
+    return api.get<{ items: MarketDTO[]; total: number }>(`/api/markets/tomorrow${q.toString() ? `?${q}` : ""}`);
+  },
+  outright: (sport?: string, leagueId?: number) => {
+    const q = new URLSearchParams();
+    if (sport) q.set("sport", sport);
+    if (leagueId) q.set("leagueId", String(leagueId));
+    return api.get<{ items: MarketDTO[]; total: number }>(`/api/markets/outright${q.toString() ? `?${q}` : ""}`);
+  },
   search: (q: string) => api.get<{ items: MarketDTO[] }>(`/api/markets/search?q=${encodeURIComponent(q)}`),
-  leagues: () => api.get<{ items: { id: number; name: string; logo?: string; country: string; countryCode: string; matchesToday: number; live: number; total: number }[] }>(`/api/markets/leagues`),
+  leagues: (sport?: string) => api.get<{ items: { id: number; name: string; logo?: string; sport: string; country: string; countryCode: string; matchesToday: number; live: number; total: number }[] }>(`/api/markets/leagues${sport ? `?sport=${encodeURIComponent(sport)}` : ""}`),
+  sports: () => api.get<{ items: { sport: string; total: number; live: number; today: number }[]; totals: { total: number; live: number; today: number } }>(`/api/markets/sports`),
   detail: (id: string) => api.get<MarketDTO>(`/api/markets/${id}`),
   stats: (id: string) => api.get<unknown>(`/api/markets/${id}/stats`),
-  pool: (id: string) => api.get<PoolStats>(`/api/markets/${id}/pool`),
 };
 
 export const Bets = {
-  place: (body: { marketId: string; marketType: string; outcome: number; selectionLabel: string; amount: string; oddsX1000: number; slippageToleranceBps?: number; isLive?: boolean; isPublic?: boolean; copyOfBetId?: string; }) =>
-    api.post<{ bet: BetDTO; estimatedConfirmationMs: number }>(`/api/bets`, body),
-  parlay: (body: { selections: { marketId: string; marketType: string; outcome: number; selectionLabel: string; oddsX1000: number }[]; totalStake: string; isPublic?: boolean }) =>
+  // The bet is already placed and confirmed on-chain by the time this is
+  // called (see src/lib/placeBet.ts) — this just persists the verified
+  // receipt. marketType/selectionLabel are display metadata only.
+  place: (body: { txHash: string; marketType: string; selectionLabel: string; isLive?: boolean; isPublic?: boolean }) =>
+    api.post<{ bet: BetDTO }>(`/api/bets`, body),
+  parlay: (body: { txHash: string; legs: { marketId: string; selectionLabel: string; marketType?: string; oddsX1000?: number }[]; isPublic?: boolean }) =>
     api.post<{ parlay: ParlayDTO }>(`/api/bets/parlay`, body),
   my: (params?: { status?: string; limit?: number; offset?: number }) => {
     const q = new URLSearchParams();
@@ -83,28 +125,53 @@ export const Bets = {
   },
   publicFeed: (limit = 30) => api.get<{ items: BetDTO[] }>(`/api/bets/public?limit=${limit}`),
   detail: (id: string) => api.get<BetDTO>(`/api/bets/${id}`),
-  claim: (id: string) => api.post<{ bet: BetDTO; txHash?: string; payoutUsdc: string }>(`/api/bets/${id}/claim`),
+  claim: (id: string, txHash: string) =>
+    api.post<{ bet: BetDTO; payoutUsdc: string }>(`/api/bets/${id}/claim`, { txHash }),
+  refund: (id: string, txHash: string) =>
+    api.post<{ bet: BetDTO; refundUsdc: string }>(`/api/bets/${id}/refund`, { txHash }),
   myStats: () => api.get<UserStats>(`/api/bets/stats/me`),
   leaderboard: (period: "weekly" | "monthly" | "alltime" = "weekly") =>
     api.get<{ items: LeaderboardEntry[] }>(`/api/bets/stats/leaderboard?period=${period}`),
 };
 
+export const BetSlip = {
+  book: (selections: unknown[]) =>
+    api.post<{ code: string; totalOdds: number; itemCount: number; selections: any[]; createdAt: string; expiresAt: string }>(
+      `/api/betslip/book`,
+      { selections }
+    ),
+  loadBooked: (code: string) =>
+    api.get<{ code: string; totalOdds: number; itemCount: number; selections: any[]; createdAt: string; expiresAt: string }>(
+      `/api/betslip/book/${code}`
+    ),
+};
+
 export const Liquidity = {
-  markets: () => api.get<{ items: { market: MarketDTO; pool: PoolStats }[] }>(`/api/liquidity/markets`),
-  market: (marketId: string) => api.get<{ market: MarketDTO; pool: PoolStats }>(`/api/liquidity/markets/${marketId}`),
-  myPositions: () => api.get<{ items: LPPositionDTO[] }>(`/api/liquidity/my-positions`),
-  deposit: (marketId: string, amount: string) => api.post<{ position: LPPositionDTO }>(`/api/liquidity/deposit`, { marketId, amount }),
-  requestWithdraw: (marketId: string) => api.post<{ position: LPPositionDTO; timelockHours: number }>(`/api/liquidity/withdraw/request`, { marketId }),
-  executeWithdraw: (marketId: string) => api.post<{ position: LPPositionDTO; payoutUsdc: string }>(`/api/liquidity/withdraw/execute`, { marketId }),
+  /** The single, protocol-wide LiquidityPool's aggregate stats. */
+  pool: () => api.get<{ pool: PoolStats }>(`/api/liquidity/pool`),
+  myPositions: () => api.get<{ items: LPPositionDTO[]; total: number }>(`/api/liquidity/my-positions`),
+  deposit: (amount: string, txHash?: string) => api.post<{ position: LPPositionDTO }>(`/api/liquidity/deposit`, { amount, txHash }),
+  requestWithdraw: () => api.post<{ position: LPPositionDTO; timelockHours: number }>(`/api/liquidity/withdraw/request`),
+  executeWithdraw: (txHash?: string) => api.post<{ position: LPPositionDTO; payoutUsdc: string }>(`/api/liquidity/withdraw/execute`, { txHash }),
 };
 
 export const Casino = {
   games: () => api.get<{ items: CasinoGameMeta[] }>(`/api/casino/games`),
-  bet: (body: Record<string, unknown>) => api.post<{ outcome: { win: boolean; payout: string; detail: Record<string, unknown> }; game: string }>(`/api/casino/bet`, body),
+  bet: (body: Record<string, unknown>) => api.post<{
+    outcome: { win: boolean; payout: string; multiplier: number; detail: Record<string, unknown> };
+    fairness: { serverSeedHash: string; serverSeed: string; clientSeed: string; nonce: number };
+    game: string;
+    settled: boolean;
+  }>(`/api/casino/bet`, body),
   history: () => api.get<{ items: unknown[] }>(`/api/casino/history/me`),
-  crashState: () => api.get<{ round: CrashRound; history: number[] }>(`/api/casino/crash/state`),
-  crashJoin: (amount: string, autoCashoutX100?: number) => api.post<{ round: CrashRound }>(`/api/casino/crash/join`, { amount, autoCashoutX100 }),
-  crashCashout: () => api.post<{ round: CrashRound; cashedOutAtX100: number }>(`/api/casino/crash/cashout`),
+  // The bet/cashout/claim are already confirmed on-chain by the time these
+  // are called (see src/lib/crashClient.ts) — txHash is the receipt to verify.
+  crashState: () => api.get<{ round: OnchainCrashRound | null; history: number[] }>(`/api/casino/crash/state`),
+  crashJoin: (txHash: string, clientSeed: string) =>
+    api.post<{ roundId: number; amount: string }>(`/api/casino/crash/join`, { txHash, clientSeed }),
+  crashCashout: (txHash: string) =>
+    api.post<{ cashedOutAtX100: number }>(`/api/casino/crash/cashout`, { txHash }),
+  crashClaim: (txHash: string) => api.post<{ amount: string }>(`/api/casino/crash/claim`, { txHash }),
   crashHistory: () => api.get<{ items: { id: number; crashMultiplierX100: number; at?: string }[] }>(`/api/casino/crash/history`),
 };
 
@@ -121,30 +188,173 @@ export const Social = {
 };
 
 export const Auth = {
-  nonce: (address: string) => api.get<{ nonce: string; expiresInSeconds: number }>(`/api/auth/nonce?address=${address}`),
-  verify: (body: { message: string; signature: string } | { dev: { address: string } }) =>
-    api.post<{ user: UserDTO; tokens: { accessToken: string } }>(`/api/auth/verify`, body),
+  privyVerify: (identityToken: string) =>
+    api.post<{ user: UserDTO }>(`/api/auth/privy/session`, { identityToken }),
   me: () => api.get<{ user: UserDTO; stats: UserStats }>(`/api/auth/me`),
   logout: () => api.delete<{ loggedOut: boolean }>(`/api/auth/logout`),
   refresh: () => api.post<{ user: UserDTO }>(`/api/auth/refresh`),
 };
 
+export const Favourites = {
+  list: () => api.get<{ marketIds: string[]; leagueIds: number[]; total: number; requiresAuth: boolean }>(`/api/favourites`),
+  saveMarket: (marketId: string) => api.post<{ saved: boolean }>(`/api/favourites`, { type: "market", marketId }),
+  removeMarket: (marketId: string) => api.delete<{ removed: boolean }>(`/api/favourites`, { body: JSON.stringify({ type: "market", marketId }) }),
+  saveLeague: (leagueId: number) => api.post<{ saved: boolean }>(`/api/favourites`, { type: "league", leagueId }),
+  removeLeague: (leagueId: number) => api.delete<{ removed: boolean }>(`/api/favourites`, { body: JSON.stringify({ type: "league", leagueId }) }),
+};
+
+export interface AdminAnalyticsOverview {
+  ggr: { today: string; week: string; month: string };
+  volume: { today: string; week: string; month: string };
+  activeUsersToday: number;
+  bets: number;
+  lpTvl: string;
+  openLpMarkets: number;
+}
+
 export const Admin = {
-  overview: () => api.get<unknown>(`/api/admin/analytics/overview`),
+  overview: () => api.get<AdminAnalyticsOverview>(`/api/admin/analytics/overview`),
   quota: () => api.get<QuotaStatus>(`/api/admin/analytics/quota`),
-  riskExposure: () => api.get<{ items: { marketId: string; label: string; coverageRatio: number; riskLevel: string }[] }>(`/api/admin/risk/exposure`),
+  riskExposure: () =>
+    api.get<{
+      pool: { tvl: string; virtualLiquidity: string; effectiveCapacity: string; lockedForPayouts: string };
+      items: { marketId: string; label: string; closesAt: string; totalBetAmount: string; maxLiability: string; coverageRatio: number; riskLevel: "safe" | "warning" | "critical" }[];
+    }>(`/api/admin/risk/exposure`),
   riskAlerts: () => api.get<{ items: { marketId: string; label: string; coverage: number }[] }>(`/api/admin/risk/alerts`),
   users: () => api.get<{ items: { user: UserDTO; stats: UserStats }[] }>(`/api/admin/users`),
   ban: (id: string) => api.post<{ user: UserDTO }>(`/api/admin/users/${id}/ban`),
   unban: (id: string) => api.post<{ user: UserDTO }>(`/api/admin/users/${id}/unban`),
-  settleMarket: (id: string, winningOutcome: number) =>
-    api.post<{ market: MarketDTO }>(`/api/admin/markets/${id}/settle`, { winningOutcome }),
+  updateUserRole: (id: string, roles: string[]) => api.patch<{ user: UserDTO }>(`/api/admin/users/${id}/role`, { roles }),
+  listMarkets: (params?: { status?: string; q?: string; limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.q) q.set("q", params.q);
+    if (params?.limit) q.set("limit", String(params.limit));
+    if (params?.offset) q.set("offset", String(params.offset));
+    return api.get<{ items: (MarketDTO & { betsCount?: number })[]; total: number }>(`/api/admin/markets?${q}`);
+  },
+  resumeMarket: (id: string) => api.post<{ market: MarketDTO }>(`/api/admin/markets/${id}/resume`),
+  /**
+   * Sports markets: pass the final score — every market type with bets on
+   * it (1X2, totals, BTTS, asian handicap) resolves automatically. Prediction
+   * markets or a manual override for one market type the score resolver
+   * can't handle: pass an explicit winningOutcome (+ optional marketType).
+   */
+  settleMarket: (id: string, input: { homeScore: number; awayScore: number } | { winningOutcome: number; marketType?: string }) =>
+    api.post<{ market: MarketDTO; won: number; voided: number; unresolved: string[] }>(`/api/admin/markets/${id}/settle`, input),
   suspendMarket: (id: string) => api.post<{ market: MarketDTO }>(`/api/admin/markets/${id}/suspend`),
   cancelMarket: (id: string) => api.post<{ market: MarketDTO }>(`/api/admin/markets/${id}/cancel`),
   toggleFeatured: (id: string) => api.patch<{ market: MarketDTO }>(`/api/admin/markets/${id}/featured`),
+  getConfig: () => api.get<{ config: { houseEdgeBps: number; minBetUsdc: string; maxBetUsdc: string; treasuryAddress: string; isPaused: boolean; maxMultipliers: Record<string, number> } }>(`/api/admin/system/config`),
+  updateConfig: (body: Record<string, unknown>) => api.post<{ config: unknown }>(`/api/admin/system/config`, body),
+  casinoBets: (params?: { game?: string; status?: string; limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.game) q.set("game", params.game);
+    if (params?.status) q.set("status", params.status);
+    if (params?.limit) q.set("limit", String(params.limit));
+    if (params?.offset) q.set("offset", String(params.offset));
+    return api.get<{ items: { id: string; game: string; amount: string; multiplierX100?: number; payout: string; status: string; requestId?: string; placedAt: string; user: { id: string; walletAddress: string; username?: string } }[]; total: number }>(`/api/admin/casino?${q}`);
+  },
+  settleCasinoBet: (id: string, body: { status: "WON" | "LOST" | "REFUNDED" | "CANCELLED"; payoutUsdc?: string }) =>
+    api.post<{ bet: { id: string; status: string; payout: string } }>(`/api/admin/casino/${id}/settle`, body),
+  auditLogs: (params?: { limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.limit) q.set("limit", String(params.limit));
+    if (params?.offset) q.set("offset", String(params.offset));
+    return api.get<{ items: { id: string; action: string; target?: string; ip?: string; createdAt: string; actor?: { username?: string; walletAddress: string } }[]; total: number }>(`/api/admin/audit?${q}`);
+  },
 };
 
 export const Health = {
   basic: () => api.get<{ status: string; timestamp: string; counts: Record<string, number>; quota: QuotaStatus }>(`/api/health`),
   detailed: () => api.get<unknown>(`/api/health/detailed`),
+};
+
+export const UserApi = {
+  setUsername: (username: string) => api.post<{ user: UserDTO }>(`/api/user/username`, { username }),
+  checkUsername: (username: string) => api.get<{ available: boolean; reason?: string }>(`/api/user/username/check?username=${encodeURIComponent(username)}`),
+};
+
+export const LeaderboardApi = {
+  get: (params?: { category?: string; period?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.category) q.set("category", params.category);
+    if (params?.period) q.set("period", params.period);
+    return api.get<{
+      items: {
+        rank: number;
+        userId: string;
+        handle: string;
+        address: string;
+        walletAddress: string;
+        username?: string;
+        color: string;
+        verified: boolean;
+        bets: number;
+        winRate: number;
+        volume: number;
+        pnl: number;
+        roi: number;
+        streak: number;
+      }[];
+      total: number;
+      currentUser?: {
+        rank: number;
+        handle: string;
+        address: string;
+        bets: number;
+        winRate: number;
+        volume: number;
+        pnl: number;
+        roi: number;
+        streak: number;
+      } | null;
+    }>(`/api/leaderboard?${q}`);
+  },
+};
+
+export const SocialApi = {
+  feed: (limit = 30) => api.get<{ items: any[] }>(`/api/social/feed?limit=${limit}`),
+  tipsters: () => api.get<{ items: any[] }>(`/api/social/tipsters`),
+};
+
+export const AIAnalytics = {
+  get: (forceRefresh = false) =>
+    api.get<{
+      lastAnalyzedAt: string;
+      modelUsed: string;
+      predictions: {
+        id: string;
+        marketId: string;
+        match: string;
+        league: string;
+        pick: string;
+        confidence: number;
+        odds: number;
+        fair: number;
+        valueBps: number;
+        reasoning: string;
+        factors: string[];
+        direction: "up" | "down";
+      }[];
+      insights: { tag: string; title: string; desc: string; accent: string }[];
+    }>(`/api/ai-analytics${forceRefresh ? "?refresh=true" : ""}`),
+};
+
+export const CasinoPoolApi = {
+  getRound: () =>
+    api.get<{
+      roundId: number;
+      startedAt: string;
+      expiresAt: string;
+      secondsRemaining: number;
+      totalDeposits: number;
+      maxPayoutCap: number;
+      playersCount: number;
+      bets: { id: string; userId: string; username: string; game: string; amount: number; placedAt: string }[];
+      recentWinners: { userId: string; username: string; game: string; stake: number; payout: number }[];
+      lastResolvedRound?: { roundId: number; totalDeposits: number; totalPayouts: number; winnersCount: number };
+    }>(`/api/casino/round`),
+  joinRound: (game: string, amount: number) =>
+    api.post<{ bet: any; round: any }>(`/api/casino/round`, { game, amount }),
 };

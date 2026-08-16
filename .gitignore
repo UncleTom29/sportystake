@@ -1,7 +1,8 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# dependencies — unanchored so it also matches packages/*/node_modules in
+# this pnpm monorepo, not just the root.
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -9,6 +10,11 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+
+# npm lockfiles anywhere in the monorepo — pnpm-lock.yaml at the root is the
+# single source of truth; a stray package-lock.json means npm ran somewhere
+# it shouldn't have.
+package-lock.json
 
 # testing
 /coverage
@@ -19,6 +25,14 @@
 
 # production
 /build
+
+# hardhat (packages/contracts)
+artifacts/
+cache/
+typechain-types/
+
+# package build output
+dist/
 
 # misc
 .DS_Store
@@ -32,6 +46,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.production.example
 
 # vercel
 .vercel
@@ -39,3 +54,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# stray debug output
+*.stderr
+
+# python bytecode cache (oracle scraper scripts)
+__pycache__/
+*.pyc

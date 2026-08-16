@@ -1,19 +1,37 @@
 // Clients
-export { BettingClient } from './clients/BettingClient.js';
+export { BettingClient, ParlayVerdict } from './clients/BettingClient.js';
 export type {
   BettingClientOpts,
   PlaceBetParams,
   BetReceipt,
   MarketView,
   BetView,
+  PlaceParlayParams,
+  ParlayReceipt,
+  ParlayView,
 } from './clients/BettingClient.js';
 
-export { MarketLiquidityClient } from './clients/MarketLiquidityClient.js';
+export { LiquidityClient } from './clients/LiquidityClient.js';
 export type {
-  MarketLiquidityClientOpts,
+  LiquidityClientOpts,
   PoolStats,
   UserPosition,
-} from './clients/MarketLiquidityClient.js';
+} from './clients/LiquidityClient.js';
+
+export { CasinoClient, CasinoGameType } from './clients/CasinoClient.js';
+export type {
+  CasinoClientOpts,
+  PlaceCasinoBetParams,
+  CasinoBetReceipt,
+  CasinoBetView,
+} from './clients/CasinoClient.js';
+
+export { CrashClient, CrashRoundStatus } from './clients/CrashClient.js';
+export type {
+  CrashClientOpts,
+  CrashRoundView,
+  JoinRoundReceipt,
+} from './clients/CrashClient.js';
 
 // Utils
 export {
@@ -38,8 +56,7 @@ export type { NetworkName, ContractAddresses } from './contracts/addresses.js';
 
 // ABIs
 export { bettingCoreAbi } from './contracts/abis/BettingCore.js';
-export { marketLiquidityPoolAbi } from './contracts/abis/MarketLiquidityPool.js';
-export { marketPoolFactoryAbi } from './contracts/abis/MarketPoolFactory.js';
+export { liquidityPoolAbi } from './contracts/abis/LiquidityPool.js';
 export { casinoHouseAbi } from './contracts/abis/CasinoHouse.js';
 export { crashGameAbi } from './contracts/abis/CrashGame.js';
 export { erc20Abi } from './contracts/abis/ERC20.js';

@@ -1,93 +1,98 @@
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { ok, fail, withRequestId, ApiError } from "@/lib/server/api-response";
-import { store, utils } from "@/lib/server/store";
-import { readAuthFromRequest, checkRateLimit } from "@/lib/server/auth";
+import { readAuthFromRequest } from "@/lib/server/auth";
+import { rateLimit } from "@/lib/server/rate-limit";
 import { publish } from "@/lib/server/event-bus";
-import { shortId } from "@/lib/uid";
-import type { BetDTO, MarketType } from "@/lib/types";
+import { prisma } from "@/lib/server/db";
+import { BetsRepo, usdcToString } from "@/lib/server/repos/bets.repo";
+import { verifyBetPlaced } from "@/lib/server/betVerification";
+import { evaluateFirstWagerForBonus } from "@/lib/server/bonusEngine";
+import { logger } from "@/lib/server/logger";
 
 export const runtime = "nodejs";
 
 const Body = z.object({
-  marketId: z.string().min(1),
-  marketType: z.string(),
-  outcome: z.number().int().min(0).max(10),
-  selectionLabel: z.string().min(1),
-  amount: z.string().regex(/^\d+(\.\d{1,6})?$/),
-  oddsX1000: z.number().int().min(1050).max(50000),
-  slippageToleranceBps: z.number().int().min(0).max(2000).default(50),
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  marketType: z.string().min(1).max(40),
+  selectionLabel: z.string().min(1).max(80),
   isLive: z.boolean().default(false),
   isPublic: z.boolean().default(true),
-  copyOfBetId: z.string().optional(),
 });
 
+/**
+ * The bet was already placed and confirmed on-chain by the time this route
+ * is called — the client signed `BettingCore.placeBet` via Circle before
+ * ever hitting this endpoint. This route's job is purely to verify the
+ * receipt (never trust a client-supplied betId/amount/outcome) and persist
+ * the confirmed record. `marketType`/`selectionLabel` are display metadata
+ * only, not verified on-chain — the chain only knows marketId + an outcome
+ * index, not a human-readable label.
+ */
 export const POST = withRequestId(async (req: NextRequest) => {
   const auth = await readAuthFromRequest(req);
   if (!auth) return fail("Unauthorized", "Sign in to place a bet", 401);
-  checkRateLimit(`bets:${auth.sub}`, 30, 60_000);
 
-  const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  if (!parsed.success) return fail("ValidationError", "Invalid bet payload", 400, { details: parsed.error.issues });
-  const body = parsed.data;
-
-  const s = store();
-  const mkt = s.markets.find((m) => m.id === body.marketId);
-  if (!mkt) throw new ApiError("NotFound", "Market not found", 404);
-  if (mkt.status !== "OPEN" && mkt.status !== "LIVE") throw new ApiError("MarketClosed", "Market not accepting bets", 409);
-
-  // Slippage check vs current odds
-  const bundle = mkt.odds.find((o) => o.marketType === body.marketType as MarketType);
-  if (!bundle) throw new ApiError("InvalidMarketType", "Unknown market type", 400);
-  const sel = bundle.selections.find((x) => x.outcome === body.outcome);
-  if (!sel) throw new ApiError("InvalidOutcome", "Unknown outcome", 400);
-  const tolerated = Math.floor(sel.valueX1000 * (1 - body.slippageToleranceBps / 10000));
-  if (body.oddsX1000 < tolerated) throw new ApiError("Slippage", "Odds have moved beyond slippage tolerance", 409);
-
-  const amount = utils.fromUsdc(body.amount);
-  if (amount < 5n * utils.USDC_SCALE) throw new ApiError("BelowMinimum", "Minimum bet is 5 USDC", 400);
-  if (amount > 10000n * utils.USDC_SCALE) throw new ApiError("AboveMaximum", "Maximum bet is 10,000 USDC", 400);
-
-  // Pool liquidity check
-  const potential = (amount * BigInt(sel.valueX1000)) / 1000n;
-  const tvl = utils.fromUsdc(mkt.poolTvl);
-  const locked = utils.fromUsdc(mkt.poolLocked);
-  const newLocked = locked + (potential - amount);
-  if (newLocked * 10n > tvl * 9n) {
-    throw new ApiError("InsufficientPool", "Pool cannot cover this payout right now", 409);
+  const rl = await rateLimit(`bets:${auth.sub}`, 30, 60_000);
+  if (!rl.allowed) {
+    return fail("RateLimited", "Slow down", 429, { details: { retryAfterMs: rl.retryAfterMs } });
   }
 
-  const user = s.users.find((u) => u.id === auth.sub);
-  if (!user) throw new ApiError("Unauthorized", "User not found", 401);
+  const parsed = Body.safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return fail("ValidationError", "Invalid bet payload", 400, { details: parsed.error.issues });
+  }
+  const body = parsed.data;
 
-  const bet: BetDTO = {
-    id: `bet-${shortId()}`,
-    userId: user.id,
-    userAddress: user.walletAddress,
-    marketId: mkt.id,
-    marketLabel: `${mkt.homeTeam} vs ${mkt.awayTeam}`,
-    marketType: body.marketType as MarketType,
-    outcome: body.outcome,
+  const verified = await verifyBetPlaced(body.txHash as `0x${string}`, auth.addr);
+
+  const market = await prisma.market.findUnique({ where: { id: verified.marketId } });
+  if (!market) throw new ApiError("NotFound", "Market not found", 404);
+
+  const bet = await BetsRepo.create({
+    id: verified.betId,
+    userId: auth.sub,
+    marketId: verified.marketId,
+    marketType: body.marketType,
+    outcome: verified.outcome,
     selectionLabel: body.selectionLabel,
-    amount: body.amount,
-    oddsX1000: sel.valueX1000,
-    potentialPayout: utils.toUsdc(potential),
-    status: "PENDING",
-    isLive: !!body.isLive,
+    amount: verified.amount,
+    oddsX1000: Number(verified.oddsX1000),
+    potentialPayout: verified.potentialPayout,
+    isLive: body.isLive,
     isPublic: body.isPublic,
-    txHash: `0x${Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("")}`,
-    onchainBetId: `0x${shortId()}`,
-    createdAt: new Date().toISOString(),
-    copyOfBetId: body.copyOfBetId,
-  };
-  s.bets.unshift(bet);
-  mkt.poolLocked = utils.toUsdc(newLocked);
-  mkt.poolBetVolume = utils.toUsdc(utils.fromUsdc(mkt.poolBetVolume) + amount);
+    txHash: body.txHash,
+  });
 
-  // Simulate on-chain confirmation after 1.5s
-  setTimeout(() => {
-    publish("bet:confirmed", { betId: bet.id, txHash: bet.txHash, userId: bet.userId });
-  }, 1500);
+  publish("bet:confirmed", { betId: bet.id, userId: bet.userId });
 
-  return ok({ bet, estimatedConfirmationMs: 1500 });
+  // Evaluate Welcome Bonus match qualification on first on-chain wager
+  evaluateFirstWagerForBonus({
+    userId: auth.sub,
+    wagerAmountBaseUnits: verified.amount,
+    totalOddsX1000: Number(verified.oddsX1000),
+    legs: [{ oddsX1000: Number(verified.oddsX1000) }],
+  }).catch((err) => {
+    logger.warn("[api/bets] Bonus evaluation error", { error: (err as Error).message });
+  });
+
+  return ok({ bet });
 });
+
+export const GET = withRequestId(async (req: NextRequest) => {
+  const auth = await readAuthFromRequest(req);
+  if (!auth) return fail("Unauthorized", "Sign in", 401);
+  const status = req.nextUrl.searchParams.get("status") as
+    | "PENDING" | "WON" | "LOST" | "CANCELLED" | "CLAIMED" | null;
+  const limit = Math.min(100, Number(req.nextUrl.searchParams.get("limit") ?? 30));
+  const offset = Math.max(0, Number(req.nextUrl.searchParams.get("offset") ?? 0));
+  const { items, total } = await BetsRepo.listForUser(auth.sub, {
+    ...(status ? { status } : {}),
+    limit,
+    offset,
+  });
+  return ok({ items, total, nextOffset: offset + items.length < total ? offset + items.length : null }, undefined);
+});
+// usdcToString re-exported so other route files can keep one import line.
+export { usdcToString };

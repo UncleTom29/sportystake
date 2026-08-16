@@ -38,10 +38,23 @@ export default function BetConfirmationModal({ isOpen, onClose, mode, stake }: P
   const handleConfirm = async () => {
     setStep("placing");
     try {
-      if (mode === "singles") {
-        await placeSingleBets(selections, stake);
+      if (mode === "single") {
+        const { placed, failures } = await placeSingleBets(selections, stake);
+        if (!placed.length) {
+          setErrorMsg(failures[0]?.error ?? "No bets were placed");
+          setStep("error");
+          return;
+        }
+        if (failures.length) {
+          setErrorMsg(`${placed.length} of ${selections.length} placed — ${failures[0].error}`);
+        }
       } else {
-        await placeParlay(selections, stake);
+        const { parlay, failures } = await placeParlay(selections, stake);
+        if (!parlay) {
+          setErrorMsg(failures[0]?.error ?? "Parlay could not be placed");
+          setStep("error");
+          return;
+        }
       }
       setStep("success");
       clearAll();

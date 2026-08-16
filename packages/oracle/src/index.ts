@@ -5,26 +5,23 @@ import cron from 'node-cron';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { CacheManager } from './cache/cache-manager.js';
-import { QuotaTracker } from './quota/quota-tracker.js';
-import { QuotaBudgetManager } from './quota/quota-budget-manager.js';
-import { MockApiFootballClient } from './providers/mock.client.js';
-import type { IFootballProvider } from './providers/provider.interface.js';
 import { RedisPublisher } from './publishers/redis-publisher.js';
-import { DailyFixturesJob } from './jobs/daily-fixtures.job.js';
-import { LivePollerJob } from './jobs/live-poller.job.js';
-import { OddsRefresherJob } from './jobs/odds-refresher.job.js';
-import { StandingsJob } from './jobs/standings.job.js';
+import { ScrapeOddsJob } from './jobs/scrape-odds.job.js';
+import { XbetLiveJob } from './jobs/live-poller.job.js';
 import { CacheKeys } from './cache/cache-keys.js';
+import { metrics } from './metrics.js';
 
 async function bootstrap(): Promise<void> {
-  logger.info(
-    { version: '0.1.0', env: config.NODE_ENV, useMock: config.USE_MOCK_PROVIDER },
-    'oracle:starting',
-  );
+  logger.info({ version: '0.3.0', env: config.NODE_ENV }, 'oracle:starting');
 
-  // Two Redis connections: one for general I/O, one dedicated to publishing.
-  const redis = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
-  const redisPub = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true });
+  // commandTimeout bounds every individual command — without it, a command
+  // issued while Redis is mid-restart can sit in ioredis's offline queue
+  // indefinitely (maxRetriesPerRequest: null means "retry forever", not
+  // "give up after N ms"), which previously wedged a cron job's re-entrancy
+  // lock permanently since its `finally` block never ran. See jobs' own
+  // stale-lock fallback for the second layer of defense against that.
+  const redis = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true, commandTimeout: 15_000 });
+  const redisPub = new Redis(config.REDIS_URL, { maxRetriesPerRequest: null, lazyConnect: true, commandTimeout: 15_000 });
   try {
     await redis.connect();
     await redisPub.connect();
@@ -33,37 +30,30 @@ async function bootstrap(): Promise<void> {
     logger.warn({ err }, 'redis:connect-failed — running without persistence');
   }
 
-  const cache = new CacheManager(redis, logger);
-  const quotaTracker = new QuotaTracker(redis, logger);
-  const quotaManager = new QuotaBudgetManager(redis, logger, quotaTracker);
-  await quotaManager.init();
-
-  const provider: IFootballProvider = config.USE_MOCK_PROVIDER
-    ? new MockApiFootballClient()
-    : new MockApiFootballClient();
-
+  const cache     = new CacheManager(redis, logger);
   const publisher = new RedisPublisher(redisPub, logger);
 
-  const dailyJob = new DailyFixturesJob(provider, cache, publisher, quotaManager, logger);
-  const livePoller = new LivePollerJob(provider, cache, publisher, quotaManager, logger);
-  const oddsRefresher = new OddsRefresherJob(provider, cache, publisher, quotaManager, logger);
-  const standingsJob = new StandingsJob(provider, cache, quotaManager, logger);
+  const scrapeOddsJob = new ScrapeOddsJob(cache, publisher, logger);
+  const liveJob       = new XbetLiveJob(cache, publisher, logger);
 
-  // Seed cache on startup so the API has data immediately.
-  await dailyJob.run();
+  // Seed on startup so the sync-worker has data before the first cron tick.
+  logger.info('oracle:seeding — running initial scrape (may take ~90s)');
+  await scrapeOddsJob.run();
+  // Start live polling immediately too.
+  void liveJob.run();
 
-  cron.schedule('0 1 * * *', () => void dailyJob.run(), { timezone: 'UTC' });
-  cron.schedule('*/45 * * * * *', () => void livePoller.run());
-  cron.schedule('*/30 * * * *', () => void oddsRefresher.run());
-  cron.schedule('0 */6 * * *', () => void standingsJob.run(), { timezone: 'UTC' });
+  // Scrape 1xbet prematch odds every 3 minutes — full snapshot + all market lines.
+  cron.schedule('*/3 * * * *', () => void scrapeOddsJob.run());
 
-  logger.info('cron:scheduled');
+  // Poll live scores every 2 minutes for settlement and score ticks.
+  cron.schedule('*/2 * * * *', () => void liveJob.run());
 
-  // ─── HTTP surface ──────────────────────────────────────────────────────
+  logger.info('cron:scheduled — scrape=*/3m  live=*/2m');
+
+  // ─── HTTP surface ──────────────────────────────────────────────────────────
   const app = express();
   app.use(express.json());
 
-  // Simple auth middleware for /internal routes.
   app.use('/internal', (req, res, next) => {
     const key = req.header('x-oracle-key');
     if (key !== config.ORACLE_INTERNAL_API_KEY) {
@@ -78,13 +68,21 @@ async function bootstrap(): Promise<void> {
   });
 
   app.get('/status', async (_req: Request, res: Response) => {
-    try {
-      const providerStatus = await provider.getStatus();
-      const quotaStatus = quotaManager.getStatus();
-      res.json({ provider: providerStatus, quota: quotaStatus });
-    } catch (err) {
-      res.status(500).json({ error: (err as Error).message });
-    }
+    const [scrapeOdds, livePoller] = await Promise.all([
+      cache.get(CacheKeys.jobHealth('scrape-odds')),
+      cache.get(CacheKeys.jobHealth('live-poller')),
+    ]);
+    res.json({
+      ok: true,
+      version: '0.3.0',
+      env: config.NODE_ENV,
+      ts: new Date().toISOString(),
+      jobs: { 'scrape-odds': scrapeOdds, 'live-poller': livePoller },
+    });
+  });
+
+  app.get('/metrics', (_req: Request, res: Response) => {
+    res.type('text/plain; version=0.0.4').send(metrics.render());
   });
 
   app.get('/internal/fixtures/live', async (_req: Request, res: Response) => {
@@ -99,10 +97,8 @@ async function bootstrap(): Promise<void> {
 
   app.get('/internal/odds/:fixtureId', async (req: Request, res: Response) => {
     const fixtureId = Number(req.params.fixtureId);
-    const live = await cache.get(CacheKeys.oddsLive(fixtureId));
-    const prematch = await cache.get(
-      CacheKeys.oddsPrematch(fixtureId, config.API_FOOTBALL_BOOKMAKER_ID),
-    );
+    const live      = await cache.get(CacheKeys.oddsLive(fixtureId));
+    const prematch  = await cache.get(CacheKeys.oddsPrematch(fixtureId));
     res.json({ fixtureId, live, prematch });
   });
 
@@ -110,18 +106,8 @@ async function bootstrap(): Promise<void> {
     const job = req.params.job;
     try {
       switch (job) {
-        case 'daily-fixtures':
-          await dailyJob.run();
-          break;
-        case 'live-poller':
-          await livePoller.run();
-          break;
-        case 'odds-refresher':
-          await oddsRefresher.run();
-          break;
-        case 'standings':
-          await standingsJob.run();
-          break;
+        case 'scrape-odds': await scrapeOddsJob.run(); break;
+        case 'live-poller': await liveJob.run();       break;
         default:
           res.status(404).json({ error: `unknown job: ${job}` });
           return;
@@ -136,16 +122,14 @@ async function bootstrap(): Promise<void> {
     logger.info({ port: config.ORACLE_PORT }, 'oracle:listening');
   });
 
-  // ─── graceful shutdown ─────────────────────────────────────────────────
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, 'oracle:shutting-down');
     server.close();
-    quotaManager.stop();
     try { await redis.quit(); } catch { /* ignore */ }
     try { await redisPub.quit(); } catch { /* ignore */ }
     process.exit(0);
   };
-  process.once('SIGINT', (sig) => void shutdown(sig));
+  process.once('SIGINT',  (sig) => void shutdown(sig));
   process.once('SIGTERM', (sig) => void shutdown(sig));
 }
 

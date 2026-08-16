@@ -1,11 +1,25 @@
+export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { ok, withRequestId } from "@/lib/server/api-response";
-import { store } from "@/lib/server/store";
+import { prisma, type Prisma } from "@/lib/server/db";
+import { MarketsRepo } from "@/lib/server/repos/markets.repo";
 
 export const runtime = "nodejs";
 
 export const GET = withRequestId(async (_req: NextRequest) => {
-  const s = store();
-  const items = s.markets.filter((m) => m.isFeatured && (m.status === "OPEN" || m.status === "LIVE")).slice(0, 10);
-  return ok({ items, total: items.length });
+  const where: Prisma.MarketWhereInput = {
+    isFeatured: true,
+    status: "OPEN",
+  };
+  const [rows, total] = await Promise.all([
+    prisma.market.findMany({
+      where,
+      include: { oddsSnapshots: { take: 50, orderBy: { capturedAt: "desc" } } },
+      orderBy: { startTime: "asc" },
+      take: 10,
+    }),
+    prisma.market.count({ where }),
+  ]);
+  const items = rows.map((r) => MarketsRepo.toDto(r));
+  return ok({ items, total });
 });

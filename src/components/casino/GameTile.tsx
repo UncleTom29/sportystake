@@ -1,9 +1,10 @@
+import Link from "next/link";
 import type { CasinoGame } from "@/lib/mockData";
-import { FlameIcon, SparkleIcon, TrophyIcon } from "@/components/icons/UIIcons";
+import { FlameIcon } from "@/components/icons/UIIcons";
 
 export default function GameTile({ game }: { game: CasinoGame }) {
   return (
-    <button className="group relative overflow-hidden rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-2)] text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--color-line-2)]">
+    <Link href={game.href} className="group relative block overflow-hidden rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-2)] text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--color-line-2)]">
       <div
         className="relative aspect-[3/4] w-full overflow-hidden"
         style={{
@@ -20,14 +21,11 @@ export default function GameTile({ game }: { game: CasinoGame }) {
               className={`mono inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
                 game.tag === "HOT"
                   ? "bg-[var(--color-live)] text-white"
-                  : game.tag === "NEW"
-                  ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)]"
-                  : "bg-[var(--color-warn)] text-[var(--color-bg-0)]"
+                  : "bg-[var(--color-brand-500)] text-[var(--color-bg-0)]"
               }`}
             >
               {game.tag === "HOT" && <FlameIcon className="h-2.5 w-2.5" />}
-              {game.tag === "NEW" && <SparkleIcon className="h-2.5 w-2.5" />}
-              {game.tag === "JACKPOT" && <TrophyIcon className="h-2.5 w-2.5" />}
+              {game.tag === "NEW" && <FlameIcon className="h-2.5 w-2.5" />}
               {game.tag}
             </span>
           </div>
@@ -36,16 +34,8 @@ export default function GameTile({ game }: { game: CasinoGame }) {
         {/* Bottom info */}
         <div className="absolute inset-x-0 bottom-0 p-2.5">
           <p className="truncate text-[13px] font-bold text-white">{game.name}</p>
-          <p className="truncate text-[10px] text-white/70">{game.provider}</p>
+          <p className="truncate text-[10px] text-white/70">On-chain · Instant</p>
         </div>
-
-        {/* Players online */}
-        {game.players && (
-          <div className="absolute right-2 top-2 flex items-center gap-1 rounded bg-black/50 px-1.5 py-0.5 backdrop-blur-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-brand-500)] pulse-dot" />
-            <span className="mono text-[10px] font-bold text-white">{game.players}</span>
-          </div>
-        )}
 
         {/* Hover play overlay */}
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
@@ -54,7 +44,7 @@ export default function GameTile({ game }: { game: CasinoGame }) {
           </span>
         </div>
       </div>
-    </button>
+    </Link>
   );
 }
 

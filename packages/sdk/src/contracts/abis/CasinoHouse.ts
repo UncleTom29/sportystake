@@ -1,101 +1,71 @@
+// Regenerated from the compiled artifact (packages/contracts/artifacts/contracts/CasinoHouse.sol/CasinoHouse.json)
+// to match the actual contract — placeCasinoBet/settleGame, not a
+// registered-game pattern. The previous version of this file didn't match
+// CasinoHouse.sol at all (stale from an earlier design iteration) and had
+// zero callers, so the mismatch went unnoticed until this file's first
+// real consumer.
 export const casinoHouseAbi = [
   // --- Functions ---
   {
     type: 'function',
-    name: 'deposit',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'withdraw',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'registerGame',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'game', type: 'address' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'unregisterGame',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'game', type: 'address' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'reserveForPayout',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'releaseReservation',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'payout',
+    name: 'placeCasinoBet',
     stateMutability: 'nonpayable',
     inputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'game', type: 'uint8' },
+      { name: 'clientSeed', type: 'bytes32' },
+    ],
+    outputs: [{ name: 'requestId', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'settleGame',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'requestId', type: 'bytes32' },
+      { name: 'randomResult', type: 'uint256' },
+      { name: 'payout', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'depositBankroll',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'withdrawBankroll',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'amount', type: 'uint256' },
       { name: 'to', type: 'address' },
-      { name: 'amount', type: 'uint256' },
     ],
     outputs: [],
   },
   {
     type: 'function',
-    name: 'collectStake',
-    stateMutability: 'nonpayable',
-    inputs: [
-      { name: 'from', type: 'address' },
+    name: 'bets',
+    stateMutability: 'view',
+    inputs: [{ name: '', type: 'bytes32' }],
+    outputs: [
+      { name: 'player', type: 'address' },
       { name: 'amount', type: 'uint256' },
+      { name: 'game', type: 'uint8' },
+      { name: 'clientSeed', type: 'bytes32' },
+      { name: 'settled', type: 'bool' },
+      { name: 'payout', type: 'uint256' },
+      { name: 'reservedExposure', type: 'uint256' },
     ],
-    outputs: [],
   },
   {
     type: 'function',
-    name: 'balances',
+    name: 'nonces',
     stateMutability: 'view',
-    inputs: [{ name: 'user', type: 'address' }],
+    inputs: [{ name: '', type: 'address' }],
     outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'totalLiquidity',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'reserved',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'availableLiquidity',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-  },
-  {
-    type: 'function',
-    name: 'games',
-    stateMutability: 'view',
-    inputs: [{ name: 'game', type: 'address' }],
-    outputs: [{ name: '', type: 'bool' }],
   },
   {
     type: 'function',
@@ -104,42 +74,96 @@ export const casinoHouseAbi = [
     inputs: [],
     outputs: [{ name: '', type: 'address' }],
   },
+  // --- New functions (Fix #2: exposure check) ---
+  {
+    type: 'function',
+    name: 'setMaxMultiplier',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'game', type: 'uint8' },
+      { name: 'multiplierX100', type: 'uint256' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'maxMultiplierX100',
+    stateMutability: 'view',
+    inputs: [{ name: '', type: 'uint8' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'totalPendingExposure',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  // --- Access control views (Fix #4: governance verification) ---
+  {
+    type: 'function',
+    name: 'DEFAULT_ADMIN_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'getRoleMember',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'index', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'address' }],
+  },
+  {
+    type: 'function',
+    name: 'hasRole',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'role', type: 'bytes32' },
+      { name: 'account', type: 'address' },
+    ],
+    outputs: [{ name: '', type: 'bool' }],
+  },
   // --- Events ---
   {
     type: 'event',
-    name: 'Deposited',
+    name: 'BetReceived',
     inputs: [
-      { name: 'user', type: 'address', indexed: true },
+      { name: 'requestId', type: 'bytes32', indexed: true },
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'game', type: 'uint8', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+      { name: 'clientSeed', type: 'bytes32', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'GameSettled',
+    inputs: [
+      { name: 'requestId', type: 'bytes32', indexed: true },
+      { name: 'player', type: 'address', indexed: true },
+      { name: 'randomResult', type: 'uint256', indexed: false },
+      { name: 'payout', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'BankrollDeposit',
+    inputs: [
+      { name: 'from', type: 'address', indexed: true },
       { name: 'amount', type: 'uint256', indexed: false },
     ],
     anonymous: false,
   },
   {
     type: 'event',
-    name: 'Withdrawn',
+    name: 'BankrollWithdraw',
     inputs: [
-      { name: 'user', type: 'address', indexed: true },
-      { name: 'amount', type: 'uint256', indexed: false },
-    ],
-    anonymous: false,
-  },
-  {
-    type: 'event',
-    name: 'GameRegistered',
-    inputs: [{ name: 'game', type: 'address', indexed: true }],
-    anonymous: false,
-  },
-  {
-    type: 'event',
-    name: 'GameUnregistered',
-    inputs: [{ name: 'game', type: 'address', indexed: true }],
-    anonymous: false,
-  },
-  {
-    type: 'event',
-    name: 'PayoutSent',
-    inputs: [
-      { name: 'game', type: 'address', indexed: true },
       { name: 'to', type: 'address', indexed: true },
       { name: 'amount', type: 'uint256', indexed: false },
     ],
@@ -147,11 +171,10 @@ export const casinoHouseAbi = [
   },
   {
     type: 'event',
-    name: 'StakeCollected',
+    name: 'MaxMultiplierUpdated',
     inputs: [
-      { name: 'game', type: 'address', indexed: true },
-      { name: 'from', type: 'address', indexed: true },
-      { name: 'amount', type: 'uint256', indexed: false },
+      { name: 'game', type: 'uint8', indexed: true },
+      { name: 'multiplierX100', type: 'uint256', indexed: false },
     ],
     anonymous: false,
   },

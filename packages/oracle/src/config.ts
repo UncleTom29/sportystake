@@ -1,11 +1,11 @@
 import 'dotenv/config';
 import { z } from 'zod';
 
-const booleanish = z
-  .union([z.string(), z.boolean()])
+const csvStrings = z
+  .union([z.string(), z.array(z.string())])
   .transform((v) => {
-    if (typeof v === 'boolean') return v;
-    return ['1', 'true', 'yes', 'on'].includes(v.toLowerCase());
+    if (Array.isArray(v)) return v;
+    return v.split(',').map((s) => s.trim()).filter(Boolean);
   });
 
 const baseSchema = z.object({
@@ -16,13 +16,13 @@ const baseSchema = z.object({
 
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
 
-  USE_MOCK_PROVIDER: booleanish.default(true),
-  API_FOOTBALL_KEY: z.string().optional(),
-  API_FOOTBALL_BASE_URL: z
-    .string()
-    .url()
-    .default('https://v3.football.api-sports.io'),
-  API_FOOTBALL_BOOKMAKER_ID: z.coerce.number().int().positive().default(6),
+  TRACKED_SPORTS: csvStrings.default(
+    'football,basketball,tennis,baseball,american-football,ice-hockey,mixed-martial-arts,boxing,volleyball,table-tennis,handball,darts,snooker,rugby,cricket',
+  ),
+  TRACKED_LEAGUE_SLUGS: csvStrings.default(
+    'england-premier-league,spain-la-liga,italy-serie-a,germany-bundesliga,france-ligue-1,europe-champions-league',
+  ),
+  TRACKED_SEASON: z.coerce.number().int().positive().default(2025),
 
   ORACLE_INTERNAL_API_URL: z.string().url().default('http://localhost:3000'),
   ORACLE_INTERNAL_API_KEY: z.string().default('change-me'),
@@ -30,21 +30,10 @@ const baseSchema = z.object({
   ORACLE_PORT: z.coerce.number().int().positive().default(3002),
 });
 
-const refined = baseSchema.superRefine((cfg, ctx) => {
-  if (!cfg.USE_MOCK_PROVIDER && !cfg.API_FOOTBALL_KEY) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['API_FOOTBALL_KEY'],
-      message:
-        'API_FOOTBALL_KEY is required when USE_MOCK_PROVIDER is false',
-    });
-  }
-});
-
 export type OracleConfig = z.infer<typeof baseSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): OracleConfig {
-  const parsed = refined.safeParse(env);
+  const parsed = baseSchema.safeParse(env);
   if (!parsed.success) {
     const formatted = parsed.error.issues
       .map((i) => `  - ${i.path.join('.') || '(root)'}: ${i.message}`)

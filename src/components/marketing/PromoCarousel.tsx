@@ -30,26 +30,32 @@ export default function PromoCarousel() {
           >
             <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${p.gradient}`} />
             <div className="relative">
-              <span
-                className="mono inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                style={{ background: `${p.accent}22`, color: p.accent }}
-              >
-                {p.tag}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className="mono inline-flex items-center rounded-md px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm"
+                  style={{ background: `${p.accent}22`, color: p.accent, border: `1px solid ${p.accent}44` }}
+                >
+                  {p.tag}
+                </span>
+              </div>
               <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl">{p.title}</h2>
               <p className="mt-2 max-w-md text-[13px] text-[var(--color-ink-2)] md:text-sm">{p.subtitle}</p>
-              <div className="mt-4 flex items-center gap-2">
+              
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Link
                   href={p.href}
-                  className="inline-flex h-10 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-4 text-[13px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-4 text-[13px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] transition-all transform active:scale-95"
                 >
                   {p.cta}
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </Link>
-                <button className="inline-flex h-10 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-1)]/60 px-4 text-[13px] font-semibold text-white hover:bg-[var(--color-bg-3)]">
-                  Learn more
-                </button>
               </div>
+
+              {p.tnc && (
+                <p className="mt-3 text-[10px] text-[var(--color-ink-4)] italic">
+                  * {p.tnc}
+                </p>
+              )}
             </div>
 
             <div className="relative hidden md:block">

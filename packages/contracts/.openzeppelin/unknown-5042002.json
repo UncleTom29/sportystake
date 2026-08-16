@@ -1,0 +1,4108 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x3FC0f1CfE21439e567aCFe196fF0dB8347f8d570",
+      "txHash": "0xcd86a3cfd7b5031c142c19b09f4d12f49a62dda478108f1279797cc8b7b5a4a5",
+      "kind": "uups"
+    },
+    {
+      "address": "0x9bDde723Ba29250DD44389a335F995911bb7DeFa",
+      "txHash": "0xeb9fa9238b39c0a74e06a5a96c92a0fa3827a0d283d33fa44bd0ffe4ec2f4add",
+      "kind": "uups"
+    },
+    {
+      "address": "0xDfaf3684A1028394D2Bb290DEcB2835D94d3CD41",
+      "txHash": "0xb97360c8c7a20e96edb295170f8a8cb08ae77c2c166e8b446debcb29d4c89c7f",
+      "kind": "uups"
+    },
+    {
+      "address": "0xE9eC0c1e3BeF6ffD1544af391Cf26DaA0ef11570",
+      "txHash": "0x0a523321414611a7e26de5050a32da8beb81cb353d759ed362e1c49e30cf80f6",
+      "kind": "uups"
+    },
+    {
+      "address": "0x574DF566b98E6f3Cb7459b39BFD9afeD8694A154",
+      "txHash": "0xd6f47504baa45d6e849cbcac4f43f1428253fbeee13b25eabb27c9d5780b949c",
+      "kind": "uups"
+    },
+    {
+      "address": "0x091E1Fe9576E4E090FE95eD8bB25a19B01FAbcf0",
+      "txHash": "0x646d6225119f6bd59607fff6fec76ea8187d8397fb78c666c180f0000dadfb28",
+      "kind": "uups"
+    },
+    {
+      "address": "0x615f95fa5ccCe9Cd79d7aBc0e37983aaDD9f9b9d",
+      "txHash": "0x34eac166606a4fbf23c4e844aadfec1e830ab1ce87450fe1109e56b532ad688a",
+      "kind": "uups"
+    },
+    {
+      "address": "0xa7FF5FB348FeEfEf4C092CD67AE62344A33Be8A0",
+      "txHash": "0xc46cfc48dabb0580dc124f37ccb37c4af68c47076f5e39f6c53e02dba2c7c762",
+      "kind": "uups"
+    }
+  ],
+  "impls": {
+    "68a0b9fa8e0704c5d931cf49750fb7026c4f2039ecddf9c078bf62c653557909": {
+      "address": "0xd2f7eae8DCEC766d8A369D3570F060E99cc3c884",
+      "txHash": "0x4645ced2a675f30cd7c053c27d1a2d708d319ee56bfa03f5ac9e2963ede306dc",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "bettingCore",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:64"
+          },
+          {
+            "label": "totalLiquidity",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:66"
+          },
+          {
+            "label": "totalShares",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:67"
+          },
+          {
+            "label": "lockedForPayouts",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:68"
+          },
+          {
+            "label": "virtualLiquidity",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:73"
+          },
+          {
+            "label": "shares",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:76"
+          },
+          {
+            "label": "depositedPrincipal",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:79"
+          },
+          {
+            "label": "withdrawalRequestTime",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:82"
+          },
+          {
+            "label": "marketLocked",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:85"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:87"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)445_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1456_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "805ffe8f3abb4cf6e4296f9ab81b89ed34b2573d95b7d55f436ef03b90b018ae": {
+      "address": "0xa0c779DE1dF512C0784b0EB614e42FDf7C6e1F8E",
+      "txHash": "0xc6ad209ce9befa8fec4c674d195c4c1d617b6c343937ddbe3476d5bf415b9e8d",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "liquidityPool",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(ILiquidityPool)5195",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:53"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:56"
+          },
+          {
+            "label": "houseEdgeBps",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:59"
+          },
+          {
+            "label": "minBet",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:62"
+          },
+          {
+            "label": "maxBet",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:65"
+          },
+          {
+            "label": "nextBetNonce",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:79"
+          },
+          {
+            "label": "nextParlayNonce",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:84"
+          },
+          {
+            "label": "bets",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_bytes32,t_struct(Bet)2907_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:135"
+          },
+          {
+            "label": "markets",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_bytes32,t_struct(Market)2921_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:136"
+          },
+          {
+            "label": "_parlays",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_bytes32,t_struct(Parlay)2943_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:140"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:142"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)179_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1808_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_array(t_uint8)dyn_storage": {
+            "label": "uint8[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(ILiquidityPool)5195": {
+            "label": "contract ILiquidityPool",
+            "numberOfBytes": "20"
+          },
+          "t_enum(BetStatus)5008": {
+            "label": "enum IBettingCore.BetStatus",
+            "members": [
+              "Pending",
+              "Won",
+              "Lost",
+              "Cancelled",
+              "Cashed"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(MarketStatus)5013": {
+            "label": "enum IBettingCore.MarketStatus",
+            "members": [
+              "Open",
+              "Suspended",
+              "Settled",
+              "Cancelled"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Bet)2907_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Bet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Market)2921_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Market)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Parlay)2943_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Parlay)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Bet)2907_storage": {
+            "label": "struct BettingCore.Bet",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketId",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcome",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)5008",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "oddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_struct(Market)2921_storage": {
+            "label": "struct BettingCore.Market",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(MarketStatus)5013",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "winningOutcome",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "1"
+              },
+              {
+                "label": "totalBetAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalPayoutRequired",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "closesAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(Parlay)2943_storage": {
+            "label": "struct BettingCore.Parlay",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketIds",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcomes",
+                "type": "t_array(t_uint8)dyn_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "stake",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)5008",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "combinedOddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "f339865c303b72e089269c6fdbad57feddebf660749d138846dc749b90abbcdf": {
+      "address": "0x76C8492F29315C845dA577943A8F97FfaB974eDf",
+      "txHash": "0xfd8c0fee445cf40465031bf9f96e83cb08a3612234b7617710624c64d96b4d53",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "bets",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_struct(CasinoBet)4171_storage)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:46"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:49"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:51"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)2212_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_enum(GameType)4157": {
+            "label": "enum CasinoHouse.GameType",
+            "members": [
+              "Dice",
+              "Slots",
+              "Blackjack",
+              "Roulette",
+              "Baccarat"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(CasinoBet)4171_storage)": {
+            "label": "mapping(bytes32 => struct CasinoHouse.CasinoBet)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(CasinoBet)4171_storage": {
+            "label": "struct CasinoHouse.CasinoBet",
+            "members": [
+              {
+                "label": "player",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "game",
+                "type": "t_enum(GameType)4157",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "clientSeed",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "settled",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "payout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "a82e6e618993dbf58c39872d84518245201e2ced2579acb189677f316d3c6290": {
+      "address": "0xdc88A3eA2e35E2754f507690DbE59aDAF9cEc302",
+      "txHash": "0xd5109ddea0d3da8a968e0050e945654d5d4e3d55ce10916135b71985d5dd4f07",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "currentRoundId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:81"
+          },
+          {
+            "label": "rounds",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_uint256,t_struct(Round)4605_storage)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:83"
+          },
+          {
+            "label": "roundPlayers",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_array(t_struct(PlayerEntry)4616_storage)dyn_storage)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:84"
+          },
+          {
+            "label": "_playerEntryIndex",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:87"
+          },
+          {
+            "label": "pendingPayout",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:90"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:92"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)179_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)2212_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_struct(PlayerEntry)4616_storage)dyn_storage": {
+            "label": "struct CrashGame.PlayerEntry[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_enum(RoundStatus)4585": {
+            "label": "enum CrashGame.RoundStatus",
+            "members": [
+              "Pending",
+              "Running",
+              "Resolved"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_struct(PlayerEntry)4616_storage)dyn_storage)": {
+            "label": "mapping(uint256 => struct CrashGame.PlayerEntry[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Round)4605_storage)": {
+            "label": "mapping(uint256 => struct CrashGame.Round)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(PlayerEntry)4616_storage": {
+            "label": "struct CrashGame.PlayerEntry",
+            "members": [
+              {
+                "label": "player",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "autoCashoutX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "cashedOutAtX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "resolved",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(Round)4605_storage": {
+            "label": "struct CrashGame.Round",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "serverSeedHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "serverSeed",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "startedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "resolvedAt",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "3"
+              },
+              {
+                "label": "crashMultiplierX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalStaked",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "maxPotentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(RoundStatus)4585",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "3f32cc7c0f13ef1d941d65aa964f43b92b065819ea7fab5819c5fafd176806fc": {
+      "address": "0xCE338ee31bE7e83A8720d39966C2Ad48DdeAa4A5",
+      "txHash": "0xfe7cf39e94de3b22f8472f1d1db763528203143db457bc8561ea21e294909d05",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "bettingCore",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:64"
+          },
+          {
+            "label": "totalLiquidity",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:66"
+          },
+          {
+            "label": "totalShares",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:67"
+          },
+          {
+            "label": "lockedForPayouts",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:68"
+          },
+          {
+            "label": "virtualLiquidity",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:73"
+          },
+          {
+            "label": "shares",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:76"
+          },
+          {
+            "label": "depositedPrincipal",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:79"
+          },
+          {
+            "label": "withdrawalRequestTime",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:82"
+          },
+          {
+            "label": "marketLocked",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:85"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:87"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)445_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1456_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "e890c5186be75c58685956a7a87a5146bb682b6002b86cb204ced1517800ccca": {
+      "address": "0x4033C1285a509e11A44eeAC964261dE4D1D8FA3D",
+      "txHash": "0x21c1d15c819bd992d678a5be991a5842dcda71dc8552dd2f7b7a2e4108d86260",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "liquidityPool",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(ILiquidityPool)5195",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:53"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:56"
+          },
+          {
+            "label": "houseEdgeBps",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:59"
+          },
+          {
+            "label": "minBet",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:62"
+          },
+          {
+            "label": "maxBet",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:65"
+          },
+          {
+            "label": "nextBetNonce",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:79"
+          },
+          {
+            "label": "nextParlayNonce",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:84"
+          },
+          {
+            "label": "bets",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_bytes32,t_struct(Bet)2907_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:135"
+          },
+          {
+            "label": "markets",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_bytes32,t_struct(Market)2921_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:136"
+          },
+          {
+            "label": "_parlays",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_bytes32,t_struct(Parlay)2943_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:140"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:142"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)179_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1808_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_array(t_uint8)dyn_storage": {
+            "label": "uint8[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(ILiquidityPool)5195": {
+            "label": "contract ILiquidityPool",
+            "numberOfBytes": "20"
+          },
+          "t_enum(BetStatus)5008": {
+            "label": "enum IBettingCore.BetStatus",
+            "members": [
+              "Pending",
+              "Won",
+              "Lost",
+              "Cancelled",
+              "Cashed"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(MarketStatus)5013": {
+            "label": "enum IBettingCore.MarketStatus",
+            "members": [
+              "Open",
+              "Suspended",
+              "Settled",
+              "Cancelled"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Bet)2907_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Bet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Market)2921_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Market)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Parlay)2943_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Parlay)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Bet)2907_storage": {
+            "label": "struct BettingCore.Bet",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketId",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcome",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)5008",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "oddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_struct(Market)2921_storage": {
+            "label": "struct BettingCore.Market",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(MarketStatus)5013",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "winningOutcome",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "1"
+              },
+              {
+                "label": "totalBetAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalPayoutRequired",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "closesAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(Parlay)2943_storage": {
+            "label": "struct BettingCore.Parlay",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketIds",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcomes",
+                "type": "t_array(t_uint8)dyn_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "stake",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)5008",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "combinedOddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "7f927a9f6a9256719936302e618ab43466c77fa585a8034b325416a8af66c95c": {
+      "address": "0x05A39917316E1664b491c84a4D81C95c8d348aAA",
+      "txHash": "0x56079d7b96c218cf8ecc756d7ac5098219aca4a9f40f6c5961bd1320fb1ec039",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "bets",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_struct(CasinoBet)4171_storage)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:46"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:49"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:51"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)2212_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_enum(GameType)4157": {
+            "label": "enum CasinoHouse.GameType",
+            "members": [
+              "Dice",
+              "Slots",
+              "Blackjack",
+              "Roulette",
+              "Baccarat"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(CasinoBet)4171_storage)": {
+            "label": "mapping(bytes32 => struct CasinoHouse.CasinoBet)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(CasinoBet)4171_storage": {
+            "label": "struct CasinoHouse.CasinoBet",
+            "members": [
+              {
+                "label": "player",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "game",
+                "type": "t_enum(GameType)4157",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "clientSeed",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "settled",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "payout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "7e1353d3c4986818828843e0564859607629c89ab55aa44d6fae16a98cdc0959": {
+      "address": "0xb0A87c0A956e974dDbD4825E9ec02853AcEBeb90",
+      "txHash": "0x4b8f083b39a5944db0e3dd8fc223c5c8647263a426773a4dd68bb677e5febad5",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "currentRoundId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:81"
+          },
+          {
+            "label": "rounds",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_uint256,t_struct(Round)4605_storage)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:83"
+          },
+          {
+            "label": "roundPlayers",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_array(t_struct(PlayerEntry)4616_storage)dyn_storage)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:84"
+          },
+          {
+            "label": "_playerEntryIndex",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:87"
+          },
+          {
+            "label": "pendingPayout",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:90"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:92"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)179_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)2212_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_struct(PlayerEntry)4616_storage)dyn_storage": {
+            "label": "struct CrashGame.PlayerEntry[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_enum(RoundStatus)4585": {
+            "label": "enum CrashGame.RoundStatus",
+            "members": [
+              "Pending",
+              "Running",
+              "Resolved"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_struct(PlayerEntry)4616_storage)dyn_storage)": {
+            "label": "mapping(uint256 => struct CrashGame.PlayerEntry[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Round)4605_storage)": {
+            "label": "mapping(uint256 => struct CrashGame.Round)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(PlayerEntry)4616_storage": {
+            "label": "struct CrashGame.PlayerEntry",
+            "members": [
+              {
+                "label": "player",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "autoCashoutX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "cashedOutAtX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "resolved",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(Round)4605_storage": {
+            "label": "struct CrashGame.Round",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "serverSeedHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "serverSeed",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "startedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "resolvedAt",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "3"
+              },
+              {
+                "label": "crashMultiplierX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalStaked",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "maxPotentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(RoundStatus)4585",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "69a3b0bda4db2dc9ee0703f772adf71d8bb7f71081d183677b6604e4c2bec565": {
+      "address": "0xD83043768Ab87f895A2423833743C11761eC2091",
+      "txHash": "0x9be5a8f1e9b6e7cfb6eb57aa4033a917fe72e9abbaa16c5165bef7c88cb12565",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "liquidityPool",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(ILiquidityPool)5320",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:53"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:56"
+          },
+          {
+            "label": "houseEdgeBps",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:59"
+          },
+          {
+            "label": "minBet",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:62"
+          },
+          {
+            "label": "maxBet",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:65"
+          },
+          {
+            "label": "nextBetNonce",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:79"
+          },
+          {
+            "label": "nextParlayNonce",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:84"
+          },
+          {
+            "label": "bets",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_bytes32,t_struct(Bet)2907_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:135"
+          },
+          {
+            "label": "markets",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_bytes32,t_struct(Market)2921_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:136"
+          },
+          {
+            "label": "_parlays",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_bytes32,t_struct(Parlay)2943_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:140"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:142"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)179_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1815_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_array(t_uint8)dyn_storage": {
+            "label": "uint8[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(ILiquidityPool)5320": {
+            "label": "contract ILiquidityPool",
+            "numberOfBytes": "20"
+          },
+          "t_enum(BetStatus)5133": {
+            "label": "enum IBettingCore.BetStatus",
+            "members": [
+              "Pending",
+              "Won",
+              "Lost",
+              "Cancelled",
+              "Cashed"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(MarketStatus)5138": {
+            "label": "enum IBettingCore.MarketStatus",
+            "members": [
+              "Open",
+              "Suspended",
+              "Settled",
+              "Cancelled"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Bet)2907_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Bet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Market)2921_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Market)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Parlay)2943_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Parlay)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Bet)2907_storage": {
+            "label": "struct BettingCore.Bet",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketId",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcome",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)5133",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "oddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_struct(Market)2921_storage": {
+            "label": "struct BettingCore.Market",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(MarketStatus)5138",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "winningOutcome",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "1"
+              },
+              {
+                "label": "totalBetAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalPayoutRequired",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "closesAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(Parlay)2943_storage": {
+            "label": "struct BettingCore.Parlay",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketIds",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcomes",
+                "type": "t_array(t_uint8)dyn_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "stake",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)5133",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "combinedOddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "4c883e3f790e75c9ccb4f353bd8477476f6d1b661efd5ed07ad64e70d4f53319": {
+      "address": "0x0fbD965d47d613b86eB98B20787921589873c12A",
+      "txHash": "0xca1ca1787628a2704d1c03e2ff7c0c7943aa7212ecc458ffe181784c7e5dcb30",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "liquidityPool",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(ILiquidityPool)12830",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:67"
+          },
+          {
+            "label": "treasury",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:70"
+          },
+          {
+            "label": "houseEdgeBps",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:73"
+          },
+          {
+            "label": "minBet",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:76"
+          },
+          {
+            "label": "maxBet",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:79"
+          },
+          {
+            "label": "nextBetNonce",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:93"
+          },
+          {
+            "label": "nextParlayNonce",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:98"
+          },
+          {
+            "label": "bets",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_bytes32,t_struct(Bet)9746_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:154"
+          },
+          {
+            "label": "markets",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_bytes32,t_struct(Market)9763_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:155"
+          },
+          {
+            "label": "_parlays",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_bytes32,t_struct(Parlay)9785_storage)",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:159"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "BettingCore",
+            "src": "contracts/BettingCore.sol:161"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(EIP712Storage)254_storage": {
+            "label": "struct EIP712Upgradeable.EIP712Storage",
+            "members": [
+              {
+                "label": "_hashedName",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_hashedVersion",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "_name",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "_version",
+                "type": "t_string_storage",
+                "offset": 0,
+                "slot": "3"
+              }
+            ],
+            "numberOfBytes": "128"
+          },
+          "t_struct(InitializableStorage)640_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)179_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)4019_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_bytes32)dyn_storage": {
+            "label": "bytes32[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_array(t_uint8)dyn_storage": {
+            "label": "uint8[]",
+            "numberOfBytes": "32"
+          },
+          "t_contract(ILiquidityPool)12830": {
+            "label": "contract ILiquidityPool",
+            "numberOfBytes": "20"
+          },
+          "t_enum(BetStatus)12587": {
+            "label": "enum IBettingCore.BetStatus",
+            "members": [
+              "Pending",
+              "Won",
+              "Lost",
+              "Cancelled",
+              "Cashed"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_enum(MarketStatus)12592": {
+            "label": "enum IBettingCore.MarketStatus",
+            "members": [
+              "Open",
+              "Suspended",
+              "Settled",
+              "Cancelled"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Bet)9746_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Bet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Market)9763_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Market)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(Parlay)9785_storage)": {
+            "label": "mapping(bytes32 => struct BettingCore.Parlay)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(Bet)9746_storage": {
+            "label": "struct BettingCore.Bet",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketId",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcome",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)12587",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "oddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_struct(Market)9763_storage": {
+            "label": "struct BettingCore.Market",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(MarketStatus)12592",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "winningOutcome",
+                "type": "t_uint8",
+                "offset": 1,
+                "slot": "1"
+              },
+              {
+                "label": "totalBetAmount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalPayoutRequired",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "closesAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "fillRatioX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              }
+            ],
+            "numberOfBytes": "192"
+          },
+          "t_struct(Parlay)9785_storage": {
+            "label": "struct BettingCore.Parlay",
+            "members": [
+              {
+                "label": "bettor",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "marketIds",
+                "type": "t_array(t_bytes32)dyn_storage",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "outcomes",
+                "type": "t_array(t_uint8)dyn_storage",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "stake",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "potentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(BetStatus)12587",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "combinedOddsX1000",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "placedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.EIP712": [
+            {
+              "contract": "EIP712Upgradeable",
+              "label": "_hashedName",
+              "type": "t_bytes32",
+              "src": "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol:37",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "EIP712Upgradeable",
+              "label": "_hashedVersion",
+              "type": "t_bytes32",
+              "src": "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol:38",
+              "offset": 0,
+              "slot": "1"
+            },
+            {
+              "contract": "EIP712Upgradeable",
+              "label": "_name",
+              "type": "t_string_storage",
+              "src": "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol:40",
+              "offset": 0,
+              "slot": "2"
+            },
+            {
+              "contract": "EIP712Upgradeable",
+              "label": "_version",
+              "type": "t_string_storage",
+              "src": "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol:41",
+              "offset": 0,
+              "slot": "3"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "4944b9520aa87cc61515b404b4da581b77af9ac16b8b21e76de00e3e0fe697a3": {
+      "address": "0x0087bCD7B122611cde90b380D222245Ef2fCf59D",
+      "txHash": "0x46b2e07d3383d1db29a232671c49b01f4c8319d182a29846898bb53e7952e5be",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "currentRoundId",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:83"
+          },
+          {
+            "label": "rounds",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_uint256,t_struct(Round)2860_storage)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:85"
+          },
+          {
+            "label": "roundPlayers",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_array(t_struct(PlayerEntry)2871_storage)dyn_storage)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:86"
+          },
+          {
+            "label": "_playerEntryIndex",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:89"
+          },
+          {
+            "label": "pendingPayout",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:92"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "CrashGame",
+            "src": "contracts/CrashGame.sol:94"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)507_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(PausableStorage)179_storage": {
+            "label": "struct PausableUpgradeable.PausableStorage",
+            "members": [
+              {
+                "label": "_paused",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1497_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_struct(PlayerEntry)2871_storage)dyn_storage": {
+            "label": "struct CrashGame.PlayerEntry[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_enum(RoundStatus)2840": {
+            "label": "enum CrashGame.RoundStatus",
+            "members": [
+              "Pending",
+              "Running",
+              "Resolved"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_struct(PlayerEntry)2871_storage)dyn_storage)": {
+            "label": "mapping(uint256 => struct CrashGame.PlayerEntry[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(Round)2860_storage)": {
+            "label": "mapping(uint256 => struct CrashGame.Round)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(PlayerEntry)2871_storage": {
+            "label": "struct CrashGame.PlayerEntry",
+            "members": [
+              {
+                "label": "player",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "autoCashoutX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "cashedOutAtX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "resolved",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          },
+          "t_struct(Round)2860_storage": {
+            "label": "struct CrashGame.Round",
+            "members": [
+              {
+                "label": "id",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "serverSeedHash",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "serverSeed",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "startedAt",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "resolvedAt",
+                "type": "t_uint64",
+                "offset": 8,
+                "slot": "3"
+              },
+              {
+                "label": "crashMultiplierX100",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "totalStaked",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "maxPotentialPayout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "status",
+                "type": "t_enum(RoundStatus)2840",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Pausable": [
+            {
+              "contract": "PausableUpgradeable",
+              "label": "_paused",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol:21",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "8dae27a25e7a8771770009580d32dffdff7e6004ef16c66a632008a618ff7136": {
+      "address": "0x11F193806785Bc06897f2f8F30f5116202E32851",
+      "txHash": "0x4ce54ff7765ae70749c2db7fa7e6dae5cac6853f9125efd41ec8a3ba15078ae1",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "bettingCore",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_address",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:58"
+          },
+          {
+            "label": "totalLiquidity",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:60"
+          },
+          {
+            "label": "totalShares",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:61"
+          },
+          {
+            "label": "lockedForPayouts",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:62"
+          },
+          {
+            "label": "virtualLiquidity",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:69"
+          },
+          {
+            "label": "shares",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:72"
+          },
+          {
+            "label": "depositedPrincipal",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:75"
+          },
+          {
+            "label": "withdrawalRequestTime",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:78"
+          },
+          {
+            "label": "marketLocked",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_bytes32,t_uint256)",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:81"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "LiquidityPool",
+            "src": "contracts/LiquidityPool.sol:83"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)445_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1461_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_uint256)": {
+            "label": "mapping(bytes32 => uint256)",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

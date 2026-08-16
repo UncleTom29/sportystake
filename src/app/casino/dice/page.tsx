@@ -1,6 +1,11 @@
 "use client";
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import { useNotifications } from "@/lib/notificationStore";
+import { useWallet } from "@/lib/walletStore";
+import { usePrivyLogin } from "@/lib/usePrivyLogin";
+import { placeCasinoBetOnchain, resolveCasinoBetWithRetry } from "@/lib/placeCasinoBet";
+import PendingCasinoBetBanner from "@/components/casino/PendingCasinoBetBanner";
 
 type DiceResult = { roll: number; win: boolean; payout: number; timestamp: number };
 
@@ -22,42 +27,95 @@ export default function DicePage() {
   const [lastWin, setLastWin] = useState<boolean | null>(null);
   const [history, setHistory] = useState<DiceResult[]>([]);
   const { pushToast } = useNotifications();
+  const isAuthenticated = useWallet((s) => s.authStatus === "authenticated");
+  const { signIn } = usePrivyLogin();
 
   const mult = calcMultiplier(threshold, mode);
   const winChance = calcWinChance(threshold, mode);
   const payout = parseFloat((parseFloat(bet || "0") * mult).toFixed(2));
 
+  const handlePendingResolved = useCallback((res: {
+    outcome: { win: boolean; payout: string; multiplier: number; detail: Record<string, unknown> };
+  }) => {
+    const rolled = Math.round((res.outcome.detail.roll as number) ?? 0);
+    const won = res.outcome.win;
+    const amount = parseFloat(bet || "0");
+    const profit = won ? parseFloat(res.outcome.payout) - amount : -amount;
+    setLastRoll(rolled);
+    setLastWin(won);
+    setHistory((h) => [{ roll: rolled, win: won, payout: profit, timestamp: Date.now() }, ...h].slice(0, 20));
+  }, [bet]);
+
   const roll = useCallback(async () => {
+    if (!isAuthenticated) { void signIn(); return; }
     const amount = parseFloat(bet);
     if (!amount || amount <= 0) { pushToast({ kind: "warn", title: "Enter a valid bet" }); return; }
     setRolling(true);
     setLastRoll(null);
 
-    await new Promise((r) => setTimeout(r, 600));
-    const rolled = Math.floor(Math.random() * 100) + 1;
-    const won = mode === "over" ? rolled > threshold : rolled < threshold;
-    const profit = won ? parseFloat((amount * mult - amount).toFixed(2)) : -amount;
+    const clientSeed = crypto.randomUUID();
+    let txHash: string | null = null;
 
-    setLastRoll(rolled);
-    setLastWin(won);
-    setHistory((h) => [{ roll: rolled, win: won, payout: profit, timestamp: Date.now() }, ...h].slice(0, 20));
-    setRolling(false);
-
-    if (won) {
-      pushToast({ kind: "success", title: `Rolled ${rolled} — You win!`, body: `+${profit.toFixed(2)} USDC` });
-    } else {
-      pushToast({ kind: "error", title: `Rolled ${rolled} — Better luck next time`, body: `-${amount.toFixed(2)} USDC` });
+    try {
+      const tx = await placeCasinoBetOnchain({ amountUsdc: bet, game: "dice", clientSeed });
+      txHash = tx.txHash;
+    } catch (err) {
+      pushToast({ kind: "warn", title: "On-chain deposit failed or cancelled", body: (err as Error).message });
+      setRolling(false);
+      return;
     }
-  }, [bet, mode, mult, threshold, pushToast]);
+
+    try {
+      const res = await resolveCasinoBetWithRetry({
+        game: "dice",
+        txHash,
+        target: threshold,
+        direction: mode,
+        clientSeed,
+        amount,
+      });
+      const rolled = Math.round((res.outcome.detail.roll as number) ?? 0);
+      const won = res.outcome.win;
+      const profit = won ? parseFloat(res.outcome.payout) - amount : -amount;
+
+      setLastRoll(rolled);
+      setLastWin(won);
+      setHistory((h) => [{ roll: rolled, win: won, payout: profit, timestamp: Date.now() }, ...h].slice(0, 20));
+
+      if (won) {
+        pushToast({ kind: "success", title: `Rolled ${rolled} — You win!`, body: `+${profit.toFixed(2)} USDC` });
+      } else {
+        pushToast({ kind: "error", title: `Rolled ${rolled} — Better luck next time`, body: `-${amount.toFixed(2)} USDC` });
+      }
+    } catch (e) {
+      pushToast({
+        kind: "error",
+        title: "Settlement Delayed",
+        body: `Deposit confirmed on-chain (Tx: ${txHash?.slice(0, 8)}…), but settlement timed out. Please click 'Resolve Settlement' in the banner to finish.`,
+      });
+    } finally {
+      setRolling(false);
+    }
+  }, [bet, mode, threshold, mult, pushToast, isAuthenticated, signIn]);
 
   const winColor = lastWin === true ? "var(--color-brand-500)" : lastWin === false ? "var(--color-live)" : "var(--color-ink-3)";
 
   return (
-    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+    <div className="mx-auto max-w-[1200px] px-3 py-4 md:px-5">
       <div className="mb-4">
+        <div className="mb-2">
+          <Link
+            href="/casino"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-2)] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[var(--color-bg-3)] hover:border-[var(--color-line-2)]"
+          >
+            ← Back to Casino
+          </Link>
+        </div>
         <h1 className="text-2xl font-black tracking-tight text-white">Dice</h1>
         <p className="text-[13px] text-[var(--color-ink-3)]">Predict high or low. Adjust the threshold to change odds.</p>
       </div>
+
+      <PendingCasinoBetBanner game="dice" onResolved={handlePendingResolved} />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         {/* Game panel */}
@@ -206,8 +264,8 @@ export default function DicePage() {
                 <span className="mono font-bold text-white">${payout.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--color-ink-3)]">House edge</span>
-                <span className="mono font-bold text-white">3%</span>
+                <span className="text-[var(--color-ink-3)]">Verification</span>
+                <span className="mono font-bold text-[var(--color-brand-500)]">Provably Fair</span>
               </div>
             </div>
 

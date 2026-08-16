@@ -1,91 +1,113 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { ok, fail, withRequestId, ApiError } from "@/lib/server/api-response";
-import { store, utils } from "@/lib/server/store";
-import { readAuthFromRequest, checkRateLimit } from "@/lib/server/auth";
+import { readAuthFromRequest } from "@/lib/server/auth";
+import { rateLimit } from "@/lib/server/rate-limit";
 import { publish } from "@/lib/server/event-bus";
-import { shortId } from "@/lib/uid";
-import type { BetDTO, ParlayDTO, MarketType } from "@/lib/types";
+import { prisma } from "@/lib/server/db";
+import { usdcToString } from "@/lib/server/repos/bets.repo";
+import { verifyParlayPlaced } from "@/lib/server/betVerification";
 
 export const runtime = "nodejs";
 
 const Leg = z.object({
-  marketId: z.string(),
-  marketType: z.string(),
-  outcome: z.number().int(),
-  selectionLabel: z.string(),
-  oddsX1000: z.number().int().min(1050).max(50000),
+  marketId: z.string().min(1).max(80),
+  selectionLabel: z.string().min(1).max(80),
+  marketType: z.string().min(1).max(40).optional(),
+  oddsX1000: z.number().int().positive().max(1_000_000).optional(),
 });
 
 const Body = z.object({
-  selections: z.array(Leg).min(2).max(20),
-  totalStake: z.string().regex(/^\d+(\.\d{1,6})?$/),
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
+  // Display metadata only (selectionLabel per leg) — the chain is the
+  // source of truth for marketIds/outcomes/stake/odds. Order must match
+  // the order the legs were submitted on-chain.
+  legs: z.array(Leg).min(2).max(10),
   isPublic: z.boolean().default(true),
 });
 
+/**
+ * Same trust model as `/api/bets`: the parlay is already placed and
+ * confirmed on-chain (one `placeParlayBet` signature covers every leg) by
+ * the time this route is called. This just verifies the receipt and
+ * persists it — marketIds/outcomes/stake/combinedOdds all come from the
+ * decoded `ParlayPlaced` event, never from client-supplied values.
+ */
 export const POST = withRequestId(async (req: NextRequest) => {
   const auth = await readAuthFromRequest(req);
   if (!auth) return fail("Unauthorized", "Sign in to place a parlay", 401);
-  checkRateLimit(`parlay:${auth.sub}`, 30, 60_000);
 
-  const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  if (!parsed.success) return fail("ValidationError", "Invalid parlay payload", 400, { details: parsed.error.issues });
-  const body = parsed.data;
-  const s = store();
-  const user = s.users.find((u) => u.id === auth.sub);
-  if (!user) throw new ApiError("Unauthorized", "User not found", 401);
-
-  const seenMarkets = new Set<string>();
-  let combinedX1000 = 1000;
-  const stake = utils.fromUsdc(body.totalStake);
-  if (stake < 5n * utils.USDC_SCALE) throw new ApiError("BelowMinimum", "Minimum stake 5 USDC", 400);
-
-  const legs: BetDTO[] = [];
-  for (const sel of body.selections) {
-    if (seenMarkets.has(sel.marketId)) throw new ApiError("DuplicateLeg", "Each leg must be a different market", 400);
-    seenMarkets.add(sel.marketId);
-    const mkt = s.markets.find((m) => m.id === sel.marketId);
-    if (!mkt) throw new ApiError("NotFound", `Market ${sel.marketId} not found`, 404);
-    if (mkt.status !== "OPEN") throw new ApiError("MarketClosed", `Leg ${sel.marketId} is closed`, 409);
-    const bundle = mkt.odds.find((o) => o.marketType === (sel.marketType as MarketType));
-    if (!bundle) throw new ApiError("InvalidMarketType", "Unknown market type", 400);
-    const onchain = bundle.selections.find((x) => x.outcome === sel.outcome);
-    if (!onchain) throw new ApiError("InvalidOutcome", "Unknown outcome", 400);
-    combinedX1000 = Math.round((combinedX1000 * onchain.valueX1000) / 1000);
-    legs.push({
-      id: `bet-${shortId()}`,
-      userId: user.id,
-      userAddress: user.walletAddress,
-      marketId: mkt.id,
-      marketLabel: `${mkt.homeTeam} vs ${mkt.awayTeam}`,
-      marketType: sel.marketType as MarketType,
-      outcome: sel.outcome,
-      selectionLabel: sel.selectionLabel,
-      amount: "0",
-      oddsX1000: onchain.valueX1000,
-      potentialPayout: "0",
-      status: "PENDING",
-      isLive: false,
-      isPublic: body.isPublic,
-      createdAt: new Date().toISOString(),
-    });
+  const rl = await rateLimit(`parlay:${auth.sub}`, 30, 60_000);
+  if (!rl.allowed) {
+    return fail("RateLimited", "Slow down", 429, { details: { retryAfterMs: rl.retryAfterMs } });
   }
 
-  const potential = (stake * BigInt(combinedX1000)) / 1000n;
-  const parlay: ParlayDTO = {
-    id: `parlay-${shortId()}`,
-    userId: user.id,
-    legs,
-    totalStake: body.totalStake,
-    combinedOddsX1000: combinedX1000,
-    potentialPayout: utils.toUsdc(potential),
-    status: "PENDING",
-    createdAt: new Date().toISOString(),
-  };
-  legs.forEach((l) => { l.parlayId = parlay.id; s.bets.unshift(l); });
-  s.parlays.unshift(parlay);
+  const parsed = Body.safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return fail("ValidationError", "Invalid parlay payload", 400, { details: parsed.error.issues });
+  }
+  const body = parsed.data;
 
-  setTimeout(() => publish("bet:confirmed", { parlayId: parlay.id, userId: parlay.userId }), 1500);
+  const verified = await verifyParlayPlaced(body.txHash as `0x${string}`, auth.addr);
+  if (verified.marketIds.length !== body.legs.length) {
+    throw new ApiError("LegCountMismatch", "Submitted legs don't match the on-chain parlay", 400);
+  }
 
-  return ok({ parlay });
+  const markets = await prisma.market.findMany({ where: { id: { in: verified.marketIds } } });
+  const byId = new Map(markets.map((m) => [m.id, m]));
+  for (const marketId of verified.marketIds) {
+    if (!byId.has(marketId)) throw new ApiError("NotFound", `Market ${marketId} not found`, 404);
+  }
+
+  const parlay = await prisma.parlay.create({
+    data: {
+      id: verified.parlayId,
+      userId: auth.sub,
+      stake: verified.stake,
+      combinedOddsX1000: verified.combinedOddsX1000,
+      potentialPayout: verified.potentialPayout,
+      txHash: body.txHash,
+      legs: {
+        create: verified.marketIds.map((marketId, i) => ({
+          marketId,
+          outcome: verified.outcomes[i],
+          selectionLabel: body.legs[i].selectionLabel,
+          // Same trust model as selectionLabel above: display metadata
+          // only, supplied by the client since neither field is
+          // individually recoverable from the on-chain event (the
+          // contract only stores the combined odds figure, and doesn't
+          // store market type at all). Never used in settlement/payout
+          // logic — outcome/marketId/stake/combinedOdds above are what
+          // actually move money, and those come from the verified event.
+          marketType: body.legs[i].marketType,
+          oddsX1000: body.legs[i].oddsX1000 ?? 0,
+        })),
+      },
+    },
+    include: { legs: { include: { market: true } } },
+  });
+
+  publish("bet:confirmed", { parlayId: parlay.id, userId: parlay.userId });
+
+  return ok({
+    parlay: {
+      id: parlay.id,
+      userId: parlay.userId,
+      totalStake: usdcToString(parlay.stake),
+      combinedOddsX1000: Number(parlay.combinedOddsX1000),
+      potentialPayout: usdcToString(parlay.potentialPayout),
+      status: parlay.status,
+      createdAt: parlay.placedAt.toISOString(),
+      legs: parlay.legs.map((l) => ({
+        id: l.id,
+        marketId: l.marketId,
+        marketLabel: `${l.market.homeTeam} vs ${l.market.awayTeam}`,
+        marketType: l.marketType,
+        outcome: l.outcome,
+        selectionLabel: l.selectionLabel,
+        oddsX1000: l.oddsX1000,
+        result: l.result,
+      })),
+    },
+  });
 });

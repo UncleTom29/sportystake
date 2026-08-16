@@ -1,0 +1,12 @@
+{
+  "chainId": 5042002,
+  "network": "arcTestnet",
+  "deployedAt": "2026-07-27T22:07:02.967Z",
+  "addresses": {
+    "usdc": "0x3600000000000000000000000000000000000000",
+    "liquidityPool": "0x574DF566b98E6f3Cb7459b39BFD9afeD8694A154",
+    "bettingCore": "0x091E1Fe9576E4E090FE95eD8bB25a19B01FAbcf0",
+    "casinoHouse": "0x615f95fa5ccCe9Cd79d7aBc0e37983aaDD9f9b9d",
+    "crashGame": "0xa7FF5FB348FeEfEf4C092CD67AE62344A33Be8A0"
+  }
+}

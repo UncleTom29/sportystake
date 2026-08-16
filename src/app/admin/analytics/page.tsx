@@ -1,17 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
-import { ZapIcon, ShieldIcon, TrendUp, TrendDown, SparkleIcon, BadgeCheck } from "@/components/icons/UIIcons";
+import { useState, useEffect, useCallback } from "react";
+import { ZapIcon, ShieldIcon, TrendUp, TrendDown, BadgeCheck } from "@/components/icons/UIIcons";
+import { Admin } from "@/lib/api-client";
+import { formatUsd } from "@/lib/format";
 
 type QuotaMode = "normal" | "conservation" | "emergency";
 
 const MOCK_QUOTA = { used: 34, remaining: 66, resetIn: "06:12:44", mode: "normal" as QuotaMode };
 
-const MOCK_RISKS = [
-  { marketId: "m1", match: "Arsenal vs Man City", utilization: 0.87, poolTvl: 4280, maxLiability: 8200, coverage: 0.52, risk: "critical" as const },
-  { marketId: "m2", match: "Chelsea vs Liverpool", utilization: 0.72, poolTvl: 3140, maxLiability: 5100, coverage: 0.61, risk: "warning" as const },
-  { marketId: "m3", match: "Bayern vs Dortmund", utilization: 0.44, poolTvl: 6200, maxLiability: 4100, coverage: 1.51, risk: "safe" as const },
-  { marketId: "m4", match: "Real Madrid vs Barça", utilization: 0.91, poolTvl: 8400, maxLiability: 18200, coverage: 0.46, risk: "critical" as const },
-];
+type RiskExposure = Awaited<ReturnType<typeof Admin.riskExposure>>;
 
 const MOCK_OVERVIEW = {
   ggrToday: 1248, ggrWeek: 8420, ggrMonth: 34200,
@@ -36,6 +33,16 @@ const QUOTA_MODE_STYLE: Record<QuotaMode, { label: string; color: string; bg: st
 export default function AdminAnalyticsPage() {
   const [quota, setQuota] = useState(MOCK_QUOTA);
   const [tick, setTick] = useState(0);
+  const [risk, setRisk] = useState<RiskExposure | null>(null);
+  const [riskLoading, setRiskLoading] = useState(true);
+
+  const refreshRisk = useCallback(async () => {
+    const res = await Admin.riskExposure().catch(() => null);
+    setRisk(res);
+    setRiskLoading(false);
+  }, []);
+
+  useEffect(() => { void refreshRisk(); }, [refreshRisk]);
 
   useEffect(() => {
     const t = setInterval(() => setTick((v) => v + 1), 30000);
@@ -66,7 +73,7 @@ export default function AdminAnalyticsPage() {
             <OverviewCard label="GGR today" value={`$${MOCK_OVERVIEW.ggrToday.toLocaleString()}`} sub="gross gaming revenue" accent="var(--color-brand-500)" Icon={TrendUp} />
             <OverviewCard label="GGR this week" value={`$${MOCK_OVERVIEW.ggrWeek.toLocaleString()}`} sub={`$${MOCK_OVERVIEW.ggrMonth.toLocaleString()} this month`} accent="var(--color-brand-500)" Icon={TrendUp} />
             <OverviewCard label="Active users (24h)" value={String(MOCK_OVERVIEW.activeUsers24h)} sub={`${MOCK_OVERVIEW.betCount} bets placed`} accent="var(--color-info)" Icon={ZapIcon} />
-            <OverviewCard label="LP TVL" value={`$${(MOCK_OVERVIEW.lpTvl / 1000).toFixed(0)}K`} sub={`$${(MOCK_OVERVIEW.volume / 1000).toFixed(0)}K bet volume`} accent="#a78bfa" Icon={SparkleIcon} />
+            <OverviewCard label="LP TVL" value={`$${(MOCK_OVERVIEW.lpTvl / 1000).toFixed(0)}K`} sub={`$${(MOCK_OVERVIEW.volume / 1000).toFixed(0)}K bet volume`} accent="#a78bfa" Icon={ZapIcon} />
           </div>
 
           {/* Risk panel */}
@@ -76,38 +83,57 @@ export default function AdminAnalyticsPage() {
                 <ShieldIcon className="h-4 w-4 text-[var(--color-live)]" />
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">Risk exposure</p>
               </div>
-              <span className="text-[11px] text-[var(--color-ink-3)]">
-                {MOCK_RISKS.filter((r) => r.risk === "critical").length} critical · {MOCK_RISKS.filter((r) => r.risk === "warning").length} warning
-              </span>
+              {risk && (
+                <span className="text-[11px] text-[var(--color-ink-3)]">
+                  {risk.items.filter((r) => r.riskLevel === "critical").length} critical · {risk.items.filter((r) => r.riskLevel === "warning").length} warning
+                </span>
+              )}
             </div>
+            {/* One shared pool backs every market now, so its TVL/capacity is
+                shown once here rather than repeated (or worse, invented) per row. */}
+            {risk && (
+              <div className="flex flex-wrap gap-x-5 gap-y-1 border-b border-[var(--color-line-1)] bg-[var(--color-bg-1)] px-4 py-2 text-[11px] text-[var(--color-ink-2)]">
+                <span>Pool TVL <strong className="mono text-white">{formatUsd(Number(risk.pool.tvl))}</strong></span>
+                <span>Virtual liquidity <strong className="mono text-white">{formatUsd(Number(risk.pool.virtualLiquidity))}</strong></span>
+                <span>Effective capacity <strong className="mono text-white">{formatUsd(Number(risk.pool.effectiveCapacity))}</strong></span>
+                <span>Locked for payouts <strong className="mono text-white">{formatUsd(Number(risk.pool.lockedForPayouts))}</strong></span>
+              </div>
+            )}
             <div className="grid grid-cols-[1fr_80px_80px_80px_70px] items-center border-b border-[var(--color-line-1)] px-4 py-2 text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">
               <span>Market</span>
-              <span className="text-center">Util %</span>
-              <span className="text-center">Pool TVL</span>
+              <span className="text-center">Total bet</span>
               <span className="text-center">Max liability</span>
+              <span className="text-center">Coverage</span>
               <span className="text-center">Risk</span>
             </div>
-            {MOCK_RISKS.map((r) => {
-              const riskColor = r.risk === "critical" ? "var(--color-live)" : r.risk === "warning" ? "var(--color-warn)" : "var(--color-brand-500)";
-              return (
-                <div key={r.marketId} className="grid grid-cols-[1fr_80px_80px_80px_70px] items-center border-b border-[var(--color-line-1)] px-4 py-3 text-[12px] last:border-0">
-                  <span className="font-semibold text-white">{r.match}</span>
-                  <div className="px-2 text-center">
-                    <span className="mono font-bold" style={{ color: riskColor }}>{(r.utilization * 100).toFixed(0)}%</span>
-                    <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--color-bg-3)]">
-                      <div className="h-full rounded-full" style={{ width: `${r.utilization * 100}%`, background: riskColor }} />
+            {riskLoading ? (
+              <div className="px-4 py-6 text-center text-[12px] text-[var(--color-ink-3)]">Loading…</div>
+            ) : !risk || risk.items.length === 0 ? (
+              <div className="px-4 py-6 text-center text-[12px] text-[var(--color-ink-3)]">No open markets with pending bets right now.</div>
+            ) : (
+              risk.items.map((r) => {
+                const riskColor = r.riskLevel === "critical" ? "var(--color-live)" : r.riskLevel === "warning" ? "var(--color-warn)" : "var(--color-brand-500)";
+                const coveragePct = Math.min(r.coverageRatio * 100, 100);
+                return (
+                  <div key={r.marketId} className="grid grid-cols-[1fr_80px_80px_80px_70px] items-center border-b border-[var(--color-line-1)] px-4 py-3 text-[12px] last:border-0">
+                    <span className="font-semibold text-white">{r.label}</span>
+                    <span className="mono text-center text-[var(--color-ink-2)]">{formatUsd(Number(r.totalBetAmount))}</span>
+                    <span className="mono text-center text-[var(--color-ink-2)]">{formatUsd(Number(r.maxLiability))}</span>
+                    <div className="px-2 text-center">
+                      <span className="mono font-bold" style={{ color: riskColor }}>{(r.coverageRatio * 100).toFixed(0)}%</span>
+                      <div className="mt-1 h-1 overflow-hidden rounded-full bg-[var(--color-bg-3)]">
+                        <div className="h-full rounded-full" style={{ width: `${coveragePct}%`, background: riskColor }} />
+                      </div>
                     </div>
-                  </div>
-                  <span className="mono text-center text-[var(--color-ink-2)]">${r.poolTvl.toLocaleString()}</span>
-                  <span className="mono text-center text-[var(--color-ink-2)]">${r.maxLiability.toLocaleString()}</span>
-                  <span className="text-center">
-                    <span className="mono rounded px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ background: `${riskColor}15`, color: riskColor }}>
-                      {r.risk}
+                    <span className="text-center">
+                      <span className="mono rounded px-1.5 py-0.5 text-[10px] font-bold uppercase" style={{ background: `${riskColor}15`, color: riskColor }}>
+                        {r.riskLevel}
+                      </span>
                     </span>
-                  </span>
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })
+            )}
           </div>
 
           {/* Settlement queue */}
@@ -138,8 +164,8 @@ export default function AdminAnalyticsPage() {
           <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">API-Football quota</p>
-                <p className="mt-0.5 text-[12px] text-[var(--color-ink-3)]">Resets in {quota.resetIn} (00:00 UTC)</p>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">Odds API quota</p>
+                <p className="mt-0.5 text-[12px] text-[var(--color-ink-3)]">Resets in {quota.resetIn} (top of hour)</p>
               </div>
               <span className="mono rounded-md px-2 py-1 text-[11px] font-bold" style={{ background: quotaModeStyle.bg, color: quotaModeStyle.color }}>
                 {quotaModeStyle.label}
@@ -149,7 +175,7 @@ export default function AdminAnalyticsPage() {
             {/* Big gauge */}
             <div className="mb-4 text-center">
               <p className="mono text-5xl font-black" style={{ color: quotaBarColor }}>{quota.used}</p>
-              <p className="text-[13px] text-[var(--color-ink-3)]">of 100 requests used today</p>
+              <p className="text-[13px] text-[var(--color-ink-3)]">of 100 requests used this hour</p>
             </div>
             <div className="mb-3 h-3 overflow-hidden rounded-full bg-[var(--color-bg-3)]">
               <div
@@ -202,7 +228,7 @@ export default function AdminAnalyticsPage() {
               { label: "Oracle service", ok: true },
               { label: "Redis cache", ok: true },
               { label: "Arc RPC", ok: true },
-              { label: "API-Football", ok: quota.remaining > 5 },
+              { label: "Odds API", ok: quota.remaining > 5 },
             ].map((s) => (
               <div key={s.label} className="flex items-center justify-between text-[12px]">
                 <span className="text-[var(--color-ink-2)]">{s.label}</span>

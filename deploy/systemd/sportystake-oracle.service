@@ -1,0 +1,17 @@
+[Unit]
+Description=SportyStake oracle service (fixtures/odds sync, internal-only)
+After=network.target redis-server.service
+
+[Service]
+Type=simple
+User=sportystake
+WorkingDirectory=/opt/sportystake/packages/oracle
+EnvironmentFile=/etc/sportystake/.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

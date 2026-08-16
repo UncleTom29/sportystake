@@ -1,0 +1,20 @@
+[Unit]
+Description=SportyStake crash-game round scheduler (stateful — see PRODUCTION_TODO.md)
+After=network.target postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=sportystake
+WorkingDirectory=/opt/sportystake
+EnvironmentFile=/etc/sportystake/.env
+ExecStart=/usr/bin/npx tsx src/workers/crash-scheduler.worker.ts
+# Tighter restart than the other workers: this is the single process owning
+# round lifecycle. On-chain cancelStuckRound() is the 30-min safety net if
+# this fails to come back promptly — see PRODUCTION_TODO.md's runbook.
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

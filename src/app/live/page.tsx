@@ -1,312 +1,420 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { matches } from "@/lib/mockData";
-import { useBetSlip } from "@/lib/betSlipStore";
-import OddsButton from "@/components/sportsbook/OddsButton";
-import { LiveIcon, ZapIcon, CloseIcon, ChevronRight } from "@/components/icons/UIIcons";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { LiveIcon, ChevronDown, ChevronRight } from "@/components/icons/UIIcons";
+import LiveMatchModal from "@/components/sportsbook/LiveMatchModal";
 
-const liveMatches = matches.filter((m) => m.isLive);
-
-const EVENTS = [
-  { min: 2, type: "goal", team: "home", player: "Rashford", detail: "GOAL! 1–0" },
-  { min: 14, type: "yellow", team: "away", player: "Rodri", detail: "Yellow card" },
-  { min: 23, type: "goal", team: "away", player: "Haaland", detail: "GOAL! 1–1" },
-  { min: 45, type: "ht", team: null, player: null, detail: "Half Time" },
-  { min: 54, type: "yellow", team: "home", player: "Bruno", detail: "Yellow card" },
-  { min: 67, type: "goal", team: "home", player: "Salah", detail: "GOAL! 2–1" },
-];
-
-type LiveMarket = {
-  type: string;
-  label: string;
-  selections: { label: string; odds: number }[];
-};
-
-function getLiveMarkets(m: typeof liveMatches[0]): LiveMarket[] {
-  return [
-    {
-      type: "1X2",
-      label: "Match Result",
-      selections: [
-        { label: m.homeTeam, odds: m.homeOdds },
-        ...(m.drawOdds ? [{ label: "Draw", odds: m.drawOdds }] : []),
-        { label: m.awayTeam, odds: m.awayOdds },
-      ],
-    },
-    {
-      type: "over_under_25",
-      label: "Over/Under 2.5",
-      selections: [
-        { label: "Over 2.5", odds: m.totalOverOdds ?? 1.8 },
-        { label: "Under 2.5", odds: m.totalUnderOdds ?? 2.0 },
-      ],
-    },
-    {
-      type: "btts",
-      label: "Both Teams to Score",
-      selections: [
-        { label: "Yes", odds: 1.65 },
-        { label: "No", odds: 2.15 },
-      ],
-    },
-    {
-      type: "next_goal",
-      label: "Next Team to Score",
-      selections: [
-        { label: m.homeTeam, odds: 1.95 },
-        { label: "No goal", odds: 4.5 },
-        { label: m.awayTeam, odds: 2.4 },
-      ],
-    },
-  ];
+interface LiveEvent {
+  match_id: string;
+  match: string;
+  sport: string;
+  league: string;
+  country: string;
+  match_time: string;
+  score: { home: number; away: number };
+  period: string | null;
+  minute: number | null;
+  finished: boolean;
 }
 
-export default function LivePage() {
-  const [selectedId, setSelectedId] = useState<string>(liveMatches[0]?.id ?? "");
-  const [minute, setMinute] = useState(67);
-  const [suspended, setSuspended] = useState(false);
-  const { addSelection, hasSelection } = useBetSlip();
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+interface LeagueGroup {
+  league: string;
+  country: string;
+  events: LiveEvent[];
+}
+interface SportGroup {
+  sport: string;
+  label: string;
+  count: number;
+  leagues: LeagueGroup[];
+}
 
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setMinute((m) => {
-        if (m >= 90) return 90;
-        // Randomly simulate suspension
-        setSuspended(Math.random() < 0.05);
-        return m + 1;
-      });
-    }, 10000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, []);
+// ─── Display helpers ──────────────────────────────────────────────────────────
 
-  const selected = liveMatches.find((m) => m.id === selectedId) ?? liveMatches[0];
-  const liveMarkets = selected ? getLiveMarkets(selected) : [];
+const SPORT_LABELS: Record<string, string> = {
+  football: "Football",
+  basketball: "Basketball",
+  tennis: "Tennis",
+  "table-tennis": "Table Tennis",
+  volleyball: "Volleyball",
+  baseball: "Baseball",
+  handball: "Handball",
+  cricket: "Cricket",
+  rugby: "Rugby",
+  boxing: "Boxing",
+  "martial-arts": "MMA",
+  "ice-hockey": "Ice Hockey",
+  darts: "Darts",
+  snooker: "Snooker",
+  badminton: "Badminton",
+  golf: "Golf",
+  esports: "Esports",
+  futsal: "Futsal",
+  "beach-volleyball": "Beach Volleyball",
+  "american-football": "Am. Football",
+  "gaelic-football": "Gaelic Football",
+  "australian-rules": "Aus. Rules",
+};
 
-  if (liveMatches.length === 0) {
-    return (
-      <div className="mx-auto flex max-w-[1400px] flex-col items-center gap-4 px-5 py-20 text-center">
-        <LiveIcon className="h-8 w-8 text-[var(--color-ink-3)]" />
-        <p className="text-[15px] font-semibold text-[var(--color-ink-2)]">No live matches right now</p>
-        <p className="text-[13px] text-[var(--color-ink-3)]">Check back in a few minutes. Live odds update every 45 seconds.</p>
-      </div>
-    );
+function sportLabel(slug: string): string {
+  return SPORT_LABELS[slug] ?? slug.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+}
+
+// Consolidate esports-* and fifa under "esports".
+function normaliseSportTab(sport: string): string {
+  if (sport.startsWith("esports") || sport === "fifa" || sport === "cybersport") return "esports";
+  return sport;
+}
+
+function matchStatus(ev: LiveEvent): string {
+  if (ev.finished) return "FT";
+  if (ev.minute !== null && ev.minute > 0 && ev.minute <= 300) return `${ev.minute}'`;
+  const p = (ev.period ?? "").toLowerCase();
+  if (p.includes("half-time") || p.includes("half time") || p === "ht") return "HT";
+  if (p.includes("ot") || p.includes("overtime") || p.includes("extra time")) return "ET";
+  if (p.includes("penalty") || p === "pen") return "PEN";
+  const qm = p.match(/q(?:uarter)?\s*(\d)/i);
+  if (qm) return `Q${qm[1]}`;
+  const pm = p.match(/p(?:eriod)?\s*(\d)/i);
+  if (pm) return `P${pm[1]}`;
+  const setm = p.match(/(\d+)(?:st|nd|rd|th)?\s*set/i);
+  if (setm) return `S${setm[1]}`;
+  const halfm = p.match(/(\d+)(?:st|nd|rd|th)?\s*half/i);
+  if (halfm) return halfm[1] === "1" ? "1H" : `${halfm[1]}H`;
+  const inningm = p.match(/(\d+)(?:st|nd|rd|th)?\s*inning/i);
+  if (inningm) return `I${inningm[1]}`;
+  // If period string is short enough, show it directly (e.g. "1H", "2H", "OT").
+  if (p.length <= 4 && p.trim()) return p.toUpperCase().trim();
+  return "LIVE";
+}
+
+function statusColor(status: string): string {
+  if (status === "FT") return "text-[var(--color-ink-3)]";
+  if (status === "HT") return "text-[var(--color-warn)]";
+  return "text-[var(--color-live)]";
+}
+
+const MAJOR_SPORTS_ORDER = [
+  "football",
+  "basketball",
+  "tennis",
+  "american-football",
+  "baseball",
+  "ice-hockey",
+  "mma",
+  "boxing",
+  "esports",
+  "volleyball",
+  "table-tennis",
+  "rugby",
+  "cricket",
+];
+
+function getSportPriority(slug: string): number {
+  let norm = slug.toLowerCase();
+  if (norm === "martial-arts") norm = "mma";
+  const idx = MAJOR_SPORTS_ORDER.indexOf(norm);
+  return idx !== -1 ? idx : 99;
+}
+
+const LEAGUE_PRIORITY: { pattern: RegExp; tier: number }[] = [
+  // Top UEFA / Global club competitions
+  { pattern: /^(?:uefa\s+)?champions league$/i, tier: 1 },
+  { pattern: /^(?:uefa\s+)?europa league$/i, tier: 2 },
+  { pattern: /^(?:uefa\s+)?(?:europa )?conference league$/i, tier: 3 },
+  { pattern: /nba/i, tier: 4 },
+  { pattern: /nfl/i, tier: 5 },
+  { pattern: /mlb/i, tier: 6 },
+  { pattern: /nhl/i, tier: 7 },
+
+  // Top-5 European Soccer
+  { pattern: /^premier league$/i, tier: 10 },
+  { pattern: /^la liga$/i, tier: 11 },
+  { pattern: /^bundesliga$/i, tier: 12 },
+  { pattern: /^serie a$/i, tier: 13 },
+  { pattern: /^ligue 1/i, tier: 14 },
+
+  // Other major European / Global Soccer
+  { pattern: /primeira liga|liga nos/i, tier: 20 },
+  { pattern: /eredivisie/i, tier: 21 },
+  { pattern: /pro league|jupiler/i, tier: 22 },
+  { pattern: /scottish.*premiership|premiership.*scotland/i, tier: 23 },
+  { pattern: /s[üu]per lig/i, tier: 24 },
+
+  // US & Latin American Soccer / Major Tennis & Basketball
+  { pattern: /^mls$|major league soccer/i, tier: 30 },
+  { pattern: /brasileir[aã]o/i, tier: 31 },
+  { pattern: /liga profesional|primera.*arg/i, tier: 32 },
+  { pattern: /liga mx/i, tier: 33 },
+  { pattern: /euroleague/i, tier: 34 },
+  { pattern: /atp|wta|wimbledon|us open|french open|australian open/i, tier: 35 },
+
+  // Second divisions
+  { pattern: /^championship$/i, tier: 40 },
+  { pattern: /la liga 2|segunda/i, tier: 41 },
+  { pattern: /2\. bundesliga/i, tier: 42 },
+  { pattern: /^serie b$/i, tier: 43 },
+  { pattern: /^ligue 2/i, tier: 44 },
+];
+
+function getLeaguePriority(name: string): number {
+  for (const entry of LEAGUE_PRIORITY) {
+    if (entry.pattern.test(name)) return entry.tier;
+  }
+  return 999;
+}
+
+function groupEvents(events: LiveEvent[]): SportGroup[] {
+  const bySport = new Map<string, Map<string, LiveEvent[]>>();
+
+  for (const ev of events) {
+    const sport = normaliseSportTab(ev.sport);
+    if (!bySport.has(sport)) bySport.set(sport, new Map());
+    const byLeague = bySport.get(sport)!;
+    const league = ev.league || "Other";
+    if (!byLeague.has(league)) byLeague.set(league, []);
+    byLeague.get(league)!.push(ev);
   }
 
+  const groups: SportGroup[] = [];
+  for (const [sport, byLeague] of bySport) {
+    const leagues: LeagueGroup[] = [];
+    for (const [league, evs] of byLeague) {
+      leagues.push({ league, country: evs[0].country ?? "", events: evs });
+    }
+    leagues.sort((a, b) => {
+      const pa = getLeaguePriority(a.league);
+      const pb = getLeaguePriority(b.league);
+      if (pa !== pb) return pa - pb;
+      return b.events.length - a.events.length;
+    });
+    groups.push({ sport, label: sportLabel(sport), count: [...byLeague.values()].flat().length, leagues });
+  }
+  groups.sort((a, b) => {
+    const pa = getSportPriority(a.sport);
+    const pb = getSportPriority(b.sport);
+    if (pa !== pb) return pa - pb;
+    return b.count - a.count;
+  });
+  return groups;
+}
+
+function FoldableLeagueCard({ lg, onSelectEvent }: { lg: LeagueGroup; onSelectEvent?: (ev: LiveEvent) => void }) {
+  const [open, setOpen] = useState(true);
+
   return (
-    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
-      {/* Header */}
-      <div className="mb-4 flex items-center gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--color-live)]/10 text-[var(--color-live)]">
-          <LiveIcon className="h-5 w-5" />
+    <div className="overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
+      {/* League header */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 border-b border-[var(--color-line-1)] bg-[var(--color-bg-1)] px-3 py-2 text-left transition-colors hover:bg-[var(--color-bg-2)] cursor-pointer"
+      >
+        <span className="text-[var(--color-ink-3)]">
+          {open ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         </span>
-        <div>
-          <h1 className="text-[20px] font-black tracking-tight">
-            LIVE BETTING
-          </h1>
-          <p className="text-[12px] text-[var(--color-ink-3)]">
-            <span className="mono font-bold text-[var(--color-live)]">{liveMatches.length}</span> matches in play · odds update every 45s
-          </p>
-        </div>
-        {suspended && (
-          <div className="ml-auto flex items-center gap-2 rounded-md bg-[var(--color-warn)]/10 px-3 py-1.5 text-[12px] font-bold text-[var(--color-warn)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--color-warn)] animate-pulse" />
-            ODDS SUSPENDED
-          </div>
+        {lg.country && (
+          <span className="text-[10px] text-[var(--color-ink-3)]">{lg.country} ·</span>
         )}
-      </div>
+        <span className="text-[11px] font-semibold text-[var(--color-ink-2)]">{lg.league}</span>
+        <span className="ml-auto mono text-[10px] text-[var(--color-ink-3)]">{lg.events.length}</span>
+      </button>
 
-      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-        {/* Match List */}
-        <div className="space-y-2">
-          <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)] px-1">Live matches</p>
-          {liveMatches.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => setSelectedId(m.id)}
-              className={`w-full rounded-xl border p-3.5 text-left transition-colors ${
-                selectedId === m.id
-                  ? "border-[var(--color-live)]/40 bg-[var(--color-live)]/5"
-                  : "border-[var(--color-line-1)] bg-[var(--color-bg-2)] hover:border-[var(--color-line-2)]"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">
-                  {m.league}
-                </span>
-                <span className="mono flex items-center gap-1 rounded bg-[var(--color-live)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-live)]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-live)] animate-pulse" />
-                  {m.id === selectedId ? `${minute}'` : m.liveMinute}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-white">{m.homeTeam}</p>
-                  <p className="text-[13px] font-bold text-white">{m.awayTeam}</p>
+      {/* Match rows */}
+      {open && (
+        <div className="divide-y divide-[var(--color-line-1)]">
+          {lg.events.map((ev) => {
+            const status = matchStatus(ev);
+            const isFt = ev.finished;
+            const { home, away } = ev.score;
+            const [homeName, awayName] = ev.match.includes(" vs ")
+              ? ev.match.split(" vs ")
+              : [ev.match, ""];
+
+            return (
+              <div
+                key={ev.match_id}
+                onClick={() => onSelectEvent?.(ev)}
+                className={`flex items-center gap-3 px-3 py-2.5 text-[13px] transition-colors cursor-pointer ${
+                  isFt ? "opacity-60" : "hover:bg-[var(--color-bg-3)]/50"
+                }`}
+              >
+                {/* Status / minute */}
+                <div className={`mono w-10 shrink-0 text-right text-[11px] font-bold ${statusColor(status)}`}>
+                  {status}
                 </div>
-                <div className="mono text-center">
-                  <p className="text-xl font-black text-white">{m.homeScore ?? 0}</p>
-                  <p className="text-xl font-black text-white">{m.awayScore ?? 0}</p>
-                </div>
-              </div>
-              <div className="mt-2.5 grid grid-cols-3 gap-1">
-                {[m.homeOdds, m.drawOdds ?? 0, m.awayOdds].filter(Boolean).map((o, i) => (
-                  <div key={i} className="mono rounded bg-[var(--color-bg-3)] py-1 text-center text-[12px] font-bold text-[var(--color-brand-500)]">
-                    {o.toFixed(2)}
+
+                {/* Teams + score */}
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate font-semibold ${home > away && !isFt ? "text-white" : "text-[var(--color-ink-2)]"}`}>
+                      {homeName?.trim()}
+                    </p>
+                    <p className={`truncate font-semibold ${away > home && !isFt ? "text-white" : "text-[var(--color-ink-2)]"}`}>
+                      {awayName?.trim()}
+                    </p>
                   </div>
-                ))}
-              </div>
-              {selectedId === m.id && (
-                <div className="mt-1.5 flex items-center gap-1 text-[10px] text-[var(--color-live)]">
-                  <ChevronRight className="h-3 w-3" />
-                  Viewing
+
+                  {/* Score */}
+                  <div className="mono shrink-0 text-right">
+                    <p className={`text-[15px] font-black ${home > away && !isFt ? "text-white" : isFt ? "text-[var(--color-ink-2)]" : "text-white"}`}>
+                      {home}
+                    </p>
+                    <p className={`text-[15px] font-black ${away > home && !isFt ? "text-white" : isFt ? "text-[var(--color-ink-2)]" : "text-white"}`}>
+                      {away}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </button>
-          ))}
+
+                {/* Period label */}
+                {ev.period && !isFt && (
+                  <div className="shrink-0 hidden sm:block text-[10px] text-[var(--color-ink-3)] max-w-[80px] truncate text-right">
+                    {ev.period}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-
-        {/* Match Detail */}
-        {selected && (
-          <div className="space-y-4">
-            {/* Scoreboard */}
-            <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,45,45,0.08),transparent_60%)]" />
-              <div className="relative">
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">
-                    {selected.league}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="mono flex items-center gap-1.5 rounded bg-[var(--color-live)]/10 px-2.5 py-1 text-[12px] font-bold text-[var(--color-live)]">
-                      <span className="h-2 w-2 rounded-full bg-[var(--color-live)] animate-pulse" />
-                      {minute}&apos; — 2nd Half
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-center gap-6">
-                  <div className="text-center flex-1">
-                    <div className="mb-2 h-14 w-14 rounded-full border-2 mx-auto flex items-center justify-center text-2xl font-black" style={{ borderColor: selected.homeColor, background: `${selected.homeColor}15` }}>
-                      {selected.homeShort}
-                    </div>
-                    <p className="text-[15px] font-bold text-white">{selected.homeTeam}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="mono text-5xl font-black tracking-tight">
-                      <span className="text-white">{selected.homeScore ?? 0}</span>
-                      <span className="mx-2 text-[var(--color-ink-3)]">—</span>
-                      <span className="text-white">{selected.awayScore ?? 0}</span>
-                    </p>
-                    <p className="mt-1 text-[11px] text-[var(--color-ink-3)]">Full time score</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <div className="mb-2 h-14 w-14 rounded-full border-2 mx-auto flex items-center justify-center text-2xl font-black" style={{ borderColor: selected.awayColor, background: `${selected.awayColor}15` }}>
-                      {selected.awayShort}
-                    </div>
-                    <p className="text-[15px] font-bold text-white">{selected.awayTeam}</p>
-                  </div>
-                </div>
-
-                {/* Recent event flash */}
-                <div className="mt-4 flex items-center justify-center gap-2 rounded-md bg-[var(--color-brand-500)]/10 py-2 text-[12px] text-[var(--color-brand-500)]">
-                  <ZapIcon className="h-3.5 w-3.5" />
-                  ⚽ GOAL! {selected.homeTeam} {minute - 7}&apos; — {selected.homeScore ?? 2}–{selected.awayScore ?? 1}
-                </div>
-
-                {/* Live stats */}
-                <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                  <StatBar label="Possession" home={58} away={42} />
-                  <StatBar label="Shots" home={8} away={5} />
-                  <StatBar label="Corners" home={4} away={2} />
-                </div>
-              </div>
-            </div>
-
-            {/* Markets */}
-            {suspended ? (
-              <div className="flex items-center justify-center gap-3 rounded-xl border border-[var(--color-warn)]/30 bg-[var(--color-warn)]/5 py-10">
-                <span className="h-3 w-3 rounded-full bg-[var(--color-warn)] animate-pulse" />
-                <p className="font-bold text-[var(--color-warn)]">Markets suspended — odds re-opening shortly</p>
-              </div>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {liveMarkets.map((mkt) => (
-                  <div key={mkt.type} className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-                    <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
-                      {mkt.label}
-                    </p>
-                    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${mkt.selections.length}, 1fr)` }}>
-                      {mkt.selections.map((sel) => (
-                        <OddsButton
-                          key={sel.label}
-                          matchId={selected.id}
-                          market={mkt.type}
-                          selection={sel.label}
-                          matchLabel={`${selected.homeTeam} vs ${selected.awayTeam}`}
-                          odds={sel.odds}
-                          isSelected={hasSelection(selected.id, mkt.type)}
-                          onSelect={() =>
-                            addSelection({
-                              matchId: selected.id,
-                              matchLabel: `${selected.homeTeam} vs ${selected.awayTeam}`,
-                              market: mkt.type,
-                              selection: sel.label,
-                              odds: sel.odds,
-                            })
-                          }
-                          label={sel.label}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Match Timeline */}
-            <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
-                Match timeline
-              </p>
-              <div className="space-y-2">
-                {EVENTS.slice().reverse().map((ev, i) => (
-                  <div key={i} className="flex items-center gap-3 text-[13px]">
-                    <span className="mono w-8 shrink-0 text-right text-[var(--color-ink-3)]">{ev.min}&apos;</span>
-                    <span className="text-base">
-                      {ev.type === "goal" ? "⚽" : ev.type === "yellow" ? "🟨" : ev.type === "red" ? "🟥" : "⏱"}
-                    </span>
-                    <span className="text-[var(--color-ink-1)]">{ev.detail}</span>
-                    {ev.player && <span className="text-[var(--color-ink-3)]">— {ev.player}</span>}
-                  </div>
-                ))}
-                <div className="flex items-center gap-3 text-[13px]">
-                  <span className="mono w-8 text-right text-[var(--color-ink-3)]">0&apos;</span>
-                  <span>🟢</span>
-                  <span className="text-[var(--color-ink-1)]">Kick Off</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
 
-function StatBar({ label, home, away }: { label: string; home: number; away: number }) {
-  const total = home + away;
+// ─── Component ────────────────────────────────────────────────────────────────
+
+export default function LivePage() {
+  const [events, setEvents] = useState<LiveEvent[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<LiveEvent | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [tab, setTab] = useState<string>("all");
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  async function fetchScores() {
+    try {
+      const res = await fetch("/api/livescores", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json() as { events: LiveEvent[]; total: number; lastUpdated: string | null };
+      setEvents(data.events);
+      setLastUpdated(new Date());
+    } catch {
+      // Non-fatal — keep stale data.
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void fetchScores();
+    intervalRef.current = setInterval(() => void fetchScores(), 30_000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, []);
+
+  const groups = groupEvents(events);
+  const tabGroups = tab === "all" ? groups : groups.filter((g) => g.sport === tab);
+  const totalLive = events.filter((e) => !e.finished).length;
+  const totalFt = events.filter((e) => e.finished).length;
+
+  // Collect unique sport tabs from current events.
+  const sportTabs = [{ sport: "all", label: "All", count: events.length }, ...groups.map((g) => ({ sport: g.sport, label: g.label, count: g.count }))];
+
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-[11px]">
-        <span className="mono font-bold text-white">{home}</span>
-        <span className="text-[var(--color-ink-3)]">{label}</span>
-        <span className="mono font-bold text-white">{away}</span>
+    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-[var(--color-live)]/10 text-[var(--color-live)]">
+            <LiveIcon className="h-5 w-5" />
+          </span>
+          <div>
+            <h1 className="text-[20px] font-black tracking-tight">LIVE SCORES</h1>
+            <p className="text-[12px] text-[var(--color-ink-3)]">
+              {loading ? "Loading…" : (
+                <>
+                  <span className="mono font-bold text-[var(--color-live)]">{totalLive}</span>
+                  {" in play"}
+                  {totalFt > 0 && <> · <span className="mono font-bold text-[var(--color-ink-3)]">{totalFt}</span> finished</>}
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        {lastUpdated && (
+          <p className="text-[10px] text-[var(--color-ink-3)]">
+            Updated {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </p>
+        )}
       </div>
-      <div className="flex h-1.5 overflow-hidden rounded-full bg-[var(--color-bg-3)]">
-        <div className="h-full bg-[var(--color-brand-500)]" style={{ width: `${(home / total) * 100}%` }} />
-        <div className="h-full bg-[var(--color-info)]" style={{ width: `${(away / total) * 100}%` }} />
+
+      {/* Sport tabs */}
+      {sportTabs.length > 1 && (
+        <div className="mb-4 flex gap-1 overflow-x-auto scrollbar-none pb-1">
+          {sportTabs.map((t) => (
+            <button
+              key={t.sport}
+              onClick={() => setTab(t.sport)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                tab === t.sport
+                  ? "bg-[var(--color-live)]/15 text-[var(--color-live)] border border-[var(--color-live)]/30"
+                  : "bg-[var(--color-bg-2)] border border-[var(--color-line-1)] text-[var(--color-ink-2)] hover:text-white"
+              }`}
+            >
+              {t.label}
+              <span className={`mono rounded px-1 text-[10px] ${tab === t.sport ? "text-[var(--color-live)]" : "text-[var(--color-ink-3)]"}`}>
+                {t.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && events.length === 0 && (
+        <div className="flex flex-col items-center gap-3 py-20 text-center">
+          <LiveIcon className="h-10 w-10 text-[var(--color-ink-3)] animate-pulse" />
+          <p className="text-[15px] font-bold text-white">No matches in play right now</p>
+          <p className="text-[12px] text-[var(--color-ink-3)]">Live scores update every 30 seconds.</p>
+          <Link href="/sportsbook" className="mt-2 text-[12px] text-[var(--color-brand-500)] hover:underline">
+            Browse upcoming matches →
+          </Link>
+        </div>
+      )}
+
+      {/* Event groups */}
+      <div className="space-y-5">
+        {tabGroups.map((group) => (
+          <div key={group.sport}>
+            {/* Sport header */}
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-ink-2)]">
+                {group.label}
+              </span>
+              <span className="mono rounded bg-[var(--color-bg-2)] border border-[var(--color-line-1)] px-1.5 py-0.5 text-[10px] text-[var(--color-ink-3)]">
+                {group.count}
+              </span>
+              <div className="h-px flex-1 bg-[var(--color-line-1)]" />
+            </div>
+
+            {/* Leagues */}
+            <div className="space-y-2">
+              {group.leagues.map((lg) => (
+                <FoldableLeagueCard key={lg.league} lg={lg} onSelectEvent={(ev) => setSelectedEvent(ev)} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
+
+      {!loading && events.length > 0 && (
+        <p className="mt-6 text-center text-[10px] text-[var(--color-ink-3)]">
+          Source: 1xbet LiveFeed · Scores refresh automatically every 30 s
+        </p>
+      )}
+
+      {selectedEvent && (
+        <LiveMatchModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      )}
     </div>
   );
 }

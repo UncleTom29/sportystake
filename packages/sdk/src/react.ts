@@ -8,13 +8,13 @@ export {
 } from './hooks/useBettingCore.js';
 
 export {
-  useMarketPoolStats,
-  useMarketPoolPosition,
-  useMarketPoolDeposit,
-  useMarketPoolRequestWithdrawal,
-  useMarketPoolExecuteWithdrawal,
-  useMarketLookup,
-} from './hooks/useMarketPool.js';
+  useLiquidityPoolStats,
+  useMarketLocked,
+  useLiquidityPosition,
+  useLiquidityDeposit,
+  useLiquidityRequestWithdrawal,
+  useLiquidityExecuteWithdrawal,
+} from './hooks/useLiquidityPool.js';
 
 export { useUsdcBalance } from './hooks/useUsdcBalance.js';
 

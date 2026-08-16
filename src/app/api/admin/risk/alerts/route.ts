@@ -1,23 +1,44 @@
 import { NextRequest } from "next/server";
 import { ok, withRequestId } from "@/lib/server/api-response";
-import { store, utils } from "@/lib/server/store";
 import { requireAdmin } from "@/lib/server/auth";
+import { prisma } from "@/lib/server/db";
+import { getOnchainPoolStats } from "@/lib/server/chain";
 
 export const runtime = "nodejs";
 
+/** Markets where a bet's liability would push utilization of the shared pool > 80% (the on-chain cap). */
 export const GET = withRequestId(async (req: NextRequest) => {
   await requireAdmin(req);
-  const s = store();
-  const items = s.markets
-    .filter((m) => {
-      const tvl = utils.fromUsdc(m.poolTvl);
-      const lock = utils.fromUsdc(m.poolLocked);
-      return tvl > 0n && lock * 10n > tvl * 8n;
+
+  const [onchain, markets] = await Promise.all([
+    getOnchainPoolStats(),
+    prisma.market.findMany({
+      where: { status: { in: ["OPEN", "LIVE"] } },
+      select: {
+        id: true, homeTeam: true, awayTeam: true,
+        bets: {
+          where: { status: "PENDING" },
+          select: { amount: true, potentialPayout: true },
+        },
+      },
+      take: 500,
+    }),
+  ]);
+
+  const effectiveCapacity = onchain.totalLiquidity + onchain.virtualLiquidity;
+
+  const items = markets
+    .map((m) => {
+      const liability = m.bets.reduce((acc, b) => acc + b.potentialPayout - b.amount, 0n);
+      if (effectiveCapacity === 0n || liability * 10n <= effectiveCapacity * 8n) return null;
+      return {
+        marketId: m.id,
+        label: `${m.homeTeam} vs ${m.awayTeam}`,
+        coverage: Number((liability * 10_000n) / effectiveCapacity) / 10_000,
+      };
     })
-    .map((m) => ({
-      marketId: m.id,
-      label: `${m.homeTeam} vs ${m.awayTeam}`,
-      coverage: Number((utils.fromUsdc(m.poolLocked) * 10000n) / utils.fromUsdc(m.poolTvl)) / 10000,
-    }));
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .sort((a, b) => b.coverage - a.coverage);
+
   return ok({ items });
 });

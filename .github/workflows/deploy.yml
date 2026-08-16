@@ -1,0 +1,38 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  deploy-ec2:
+    name: EC2 — full app (frontend + backend + workers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      # Typecheck/build here first so a broken commit never reaches the box —
+      # deploy/scripts/deploy.sh rebuilds again on the host itself (native
+      # deps like @prisma/client's query engine need to compile there, not
+      # cross-compile on the runner).
+      - run: pnpm install --frozen-lockfile
+      - run: npx prisma generate
+      - run: pnpm typecheck
+      - name: Deploy over SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
+            "sudo -u sportystake bash /opt/sportystake/deploy/scripts/deploy.sh"

@@ -83,6 +83,21 @@ export class InvalidInputError extends SportyStakeSDKError {
 }
 
 /**
+ * `publicClient.waitForTransactionReceipt` resolves normally for a transaction that was mined
+ * but whose execution reverted — it only rejects for transport-level failures (the tx never
+ * getting mined at all). Every write method in this SDK must call this immediately after
+ * awaiting a receipt, before trusting anything in it (an event log, a returned id) — otherwise a
+ * reverted transaction (e.g. a crash round moving from Pending to Running between this SDK's own
+ * pre-flight check and the transaction actually being mined) is silently reported as a
+ * successful fill.
+ */
+export function assertTxSuccess(receipt: { status: string }, action: string): void {
+  if (receipt.status !== 'success') {
+    throw new ContractRevertError(`${action} transaction reverted on-chain`);
+  }
+}
+
+/**
  * Best-effort classification of arbitrary errors thrown by viem/wagmi/ethers
  * into the SportyStake SDK error taxonomy. The original error is preserved on
  * `.cause`.

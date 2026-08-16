@@ -10,10 +10,17 @@ export class RedisPublisher {
     private readonly logger: Logger,
   ) {}
 
-  async publishFixtureSync(fixtures: NormalizedFixture[]): Promise<void> {
+  async publishFixtureSync(
+    fixtures: NormalizedFixture[],
+    opts: { isFullSync?: boolean } = {},
+  ): Promise<void> {
+    // isFullSync=true means this payload is the complete current snapshot —
+    // the sync-worker can sweep any OPEN market not present in `fixtures`
+    // (provided it has no bets / parlay legs / LP positions).
     await this.publish(Channels.MARKET_SYNC, {
       type: 'fixtures:synced',
       count: fixtures.length,
+      isFullSync: opts.isFullSync === true,
       fixtures,
     });
   }
@@ -22,29 +29,36 @@ export class RedisPublisher {
     await this.publish(Channels.ODDS_UPDATE, {
       type: 'odds:updated',
       fixtureId: odds.fixtureId,
+      bookmaker: odds.bookmakerName,
       markets: odds.markets,
     });
   }
 
+  /** Publishes the full fixture (not just score/minute) so the sync-worker
+   *  can create the Market row on the spot if this is the first time we've
+   *  seen it — a fixture can go live without ever appearing in a prematch
+   *  snapshot first. */
   async publishMarketLive(fixture: NormalizedFixture): Promise<void> {
     await this.publish(Channels.MARKET_LIVE, {
       type: 'market:live',
-      fixtureId: fixture.fixtureId,
-      minute: fixture.minute,
-      score: { home: fixture.homeScore, away: fixture.awayScore },
-      homeTeam: fixture.homeTeam,
-      awayTeam: fixture.awayTeam,
+      fixture,
     });
   }
 
   async publishMarketFinished(fixture: NormalizedFixture): Promise<void> {
+    await this.publishMatchFinished(fixture.fixtureId, fixture.homeScore, fixture.awayScore);
+  }
+
+  async publishMatchFinished(
+    fixtureId: number,
+    homeScore: number,
+    awayScore: number,
+  ): Promise<void> {
     await this.publish(Channels.MARKET_FINISHED, {
       type: 'market:finished',
-      fixtureId: fixture.fixtureId,
-      homeScore: fixture.homeScore,
-      awayScore: fixture.awayScore,
-      homeTeam: fixture.homeTeam,
-      awayTeam: fixture.awayTeam,
+      fixtureId,
+      homeScore,
+      awayScore,
     });
   }
 

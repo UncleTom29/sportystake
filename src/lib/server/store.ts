@@ -10,7 +10,6 @@ import type {
   ParlayDTO,
   LPPositionDTO,
   UserDTO,
-  PoolStats,
   CrashRound,
   DiceRoll,
   SlotsSpin,
@@ -120,14 +119,14 @@ type Seed = {
 
 const SEEDS: Seed[] = [
   { ext: "fx-101", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Arsenal", homeId: 42, away: "Manchester City", awayId: 50, hoursFromNow: 4, status: "OPEN", homeStrength: 8.5, awayStrength: 9.2, featured: true },
-  { ext: "fx-102", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Chelsea", homeId: 49, away: "Liverpool", awayId: 40, hoursFromNow: 0, status: "LIVE", liveMinute: 67, homeScore: 1, awayScore: 1, homeStrength: 8, awayStrength: 8.8, featured: true },
+  { ext: "fx-102", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Chelsea", homeId: 49, away: "Liverpool", awayId: 40, hoursFromNow: 2, status: "OPEN", homeStrength: 8, awayStrength: 8.8, featured: true },
   { ext: "fx-103", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Manchester United", homeId: 33, away: "Tottenham", awayId: 47, hoursFromNow: 25, status: "OPEN", homeStrength: 7.6, awayStrength: 7.8 },
   { ext: "fx-104", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Newcastle", homeId: 34, away: "Aston Villa", awayId: 66, hoursFromNow: 27, status: "OPEN", homeStrength: 7.4, awayStrength: 7.6 },
   { ext: "fx-201", league: "La Liga", leagueId: 140, country: "Spain", countryCode: "ESP", home: "Real Madrid", homeId: 541, away: "Barcelona", awayId: 529, hoursFromNow: 5, status: "OPEN", homeStrength: 9.4, awayStrength: 9.2, featured: true },
-  { ext: "fx-202", league: "La Liga", leagueId: 140, country: "Spain", countryCode: "ESP", home: "Atletico Madrid", homeId: 530, away: "Sevilla", awayId: 536, hoursFromNow: 0, status: "LIVE", liveMinute: 34, homeScore: 0, awayScore: 1, homeStrength: 8.4, awayStrength: 7.2 },
+  { ext: "fx-202", league: "La Liga", leagueId: 140, country: "Spain", countryCode: "ESP", home: "Atletico Madrid", homeId: 530, away: "Sevilla", awayId: 536, hoursFromNow: 3, status: "OPEN", homeStrength: 8.4, awayStrength: 7.2 },
   { ext: "fx-203", league: "La Liga", leagueId: 140, country: "Spain", countryCode: "ESP", home: "Real Sociedad", homeId: 548, away: "Villarreal", awayId: 533, hoursFromNow: 28, status: "OPEN", homeStrength: 7.6, awayStrength: 7.4 },
   { ext: "fx-301", league: "Serie A", leagueId: 135, country: "Italy", countryCode: "ITA", home: "Inter", homeId: 505, away: "Juventus", awayId: 496, hoursFromNow: 6, status: "OPEN", homeStrength: 8.8, awayStrength: 8.2, featured: true },
-  { ext: "fx-302", league: "Serie A", leagueId: 135, country: "Italy", countryCode: "ITA", home: "AC Milan", homeId: 489, away: "Napoli", awayId: 492, hoursFromNow: 0, status: "LIVE", liveMinute: 22, homeScore: 1, awayScore: 0, homeStrength: 8.2, awayStrength: 8.6 },
+  { ext: "fx-302", league: "Serie A", leagueId: 135, country: "Italy", countryCode: "ITA", home: "AC Milan", homeId: 489, away: "Napoli", awayId: 492, hoursFromNow: 4, status: "OPEN", homeStrength: 8.2, awayStrength: 8.6 },
   { ext: "fx-303", league: "Serie A", leagueId: 135, country: "Italy", countryCode: "ITA", home: "Roma", homeId: 497, away: "Lazio", awayId: 487, hoursFromNow: 30, status: "OPEN", homeStrength: 7.8, awayStrength: 7.6 },
   { ext: "fx-401", league: "Bundesliga", leagueId: 78, country: "Germany", countryCode: "GER", home: "Bayern Munich", homeId: 157, away: "Borussia Dortmund", awayId: 165, hoursFromNow: 3, status: "OPEN", homeStrength: 9.3, awayStrength: 8.4, featured: true },
   { ext: "fx-402", league: "Bundesliga", leagueId: 78, country: "Germany", countryCode: "GER", home: "RB Leipzig", homeId: 173, away: "Bayer Leverkusen", awayId: 168, hoursFromNow: 26, status: "OPEN", homeStrength: 8.2, awayStrength: 8.8 },
@@ -140,9 +139,9 @@ const SEEDS: Seed[] = [
   { ext: "fx-702", league: "AFCON", leagueId: 6, country: "Africa", countryCode: "AFR", home: "Morocco", homeId: 3, away: "Egypt", awayId: 4, hoursFromNow: 11, status: "OPEN", homeStrength: 8.4, awayStrength: 8.2 },
   { ext: "fx-801", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Brighton", homeId: 51, away: "West Ham", awayId: 48, hoursFromNow: -2, status: "SETTLED", homeScore: 2, awayScore: 1, homeStrength: 7.2, awayStrength: 7.4 },
   { ext: "fx-802", league: "La Liga", leagueId: 140, country: "Spain", countryCode: "ESP", home: "Real Betis", homeId: 543, away: "Valencia", awayId: 532, hoursFromNow: -3, status: "SETTLED", homeScore: 1, awayScore: 1, homeStrength: 7.0, awayStrength: 7.0 },
-  { ext: "fx-901", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Everton", homeId: 45, away: "Crystal Palace", awayId: 52, hoursFromNow: 0, status: "LIVE", liveMinute: 12, homeScore: 0, awayScore: 0, homeStrength: 6.8, awayStrength: 6.6 },
-  { ext: "fx-902", league: "Bundesliga", leagueId: 78, country: "Germany", countryCode: "GER", home: "Eintracht Frankfurt", homeId: 169, away: "Wolfsburg", awayId: 161, hoursFromNow: 0, status: "LIVE", liveMinute: 78, homeScore: 2, awayScore: 1, homeStrength: 7.4, awayStrength: 6.8 },
-  { ext: "fx-903", league: "Ligue 1", leagueId: 61, country: "France", countryCode: "FRA", home: "Lyon", homeId: 80, away: "Nice", awayId: 84, hoursFromNow: 0, status: "LIVE", liveMinute: 45, homeScore: 1, awayScore: 1, homeStrength: 7.4, awayStrength: 7.2 },
+  { ext: "fx-901", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Everton", homeId: 45, away: "Crystal Palace", awayId: 52, hoursFromNow: 5, status: "OPEN", homeStrength: 6.8, awayStrength: 6.6 },
+  { ext: "fx-902", league: "Bundesliga", leagueId: 78, country: "Germany", countryCode: "GER", home: "Eintracht Frankfurt", homeId: 169, away: "Wolfsburg", awayId: 161, hoursFromNow: 6, status: "OPEN", homeStrength: 7.4, awayStrength: 6.8 },
+  { ext: "fx-903", league: "Ligue 1", leagueId: 61, country: "France", countryCode: "FRA", home: "Lyon", homeId: 80, away: "Nice", awayId: 84, hoursFromNow: 7, status: "OPEN", homeStrength: 7.4, awayStrength: 7.2 },
   { ext: "fx-904", league: "Premier League", leagueId: 39, country: "England", countryCode: "ENG", home: "Wolves", homeId: 39, away: "Brentford", awayId: 55, hoursFromNow: 50, status: "OPEN", homeStrength: 6.8, awayStrength: 6.8 },
 ];
 
@@ -238,6 +237,7 @@ function buildMarket(s: Seed): MarketDTO {
     id,
     externalId: s.ext,
     fixtureId: Math.abs(s.leagueId * 10000 + s.homeId) % 9_999_999,
+    sport: "football",
     leagueId: s.leagueId,
     leagueName: s.league,
     leagueLogo: leagueLogoFor(s.leagueId),
@@ -250,17 +250,15 @@ function buildMarket(s: Seed): MarketDTO {
     awayTeamId: s.awayId,
     awayTeamLogo: logoFor(s.away),
     startTime,
+    closesAt: startTime,
     status: s.status,
     liveMinute: s.liveMinute,
     homeScore: s.homeScore,
     awayScore: s.awayScore,
     winningOutcome: s.status === "SETTLED" ? ((s.homeScore ?? 0) > (s.awayScore ?? 0) ? 0 : (s.homeScore ?? 0) === (s.awayScore ?? 0) ? 1 : 2) : undefined,
-    poolAddress: randAddr(),
-    poolTvl: toUsdc(BigInt(Math.floor(2000 + Math.random() * 8000)) * USDC_SCALE),
-    poolLocked: toUsdc(BigInt(Math.floor(200 + Math.random() * 1500)) * USDC_SCALE),
-    poolBetVolume: toUsdc(BigInt(Math.floor(500 + Math.random() * 5000)) * USDC_SCALE),
     isFeatured: !!s.featured,
     odds,
+    bookmakerOdds: [],
     marketsCount: 240 + Math.floor(Math.random() * 80),
     events: isLive
       ? [
@@ -346,23 +344,21 @@ function getState(): StoreState {
   // Seed markets
   state.markets = SEEDS.map(buildMarket);
 
-  // Seed LP positions for a few markets and users
+  // Seed LP positions for a few users
   for (let i = 0; i < 3; i++) {
-    const mkt = state.markets[i + 1];
     const user = state.users[i + 1];
     const deposit = BigInt(250 + Math.floor(Math.random() * 1500)) * USDC_SCALE;
     state.lpPositions.push({
       id: `lp-${shortId()}`,
       userId: user.id,
       userAddress: user.walletAddress,
-      marketId: mkt.id,
-      marketLabel: `${mkt.homeTeam} vs ${mkt.awayTeam}`,
       onchainShares: deposit.toString(),
       depositedUsdc: toUsdc(deposit),
       currentValueUsdc: toUsdc(deposit + BigInt(Math.floor(Math.random() * 30)) * USDC_SCALE),
       status: "ACTIVE",
       txHash: `0x${Array.from({ length: 64 }, () => "0123456789abcdef"[Math.floor(Math.random() * 16)]).join("")}`,
       createdAt: new Date(Date.now() - 86400_000).toISOString(),
+      updatedAt: new Date(Date.now() - 86400_000).toISOString(),
     });
   }
 
@@ -519,18 +515,6 @@ function settleMarketBets(marketId: string, winningOutcome: number): void {
     b.settledAt = nowIso();
     publish("bet:settled", { betId: b.id, status: b.status });
   }
-  // LP positions: settle them
-  for (const lp of state.lpPositions) {
-    if (lp.marketId !== marketId || lp.status === "SETTLED") continue;
-    const deposit = fromUsdc(lp.depositedUsdc);
-    const drift = BigInt(Math.floor((Math.random() - 0.45) * 60)) * (USDC_SCALE / 100n);
-    const final = deposit + drift;
-    lp.status = "SETTLED";
-    lp.settledAt = nowIso();
-    lp.finalUsdc = toUsdc(final);
-    lp.pnl = toUsdc(final - deposit);
-    publish("lp:settled", { marketId, lpId: lp.id, pnl: lp.pnl });
-  }
 }
 
 // --- crash engine ---------------------------------------------------------
@@ -607,43 +591,6 @@ export const utils = {
   nowIso,
   USDC_SCALE,
 };
-
-// Compute pool stats for a market.
-export function getPoolStats(marketId: string): PoolStats | null {
-  const s = getState();
-  const m = s.markets.find((x) => x.id === marketId);
-  if (!m) return null;
-  const tvl = fromUsdc(m.poolTvl);
-  const locked = fromUsdc(m.poolLocked);
-  const volume = fromUsdc(m.poolBetVolume);
-  const utilization = tvl === 0n ? 0 : Number((locked * 10000n) / tvl) / 10000;
-  const lpCount = s.lpPositions.filter((p) => p.marketId === marketId).length || 1 + (m.fixtureId % 8);
-  const exposureByOutcome = m.odds[0]?.selections.map((sel) => ({
-    outcome: sel.outcome,
-    label: sel.label,
-    risk: toUsdc((locked * BigInt(Math.round(sel.valueX1000))) / BigInt(m.odds[0].selections.reduce((a, b) => a + b.valueX1000, 0))),
-  })) ?? [];
-  const apy = 100 * (0.02 * (Number(volume / USDC_SCALE) / Math.max(1, Number(tvl / USDC_SCALE)))) * 365;
-  const health: PoolStats["health"] =
-    new Date(m.startTime).getTime() - Date.now() < 30 * 60_000 ? "locked"
-    : utilization > 0.8 ? "full"
-    : utilization > 0.5 ? "filling"
-    : "safe";
-  return {
-    marketId,
-    poolAddress: m.poolAddress,
-    tvl: m.poolTvl,
-    totalShares: m.poolTvl,
-    locked: m.poolLocked,
-    utilization,
-    betVolume: m.poolBetVolume,
-    lpCount,
-    exposureByOutcome,
-    estimatedApy: Math.min(45, Math.max(2, apy)),
-    health,
-    closesAt: m.startTime,
-  };
-}
 
 export function computeUserStats(userId: string): UserStats {
   const s = getState();

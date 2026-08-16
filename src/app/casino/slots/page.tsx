@@ -1,6 +1,11 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
+import Link from "next/link";
 import { useNotifications } from "@/lib/notificationStore";
+import { useWallet } from "@/lib/walletStore";
+import { usePrivyLogin } from "@/lib/usePrivyLogin";
+import { placeCasinoBetOnchain, resolveCasinoBetWithRetry } from "@/lib/placeCasinoBet";
+import PendingCasinoBetBanner from "@/components/casino/PendingCasinoBetBanner";
 
 const SYMBOLS = ["🍒", "🍋", "⭐", "💎", "🔔", "7️⃣", "🃏"] as const;
 type Symbol = typeof SYMBOLS[number];
@@ -27,26 +32,6 @@ function spin3(): [Symbol, Symbol, Symbol] {
 
 type SpinResult = { reels: [Symbol, Symbol, Symbol]; payout: number; win: boolean };
 
-function evaluate(reels: [Symbol, Symbol, Symbol], bet: number): number {
-  const [a, b, c] = reels;
-  if (a === b && b === c) {
-    // Jackpot - three in a row
-    const base = PAYOUTS[a];
-    return base * bet * 3;
-  }
-  if (a === b || b === c) {
-    // Two in a row
-    const sym = a === b ? a : b;
-    return Math.floor(PAYOUTS[sym] * bet * 0.5);
-  }
-  // Wild (🃏) substitutes any
-  if (a === "🃏" || c === "🃏") {
-    const sym = a === "🃏" ? c : a;
-    return Math.floor(PAYOUTS[sym] * bet * 0.8);
-  }
-  return 0;
-}
-
 export default function SlotsPage() {
   const [reels, setReels] = useState<[Symbol, Symbol, Symbol]>(["🍒", "🍋", "⭐"]);
   const [spinning, setSpinning] = useState(false);
@@ -56,40 +41,79 @@ export default function SlotsPage() {
   const [flashWin, setFlashWin] = useState(false);
   const autoRef = useRef(false);
   const { pushToast } = useNotifications();
+  const isAuthenticated = useWallet((s) => s.authStatus === "authenticated");
+  const { signIn } = usePrivyLogin();
+
+  const handlePendingResolved = useCallback((res: {
+    outcome: { win: boolean; payout: string; multiplier: number; detail: Record<string, unknown> };
+  }) => {
+    const grid = res.outcome.detail.reels as number[][] | undefined;
+    const final = (grid?.[0]?.slice(0, 3).map((i) => SYMBOLS[i] ?? SYMBOLS[0]) ?? reels) as [Symbol, Symbol, Symbol];
+    setReels(final);
+    const amount = parseFloat(bet || "0");
+    const payout = parseFloat(res.outcome.payout);
+    const net = payout - amount;
+    const won = res.outcome.win;
+    setHistory((h) => [{ reels: final, payout: net, win: won }, ...h].slice(0, 20));
+  }, [bet, reels]);
 
   const doSpin = useCallback(async () => {
+    if (!isAuthenticated) { void signIn(); return; }
     const amount = parseFloat(bet);
     if (!amount || amount <= 0) { pushToast({ kind: "warn", title: "Enter a valid bet" }); return; }
     setSpinning(true);
     setFlashWin(false);
 
-    // Animate reels sequentially
-    const final = spin3();
+    const placeholder = spin3();
     const animations = [0, 1, 2].map((i) => new Promise<void>((res) => setTimeout(res, 300 + i * 200)));
     await animations[0];
-    setReels((prev) => [final[0], prev[1], prev[2]]);
-    await animations[1];
-    setReels((prev) => [prev[0], final[1], prev[2]]);
-    await animations[2];
-    setReels(final);
+    setReels((prev) => [placeholder[0], prev[1], prev[2]]);
 
-    const payout = evaluate(final, amount);
-    const net = payout - amount;
-    const won = payout > 0;
+    const clientSeed = crypto.randomUUID();
+    let txHash: string | null = null;
+    try {
+      const tx = await placeCasinoBetOnchain({ amountUsdc: bet, game: "slots", clientSeed });
+      txHash = tx.txHash;
+    } catch (err) {
+      pushToast({ kind: "warn", title: "On-chain deposit failed or cancelled", body: (err as Error).message });
+      setSpinning(false);
+      return;
+    }
 
-    setHistory((h) => [{ reels: final, payout: net, win: won }, ...h].slice(0, 20));
-    setSpinning(false);
+    try {
+      const res = await resolveCasinoBetWithRetry({ game: "slots", txHash, lines: 5, clientSeed, amount });
+      await animations[1];
+      await animations[2];
 
-    if (won) {
-      setFlashWin(true);
-      setTimeout(() => setFlashWin(false), 2000);
-      pushToast({ kind: "success", title: `Win! +${payout.toFixed(2)} USDC`, body: `${final.join(" ")}` });
+      const grid = res.outcome.detail.reels as number[][] | undefined;
+      const final = (grid?.[0]?.slice(0, 3).map((i) => SYMBOLS[i] ?? SYMBOLS[0]) ?? placeholder) as [Symbol, Symbol, Symbol];
+      setReels(final);
+
+      const payout = parseFloat(res.outcome.payout);
+      const net = payout - amount;
+      const won = res.outcome.win;
+
+      setHistory((h) => [{ reels: final, payout: net, win: won }, ...h].slice(0, 20));
+
+      if (won) {
+        setFlashWin(true);
+        setTimeout(() => setFlashWin(false), 2000);
+        pushToast({ kind: "success", title: `Win! +${payout.toFixed(2)} USDC`, body: `${final.join(" ")}` });
+      }
+    } catch (e) {
+      pushToast({
+        kind: "error",
+        title: "Settlement Delayed",
+        body: `Deposit confirmed on-chain (Tx: ${txHash?.slice(0, 8)}…), but settlement timed out. Please click 'Resolve Settlement' in the banner.`,
+      });
+    } finally {
+      setSpinning(false);
     }
 
     if (autoRef.current) {
       setTimeout(() => { if (autoRef.current) doSpin(); }, 800);
     }
-  }, [bet, pushToast]);
+  }, [bet, pushToast, isAuthenticated, signIn]);
 
   const toggleAuto = () => {
     const next = !autoSpin;
@@ -106,11 +130,21 @@ export default function SlotsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
+    <div className="mx-auto max-w-[1200px] px-3 py-4 md:px-5">
       <div className="mb-4">
+        <div className="mb-2">
+          <Link
+            href="/casino"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-2)] px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-[var(--color-bg-3)] hover:border-[var(--color-line-2)]"
+          >
+            ← Back to Casino
+          </Link>
+        </div>
         <h1 className="text-2xl font-black tracking-tight text-white">Slots</h1>
         <p className="text-[13px] text-[var(--color-ink-3)]">5 reels · 20 paylines · provably fair RNG</p>
       </div>
+
+      <PendingCasinoBetBanner game="slots" onResolved={handlePendingResolved} />
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         {/* Slot machine */}

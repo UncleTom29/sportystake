@@ -1,162 +1,326 @@
 "use client";
-import { useState } from "react";
-import Link from "next/link";
-import { TrophyIcon, ZapIcon, FlameIcon, BadgeCheck, SparkleIcon, TrendUp } from "@/components/icons/UIIcons";
-import SectionHeader from "@/components/ui/SectionHeader";
 
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import {
+  TrophyIcon,
+  BadgeCheck,
+} from "@/components/icons/UIIcons";
+import { useWallet } from "@/lib/walletStore";
+import { LeaderboardApi } from "@/lib/api-client";
+
+type Category = "sports" | "casino" | "roi" | "streaks" | "referrals";
 type Period = "weekly" | "monthly" | "alltime";
 
-const LEADERBOARD = [
-  { rank: 1, handle: "CryptoTipster.eth", address: "0x4a2f…91bc", color: "#f59e0b", verified: true,
-    bets: 284, winRate: 67.2, volume: 42500, pnl: 9425, roi: 22.4, streak: 8 },
-  { rank: 2, handle: "GoalMachine99", address: "0x7f1c…22d1", color: "#22c55e", verified: false,
-    bets: 198, winRate: 61.5, volume: 28400, pnl: 5144, roi: 18.1, streak: 5 },
-  { rank: 3, handle: "OddsWizard.arc", address: "0x9e3a…b421", color: "#8b5cf6", verified: true,
-    bets: 156, winRate: 59.8, volume: 21000, pnl: 3108, roi: 14.8, streak: 3 },
-  { rank: 4, handle: "SlateBreaker", address: "0x2d8f…7c90", color: "#06b6d4", verified: false,
-    bets: 203, winRate: 58.3, volume: 18500, pnl: 2072, roi: 11.2, streak: 0 },
-  { rank: 5, handle: "QuantBet_", address: "0x5c1b…4a33", color: "#f43f5e", verified: false,
-    bets: 142, winRate: 56.7, volume: 14800, pnl: 1450, roi: 9.8, streak: 4 },
-  { rank: 6, handle: "ArcWhale", address: "0x8b7e…0d14", color: "#3b82f6", verified: false,
-    bets: 88, winRate: 55.1, volume: 62000, pnl: 4340, roi: 7.0, streak: 1 },
-  { rank: 7, handle: "ValueHunter", address: "0x1f3d…8a52", color: "#10b981", verified: true,
-    bets: 321, winRate: 54.8, volume: 9200, pnl: 1012, roi: 11.0, streak: 2 },
-  { rank: 8, handle: "LaLigaKing", address: "0xdc4a…2f91", color: "#f97316", verified: false,
-    bets: 77, winRate: 53.2, volume: 7400, pnl: 777, roi: 10.5, streak: 0 },
-  { rank: 9, handle: "Nakamoto_B", address: "0x6a2c…5e18", color: "#ec4899", verified: false,
-    bets: 264, winRate: 52.7, volume: 5100, pnl: 561, roi: 11.0, streak: 3 },
-  { rank: 10, handle: "GrindMode", address: "0x3f8b…9c07", color: "#14b8a6", verified: false,
-    bets: 189, winRate: 51.9, volume: 4200, pnl: 420, roi: 10.0, streak: 1 },
-];
-
-const CURRENT_USER_RANK = 23;
-const CURRENT_USER = { handle: "CryptoStaker", address: "0x4a…91bc", bets: 47, winRate: 60.0, volume: 2450, pnl: 312.8, roi: 12.8, streak: 4 };
-
-const PERIOD_LABELS: Record<Period, string> = { weekly: "This Week", monthly: "This Month", alltime: "All Time" };
+interface LeaderboardUser {
+  rank: number;
+  userId: string;
+  handle: string;
+  address: string;
+  color: string;
+  verified: boolean;
+  bets: number;
+  winRate: number;
+  volume: number;
+  pnl: number;
+  roi: number;
+  streak: number;
+  referredUsers?: number;
+  avatar?: string;
+}
 
 const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
+/**
+ * Real countdown to the period boundary (UTC), replacing what used to be a
+ * hardcoded "2d 14h 38m" string that never changed. Weekly resets Monday
+ * 00:00 UTC; monthly resets on the 1st. All-time has no boundary.
+ */
+function timeUntilPeriodEnd(period: Period): string | null {
+  if (period === "alltime") return null;
+  const now = new Date();
+  let end: Date;
+  if (period === "weekly") {
+    end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const daysUntilMonday = (8 - end.getUTCDay()) % 7 || 7;
+    end.setUTCDate(end.getUTCDate() + daysUntilMonday);
+  } else {
+    end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  }
+  const ms = end.getTime() - now.getTime();
+  if (ms <= 0) return "Resetting…";
+  const days = Math.floor(ms / 86_400_000);
+  const hours = Math.floor((ms % 86_400_000) / 3_600_000);
+  const mins = Math.floor((ms % 3_600_000) / 60_000);
+  return days > 0 ? `${days}d ${hours}h ${mins}m` : hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+}
+
 export default function LeaderboardPage() {
+  const { address } = useWallet();
+  const [category, setCategory] = useState<Category>("sports");
   const [period, setPeriod] = useState<Period>("weekly");
+  const [items, setItems] = useState<LeaderboardUser[]>([]);
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState<string | null>(null);
+
+  useEffect(() => {
+    const tick = () => setCountdown(timeUntilPeriodEnd(period));
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [period]);
+
+  const fetchLeaderboard = useCallback(() => {
+    setLoading(true);
+    LeaderboardApi.get({ category, period })
+      .then((res) => {
+        setItems(res.items);
+        setCurrentUser(res.currentUser);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [category, period]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
+  const topThree = items.slice(0, 3);
+  const podiumDisplay = [topThree[1], topThree[0], topThree[2]].filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-[1100px] px-3 py-4 md:px-5">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(255,176,32,0.1),transparent_60%)]" />
-        <div className="relative text-center">
-          <TrophyIcon className="mx-auto h-10 w-10 text-[var(--color-warn)]" />
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">Leaderboard</h1>
-          <p className="mt-2 text-[13px] text-[var(--color-ink-3)]">Top bettors by net P&L. Updated every 5 minutes.</p>
-        </div>
-      </div>
-
-      {/* Period selector */}
-      <div className="mt-4 flex items-center gap-1 rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1">
-        {(["weekly", "monthly", "alltime"] as Period[]).map((p) => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`flex-1 h-9 rounded text-[13px] font-semibold transition-colors ${
-              period === p ? "bg-[var(--color-bg-3)] text-white" : "text-[var(--color-ink-2)] hover:text-white"
-            }`}
-          >
-            {PERIOD_LABELS[p]}
-          </button>
-        ))}
-      </div>
-
-      {/* Top 3 podium */}
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        {[1, 0, 2].map((idx) => {
-          const p = LEADERBOARD[idx];
-          const heights = ["h-32", "h-40", "h-28"];
-          const heightMap = [heights[1], heights[0], heights[2]];
-          return (
-            <div key={p.rank} className={`relative flex flex-col items-center justify-end rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] pt-4 pb-4 ${heightMap[idx]}`}>
-              <div className="absolute -top-5 flex h-10 w-10 items-center justify-center text-2xl">
-                {RANK_MEDAL[p.rank]}
-              </div>
-              <div className="flex h-12 w-12 items-center justify-center rounded-full text-xl font-black" style={{ background: `${p.color}20`, border: `2px solid ${p.color}` }}>
-                {p.handle[0]}
-              </div>
-              <p className="mt-1.5 max-w-[90px] truncate text-center text-[12px] font-bold text-white">{p.handle}</p>
-              <p className="mono text-[11px] font-bold" style={{ color: "var(--color-brand-500)" }}>+${p.pnl.toLocaleString()}</p>
-              <p className="text-[10px] text-[var(--color-ink-3)]">{p.winRate}% WR</p>
+    <div className="mx-auto max-w-[1200px] px-3 py-5 md:px-5">
+      {/* Hero Competition Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(0,231,1,0.12),transparent_70%)]" />
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="mono rounded-full bg-[var(--color-brand-500)]/15 px-3 py-1 text-[11px] font-bold uppercase text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
+                {period === "weekly" ? "WEEKLY" : period === "monthly" ? "MONTHLY" : "ALL-TIME"} RANKINGS
+              </span>
+              <span className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-live)]">
+                <span className="h-2 w-2 rounded-full bg-[var(--color-live)] animate-pulse" />
+                Live Database Standings
+              </span>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Full table */}
-      <div className="mt-4 overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
-        {/* Header */}
-        <div className="grid grid-cols-[48px_1fr_80px_80px_100px_90px] items-center border-b border-[var(--color-line-1)] px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">
-          <span>#</span>
-          <span>Player</span>
-          <span className="hidden md:block text-right">Bets</span>
-          <span className="hidden md:block text-right">Win %</span>
-          <span className="text-right">Volume</span>
-          <span className="text-right">Net P&L</span>
-        </div>
-
-        {LEADERBOARD.map((p) => (
-          <Link
-            key={p.rank}
-            href={`/profile/${encodeURIComponent(p.handle)}`}
-            className="grid grid-cols-[48px_1fr_80px_80px_100px_90px] items-center border-b border-[var(--color-line-1)] px-4 py-3 text-[13px] last:border-0 hover:bg-[var(--color-bg-3)] transition-colors"
-          >
-            <span className="mono font-black text-[var(--color-ink-3)]">
-              {RANK_MEDAL[p.rank] ?? p.rank}
-            </span>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-black" style={{ background: `${p.color}20`, color: p.color }}>
-                {p.handle[0]}
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="truncate font-bold text-white">{p.handle}</span>
-                  {p.verified && <BadgeCheck className="h-3 w-3 shrink-0 text-[var(--color-info)]" />}
-                </div>
-                {p.streak >= 3 && (
-                  <span className="mono text-[10px] text-[var(--color-warn)]">🔥 {p.streak} streak</span>
-                )}
-              </div>
-            </div>
-            <span className="mono hidden md:block text-right text-[var(--color-ink-2)]">{p.bets}</span>
-            <span className="mono hidden md:block text-right text-white">{p.winRate}%</span>
-            <span className="mono text-right text-[var(--color-ink-2)]">${(p.volume / 1000).toFixed(0)}K</span>
-            <span className="mono text-right font-bold text-[var(--color-brand-500)]">+${p.pnl.toLocaleString()}</span>
-          </Link>
-        ))}
-      </div>
-
-      {/* Current user row */}
-      <div className="mt-3 grid grid-cols-[48px_1fr_80px_80px_100px_90px] items-center rounded-xl border border-[var(--color-brand-500)]/30 bg-[var(--color-brand-500)]/5 px-4 py-3 text-[13px]">
-        <span className="mono font-black text-[var(--color-ink-3)]">#{CURRENT_USER_RANK}</span>
-        <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--color-brand-500)]/20 text-sm font-black text-[var(--color-brand-500)]">
-            Y
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">
+              Global Bettor Leaderboard
+            </h1>
+            <p className="mt-1.5 text-[13px] text-[var(--color-ink-2)] max-w-xl">
+              Track your rank by net PnL, volume, ROI, streaks, and referrals. Aggregated 100% on-chain and in real-time.
+            </p>
           </div>
-          <span className="font-bold text-white">You</span>
-          <span className="rounded-md bg-[var(--color-brand-500)]/10 px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-brand-500)]">You</span>
+
+          {/* Countdown to period reset — real, computed from the period
+              boundary (was previously a hardcoded "2d 14h 38m" that never
+              changed regardless of the actual date). No prize-pool figures
+              are shown here since there's no real prize pool backing them
+              yet — this app doesn't have a funded-competition system. */}
+          {countdown && (
+            <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 shadow-lg text-right">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
+                {period === "weekly" ? "Weekly" : "Monthly"} Round Resets In
+              </p>
+              <p className="mono text-2xl font-black text-white mt-0.5">{countdown}</p>
+            </div>
+          )}
         </div>
-        <span className="mono hidden md:block text-right text-[var(--color-ink-2)]">{CURRENT_USER.bets}</span>
-        <span className="mono hidden md:block text-right text-white">{CURRENT_USER.winRate}%</span>
-        <span className="mono text-right text-[var(--color-ink-2)]">${(CURRENT_USER.volume / 1000).toFixed(1)}K</span>
-        <span className="mono text-right font-bold text-[var(--color-brand-500)]">+${CURRENT_USER.pnl.toFixed(0)}</span>
       </div>
 
-      {/* Win more bets CTA */}
-      <div className="mt-6 flex items-center gap-4 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-        <SparkleIcon className="h-6 w-6 shrink-0 text-[var(--color-brand-500)]" />
-        <div className="flex-1">
-          <p className="font-bold text-white">Climb the ranks</p>
-          <p className="text-[12px] text-[var(--color-ink-3)]">Every winning bet improves your position. Your P&L resets at the start of each period.</p>
+      {/* User's Live Position Banner */}
+      {currentUser && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[var(--color-brand-500)]/30 bg-[var(--color-brand-500)]/5 p-4 shadow-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-brand-500)]/20 text-sm font-black text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/40">
+              #{currentUser.rank}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-white">Your Rank: #{currentUser.rank}</span>
+                <span className="mono rounded bg-[var(--color-brand-500)]/20 px-2 py-0.5 text-[10px] font-bold text-[var(--color-brand-500)]">
+                  Active Bettor
+                </span>
+              </div>
+              <p className="text-[11px] text-[var(--color-ink-3)]">
+                Wallet: <code className="mono text-white">{address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Connected"}</code> · PnL:{" "}
+                <strong className={currentUser.pnl >= 0 ? "text-[var(--color-brand-500)]" : "text-[var(--color-live)]"}>
+                  {currentUser.pnl >= 0 ? "+" : ""}${currentUser.pnl.toLocaleString()} USDC
+                </strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-right text-[11px] hidden sm:block">
+              <p className="text-[var(--color-ink-3)]">Wagered Volume</p>
+              <p className="mono font-bold text-white">${currentUser.volume.toLocaleString()}</p>
+            </div>
+            <Link
+              href="/sportsbook"
+              className="rounded-lg bg-[var(--color-brand-500)] px-4 py-2 text-[12px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] transition-all"
+            >
+              Climb Rank →
+            </Link>
+          </div>
         </div>
-        <Link href="/sportsbook" className="shrink-0 rounded-md bg-[var(--color-brand-500)] px-4 py-2 text-[13px] font-bold text-[var(--color-bg-0)]">
-          Bet now
-        </Link>
+      )}
+
+      {/* Category & Period Controls */}
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        {/* Category Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1.5 scrollbar-none">
+          {[
+            { id: "sports", label: "⚽ Sports Volume" },
+            { id: "casino", label: "🎲 Casino High-Rollers" },
+            { id: "roi", label: "📈 Top ROI %" },
+            { id: "streaks", label: "🔥 Win Streaks" },
+            { id: "referrals", label: "🤝 Top Referrers" },
+          ].map((c) => (
+            <button
+              key={c.id}
+              onClick={() => setCategory(c.id as any)}
+              className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-4 text-[12px] font-bold transition-all ${
+                category === c.id
+                  ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)] shadow-md"
+                  : "text-[var(--color-ink-2)] hover:bg-[var(--color-bg-2)] hover:text-white"
+              }`}
+            >
+              <span>{c.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Period Selector */}
+        <div className="flex items-center gap-1 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1.5">
+          {[
+            { id: "weekly", label: "This Week" },
+            { id: "monthly", label: "This Month" },
+            { id: "alltime", label: "All Time" },
+          ].map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setPeriod(p.id as any)}
+              className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all ${
+                period === p.id
+                  ? "bg-[var(--color-bg-3)] text-white"
+                  : "text-[var(--color-ink-3)] hover:text-white"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Top 3 Winner Podium */}
+      {!loading && podiumDisplay.length > 0 && (
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 md:gap-4">
+          {podiumDisplay.map((p, idx) => {
+            const podiumOrder = [2, 1, 3];
+            const actualRank = podiumOrder[idx];
+            const isFirst = actualRank === 1;
+
+            return (
+              <div
+                key={p.userId}
+                className={`relative flex flex-col items-center justify-end rounded-2xl border p-4 text-center transition-all ${
+                  isFirst
+                    ? "border-[var(--color-brand-500)]/50 bg-gradient-to-b from-[var(--color-brand-500)]/15 to-[var(--color-bg-2)] shadow-2xl scale-105"
+                    : "border-[var(--color-line-1)] bg-[var(--color-bg-2)]"
+                }`}
+              >
+                <div className="absolute -top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg-1)] text-2xl shadow-lg ring-1 ring-white/10">
+                  {RANK_MEDAL[actualRank]}
+                </div>
+
+                <div
+                  className="mt-3 flex h-14 w-14 items-center justify-center rounded-full text-xl font-black text-white shadow-lg ring-2 ring-white/20"
+                  style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}99)` }}
+                >
+                  {p.handle[0]}
+                </div>
+
+                <div className="mt-2.5 min-w-0">
+                  <div className="flex items-center justify-center gap-1">
+                    <p className="truncate text-[13px] font-bold text-white max-w-[120px]">{p.handle}</p>
+                    {p.verified && <BadgeCheck className="h-3.5 w-3.5 text-[var(--color-info)] shrink-0" />}
+                  </div>
+                  <p className="mono text-[14px] font-black text-[var(--color-brand-500)] mt-0.5">
+                    {p.pnl >= 0 ? "+" : ""}${p.pnl.toLocaleString()}
+                  </p>
+                  <p className="text-[11px] text-[var(--color-ink-3)]">{p.winRate}% Win Rate</p>
+                </div>
+
+                <div className="mt-3 w-full rounded-lg bg-[var(--color-bg-1)] py-1.5 text-[10px] font-bold text-[var(--color-warn)]">
+                  #{actualRank} · ${p.volume.toLocaleString()} volume
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Main Leaderboard Directory Table */}
+      <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] shadow-xl">
+        {/* Grid template itself must change per breakpoint, not just hide
+            cell content — a hidden cell still reserved its 90px/110px
+            column track under the old fixed 6-column template, cramming
+            the flexible Bettor/Wallet column into ~70px on a 375px phone. */}
+        <div className="grid grid-cols-[40px_1fr_85px_95px] items-center gap-2 border-b border-[var(--color-line-1)] bg-[var(--color-bg-1)] px-3 py-3 text-[10px] uppercase font-bold tracking-wider text-[var(--color-ink-3)] sm:grid-cols-[50px_1fr_90px_90px_110px_110px] sm:gap-0 sm:px-4">
+          <span>Rank</span>
+          <span>Bettor / Wallet</span>
+          <span className="hidden sm:block text-right">Bets</span>
+          <span className="hidden sm:block text-right">Win Rate</span>
+          <span className="text-right">Volume</span>
+          <span className="text-right">Net PnL</span>
+        </div>
+
+        {loading ? (
+          <div className="h-48 animate-pulse bg-[var(--color-bg-1)]/50" />
+        ) : items.length === 0 ? (
+          <div className="p-12 text-center text-[13px] text-[var(--color-ink-3)]">
+            <TrophyIcon className="mx-auto h-8 w-8 text-[var(--color-ink-4)] mb-2" />
+            No recorded bets yet in this category for {period}. Be the first on the Leaderboard by placing a bet!
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--color-line-1)]">
+            {items.map((p) => (
+              <div
+                key={p.userId}
+                className="grid grid-cols-[40px_1fr_85px_95px] items-center gap-2 px-3 py-3.5 text-[13px] transition-colors hover:bg-[var(--color-bg-1)] sm:grid-cols-[50px_1fr_90px_90px_110px_110px] sm:gap-0 sm:px-4"
+              >
+                <span className="mono font-black text-white">
+                  {RANK_MEDAL[p.rank] ?? `#${p.rank}`}
+                </span>
+
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+                    style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}99)` }}
+                  >
+                    {p.handle[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate font-bold text-white">{p.handle}</span>
+                      {p.verified && <BadgeCheck className="h-3.5 w-3.5 text-[var(--color-info)] shrink-0" />}
+                    </div>
+                    <span className="mono text-[10px] text-[var(--color-ink-3)]">{p.address}</span>
+                  </div>
+                </div>
+
+                <span className="mono hidden sm:block text-right text-[var(--color-ink-2)]">{p.bets}</span>
+                <span className="mono hidden sm:block text-right font-semibold text-white">{p.winRate}%</span>
+                <span className="mono text-right text-[var(--color-ink-2)]">${p.volume.toLocaleString()}</span>
+                <span className={`mono text-right font-black ${p.pnl >= 0 ? "text-[var(--color-brand-500)]" : "text-[var(--color-live)]"}`}>
+                  {p.pnl >= 0 ? "+" : ""}${p.pnl.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

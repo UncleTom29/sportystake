@@ -46,9 +46,9 @@ export function useMarket(opts: {
 
   const market = useMemo(() => {
     if (!query.data) return undefined;
-    const [pool, closeTime, status, winningOutcome, totalBetAmount, totalPayoutRequired] = query.data;
+    const [, status, winningOutcome, totalBetAmount, totalPayoutRequired, closesAt] = query.data;
     return {
-      marketId, pool, closeTime, status, winningOutcome, totalBetAmount, totalPayoutRequired,
+      marketId, closesAt, status, winningOutcome, totalBetAmount, totalPayoutRequired,
       isOpen: status === 0, isLive: status === 1, isSettled: status === 2,
     };
   }, [query.data, marketId]);
@@ -73,9 +73,9 @@ export function useBet(betId: `0x${string}` | undefined, network?: NetworkName) 
   });
   const bet = useMemo(() => {
     if (!query.data) return undefined;
-    const [bettor, mid, outcome, amount, oddsX1000, payout, status, placedAt] = query.data;
+    const [bettor, mid, outcome, amount, potentialPayout, status, oddsX1000, placedAt] = query.data;
     return {
-      bettor, marketId: mid, outcome, amount, oddsX1000, payout, status, placedAt,
+      bettor, marketId: mid, outcome, amount, potentialPayout, status, oddsX1000, placedAt,
       odds: oddsFromX1000(oddsX1000),
     };
   }, [query.data]);

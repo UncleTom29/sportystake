@@ -19,7 +19,7 @@ export class QuotaExhaustedError extends Error {
 
   constructor(priority: Priority, status: QuotaStatus) {
     super(
-      `API-Football quota exhausted (priority=${priority}, mode=${status.mode}, remaining=${status.remaining})`,
+      `Odds API quota exhausted (priority=${priority}, mode=${status.mode}, remaining=${status.remaining})`,
     );
     this.name = 'QuotaExhaustedError';
     this.status = status;
@@ -27,42 +27,44 @@ export class QuotaExhaustedError extends Error {
   }
 }
 
-export const DAILY_QUOTA = 100;
+/** Odds-API.io free plan: 100 requests per hour. */
+export const HOURLY_QUOTA = 100;
 
 function modeFor(remaining: number): QuotaMode {
-  if (remaining < 5) return 'emergency';
+  // Emergency: reserve for live polling only (~6 critical req/hr).
+  if (remaining < 8) return 'emergency';
+  // Conservation: reserve for discovery + live; block odds (low priority).
   if (remaining < 15) return 'conservation';
   return 'normal';
 }
 
-function nextUtcMidnight(now = new Date()): Date {
-  const next = new Date(
+function nextUtcHour(now = new Date()): Date {
+  return new Date(
     Date.UTC(
       now.getUTCFullYear(),
       now.getUTCMonth(),
-      now.getUTCDate() + 1,
-      0,
-      0,
-      0,
-      0,
+      now.getUTCDate(),
+      now.getUTCHours() + 1,
+      0, 0, 0,
     ),
   );
-  return next;
 }
 
 /**
- * The single gateway for API-Football calls.
+ * Hourly quota gate for Odds-API.io calls.
  *
  * Call sites MUST:
- *   1. await canMakeRequest(priority); throw if false.
+ *   1. canMakeRequest(priority); skip/throw if false.
  *   2. recordRequest(remainingFromHeader) after every response.
  */
 export class QuotaBudgetManager {
-  private remaining = DAILY_QUOTA;
+  private remaining = HOURLY_QUOTA;
   private used = 0;
-  private resetAt: Date = nextUtcMidnight();
+  private resetAt: Date = nextUtcHour();
   private currentMode: QuotaMode = 'normal';
   private resetTimer: NodeJS.Timeout | null = null;
+  private reconcileInFlight: Promise<void> | null = null;
+  private recoveryProbeAvailable = false;
 
   constructor(
     private readonly redis: Redis,
@@ -78,12 +80,17 @@ export class QuotaBudgetManager {
         this.remaining = persisted.remaining;
         this.used = persisted.used;
         this.resetAt = resetAt;
+        // A previous process may have raced quota header updates and persisted
+        // an exhausted snapshot even though the upstream window still has room.
+        // Allow exactly one probe request after restart so fresh headers can
+        // reconcile the local counters instead of deadlocking at remaining=0.
+        this.recoveryProbeAvailable = persisted.remaining <= 0;
       } else {
         await this.performReset('stale-snapshot');
       }
     }
     this.currentMode = modeFor(this.remaining);
-    this.scheduleDailyReset();
+    this.scheduleHourlyReset();
     this.logger.info(
       {
         used: this.used,
@@ -104,35 +111,44 @@ export class QuotaBudgetManager {
 
   /**
    * Priority gate:
-   *   remaining <= 0           → no requests
-   *   remaining < 5            → critical only
-   *   remaining < 15           → no low priority
-   *   otherwise                → allow
+   *   remaining <= 0   → no requests
+   *   remaining < 8    → critical only  (live polling)
+   *   remaining < 15   → high + critical (discovery + live; no odds)
+   *   otherwise        → allow all
    */
   canMakeRequest(priority: Priority): boolean {
+    this.reconcileIfWindowExpired();
+    if (this.remaining <= 0 && this.recoveryProbeAvailable) {
+      this.logger.warn(
+        { priority, resetAt: this.resetAt.toISOString() },
+        'quota:allowing-recovery-probe',
+      );
+      return true;
+    }
     if (this.remaining <= 0) return false;
     if (this.remaining < 5) return priority === 'critical';
-    if (this.remaining < 15) return priority !== 'low';
+    if (this.remaining < 10) return priority !== 'low';
     return true;
   }
 
   /**
-   * Update counters from the upstream `x-ratelimit-requests-remaining` header.
+   * Update counters from the upstream x-ratelimit-remaining header.
    * If the header is missing, decrement locally.
    */
   async recordRequest(remainingFromHeader?: number | string | null): Promise<QuotaStatus> {
+    this.reconcileIfWindowExpired();
+    this.recoveryProbeAvailable = false;
     const parsed =
       remainingFromHeader === undefined || remainingFromHeader === null
         ? Number.NaN
         : Number(remainingFromHeader);
 
     if (Number.isFinite(parsed)) {
-      // Trust the upstream header. Never let local view go above DAILY_QUOTA.
-      this.remaining = Math.max(0, Math.min(DAILY_QUOTA, Math.trunc(parsed)));
-      this.used = Math.max(0, DAILY_QUOTA - this.remaining);
+      this.remaining = Math.max(0, Math.min(HOURLY_QUOTA, Math.trunc(parsed)));
+      this.used = Math.max(0, HOURLY_QUOTA - this.remaining);
     } else {
       this.remaining = Math.max(0, this.remaining - 1);
-      this.used = Math.min(DAILY_QUOTA, this.used + 1);
+      this.used = Math.min(HOURLY_QUOTA, this.used + 1);
     }
 
     const previousMode = this.currentMode;
@@ -154,6 +170,7 @@ export class QuotaBudgetManager {
   }
 
   getStatus(): QuotaStatus {
+    this.reconcileIfWindowExpired();
     return {
       used: this.used,
       remaining: this.remaining,
@@ -162,29 +179,60 @@ export class QuotaBudgetManager {
     };
   }
 
-  /**
-   * Schedule the next reset at 00:00 UTC. Re-arms itself after firing.
-   */
-  private scheduleDailyReset(): void {
+  private scheduleHourlyReset(): void {
     if (this.resetTimer) clearTimeout(this.resetTimer);
     const now = Date.now();
     const delay = Math.max(1_000, this.resetAt.getTime() - now);
     this.resetTimer = setTimeout(() => {
-      void this.performReset('scheduled').then(() => this.scheduleDailyReset());
+      void this.performReset('scheduled').then(() => this.scheduleHourlyReset());
     }, delay);
-    // Allow the process to exit even if this timer is pending.
     if (typeof this.resetTimer.unref === 'function') this.resetTimer.unref();
   }
 
-  /**
-   * Manually triggerable (also called by the scheduler at 00:00 UTC).
-   */
+  private reconcileIfWindowExpired(): void {
+    if (Date.now() < this.resetAt.getTime()) return;
+
+    const previousMode = this.currentMode;
+    this.remaining = HOURLY_QUOTA;
+    this.used = 0;
+    this.resetAt = nextUtcHour();
+    this.currentMode = 'normal';
+    this.scheduleHourlyReset();
+
+    if (!this.reconcileInFlight) {
+      this.reconcileInFlight = (async () => {
+        try {
+          await this.tracker.save({
+            used: this.used,
+            remaining: this.remaining,
+            resetAt: this.resetAt.toISOString(),
+          });
+          if (previousMode !== 'normal') {
+            await this.broadcastAlert(previousMode, 'normal');
+          }
+          this.logger.info(
+            {
+              used: this.used,
+              remaining: this.remaining,
+              mode: this.currentMode,
+              resetAt: this.resetAt.toISOString(),
+            },
+            'quota:reconciled-expired-window',
+          );
+        } finally {
+          this.reconcileInFlight = null;
+        }
+      })();
+    }
+  }
+
   async performReset(reason: string): Promise<void> {
     const previousMode = this.currentMode;
-    this.remaining = DAILY_QUOTA;
+    this.remaining = HOURLY_QUOTA;
     this.used = 0;
-    this.resetAt = nextUtcMidnight();
+    this.resetAt = nextUtcHour();
     this.currentMode = 'normal';
+    this.recoveryProbeAvailable = false;
     await this.tracker.save({
       used: this.used,
       remaining: this.remaining,

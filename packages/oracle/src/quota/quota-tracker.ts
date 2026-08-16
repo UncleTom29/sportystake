@@ -8,11 +8,11 @@ export interface QuotaSnapshot {
   resetAt: string;
 }
 
-const DAY_SECONDS = 60 * 60 * 24;
+const HOUR_SECONDS = 60 * 60;
 
 /**
- * Persists quota counters to Redis so multiple oracle instances / restarts
- * stay roughly in sync within a 24h window.
+ * Persists hourly quota counters to Redis so multiple oracle instances /
+ * restarts stay roughly in sync within the current hour window.
  */
 export class QuotaTracker {
   constructor(
@@ -37,9 +37,8 @@ export class QuotaTracker {
         CacheKeys.quotaStatus(),
         JSON.stringify(snapshot),
         'EX',
-        DAY_SECONDS,
+        HOUR_SECONDS,
       );
-      // Short-lived mirror used by health/status consumers.
       await this.redis.set(
         `${CacheKeys.quotaStatus()}:hot`,
         JSON.stringify(snapshot),

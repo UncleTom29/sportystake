@@ -5,13 +5,15 @@
 export type Address = `0x${string}`;
 export type Hex = `0x${string}`;
 
-export type BetStatus = "PENDING" | "WON" | "LOST" | "CANCELLED" | "CASHED";
+export type BetStatus = "PENDING" | "WON" | "LOST" | "CANCELLED" | "CLAIMED";
 export type MarketStatus = "OPEN" | "SUSPENDED" | "LIVE" | "SETTLED" | "CANCELLED";
-export type LPStatus = "ACTIVE" | "WITHDRAWAL_REQUESTED" | "SETTLED";
+export type LPStatus = "ACTIVE" | "WITHDRAW_REQUESTED" | "WITHDRAWN";
 export type QuotaMode = "normal" | "conservation" | "emergency";
 
 export type MarketType =
   | "1X2"
+  | "binary"
+  | "multi_outcome"
   | "over_under_15"
   | "over_under_25"
   | "over_under_35"
@@ -19,7 +21,9 @@ export type MarketType =
   | "double_chance"
   | "asian_handicap"
   | "next_team_to_score"
-  | "half_time_result";
+  | "half_time_result"
+  | "draw_no_bet"
+  | (string & {});
 
 export interface OddsSelection {
   outcome: number;
@@ -34,10 +38,18 @@ export interface OddsBundle {
   selections: OddsSelection[];
 }
 
+export interface BookmakerOddsEntry {
+  bookmaker: string;
+  marketType: MarketType;
+  selections: OddsSelection[];
+  capturedAt: string; // ISO
+}
+
 export interface MarketDTO {
   id: string;
   externalId: string;
   fixtureId: number;
+  sport: string;
   leagueId: number;
   leagueName: string;
   leagueLogo?: string;
@@ -50,19 +62,32 @@ export interface MarketDTO {
   awayTeamId: number;
   awayTeamLogo?: string;
   startTime: string; // ISO
+  closesAt: string; // ISO — the on-chain BettingCore.Market.closesAt this market would register with
   status: MarketStatus;
   liveMinute?: number;
   homeScore?: number;
   awayScore?: number;
   winningOutcome?: number;
-  poolAddress?: Address;
-  poolTvl: string; // USDC decimal string
-  poolLocked: string;
-  poolBetVolume: string;
   isFeatured: boolean;
+  metadata?: Record<string, unknown>;
   odds: OddsBundle[];
+  bookmakerOdds: BookmakerOddsEntry[];
   marketsCount: number;
   events?: MatchEvent[];
+  /**
+   * Present only when this market isn't registered on BettingCore yet.
+   * Forward it unchanged into placeBetWithAttestation/
+   * placeParlayBetWithAttestations — the contract verifies the signature
+   * itself, the client never needs to interpret it.
+   */
+  attestation?: MarketAttestationDTO;
+}
+
+export interface MarketAttestationDTO {
+  marketId: string;
+  closesAt: number;
+  validUntil: number;
+  signature: string;
 }
 
 export interface MatchEvent {
@@ -94,6 +119,25 @@ export interface BetDTO {
   createdAt: string;
   settledAt?: string;
   copyOfBetId?: string;
+  /** Present only when this row represents a parlay (parlayId is set) —
+   *  one entry per leg, so bet history can show the individual matches
+   *  played rather than just a flattened "N-Leg Parlay" summary. */
+  legs?: {
+    marketId: string;
+    marketLabel: string;
+    /** Undefined for legs placed before this was captured (see
+     *  prisma/schema.prisma's ParlayLeg.marketType) — never guessed. */
+    marketType?: string;
+    selectionLabel: string;
+    oddsX1000: number;
+    result: "PENDING" | "WON" | "LOST" | "VOID";
+    matchTime: string;
+    homeTeam: string;
+    awayTeam: string;
+    homeScore?: number;
+    awayScore?: number;
+    marketStatus: string;
+  }[];
 }
 
 export interface ParlayDTO {
@@ -107,45 +151,53 @@ export interface ParlayDTO {
   createdAt: string;
 }
 
+/** One user's position in the single, protocol-wide LiquidityPool. */
 export interface LPPositionDTO {
   id: string;
   userId: string;
   userAddress: Address;
-  marketId: string;
-  marketLabel: string;
   onchainShares: string;
   depositedUsdc: string;
   currentValueUsdc: string;
   status: LPStatus;
   txHash?: string;
   createdAt: string;
-  settledAt?: string;
-  finalUsdc?: string;
-  pnl?: string;
+  updatedAt: string;
 }
 
+/** Aggregate stats for the single, protocol-wide LiquidityPool. */
 export interface PoolStats {
-  marketId: string;
-  poolAddress?: Address;
-  tvl: string;
+  tvl: string; // real LP-deposited USDC (totalLiquidity)
   totalShares: string;
-  locked: string;
-  utilization: number; // 0..1
-  betVolume: string;
+  locked: string; // lockedForPayouts, across every open market
+  virtualLiquidity: string; // protocol-funded capacity credit
+  effectiveCapacity: string; // tvl + virtualLiquidity
+  utilization: number; // 0..1, locked / effectiveCapacity
+  shareValue: string;
   lpCount: number;
-  exposureByOutcome: { outcome: number; label: string; risk: string }[];
   estimatedApy: number; // percent
-  health: "safe" | "filling" | "full" | "locked";
+}
+
+/** Per-market slice of the shared pool's exposure — used by the risk dashboard. */
+export interface MarketExposureDTO {
+  marketId: string;
+  label: string;
   closesAt: string;
+  totalBetAmount: string;
+  maxLiability: string;
+  coverageRatio: number; // maxLiability / effectiveCapacity
+  riskLevel: "safe" | "warning" | "critical";
 }
 
 export interface UserDTO {
   id: string;
   walletAddress: Address;
   username?: string;
+  avatar?: string;
   avatarUrl?: string;
   referralCode: string;
   referredBy?: string;
+  referredById?: string;
   isPublic: boolean;
   isBanned: boolean;
   roles: ("USER" | "ADMIN" | "OPERATOR")[];

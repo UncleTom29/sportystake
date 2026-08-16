@@ -8,14 +8,16 @@ export function LogoMark(props: Props) {
     <svg viewBox="0 0 40 40" fill="none" {...props}>
       <defs>
         <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40">
-          <stop offset="0" stopColor="#00E701" />
-          <stop offset="1" stopColor="#00A302" />
+          <stop offset="0%" stopColor="#00E701" />
+          <stop offset="100%" stopColor="#00B301" />
         </linearGradient>
       </defs>
-      <rect x="2" y="2" width="36" height="36" rx="10" fill="url(#logoGrad)" />
-      <path d="M13 24.5c0 2 2 3.5 5 3.5s5-1.4 5-3.2c0-4-9-3-9-7 0-1.6 1.8-2.8 4.4-2.8 2.4 0 4.1 1 4.6 2.6"
-        stroke="#0b141b" strokeWidth="2.4" strokeLinecap="round" fill="none" />
-      <circle cx="29" cy="13" r="2" fill="#0b141b" />
+      <rect x="2" y="2" width="36" height="36" rx="8" fill="url(#logoGrad)" />
+      {/* Athletic sharp diamond S mark */}
+      <path
+        d="M24 10H14L10 20L16 20L12 30H22L26 20L20 20L24 10Z"
+        fill="#0B141B"
+      />
     </svg>
   );
 }
@@ -121,10 +123,6 @@ export function TrendDown(props: Props) {
   return <svg {...base} {...props}><path d="M3 7l6 6 4-4 8 9" /><path d="M14 18h7v-7" /></svg>;
 }
 
-export function SparkleIcon(props: Props) {
-  return <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M12 2l1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5z" /><path d="M19 16l.7 2.3L22 19l-2.3.7L19 22l-.7-2.3L16 19l2.3-.7z" /></svg>;
-}
-
 export function UsdtIcon(props: Props) {
   return (
     <svg viewBox="0 0 24 24" {...props}>
@@ -153,6 +151,26 @@ export function EthIcon(props: Props) {
       <path d="M12 20v-3.5L7 13l5 7z" fill="#fff" />
       <path d="M12 15.5l5-3.3-5-2.2v5.5z" fill="#fff" fillOpacity=".2" />
       <path d="M7 12.2l5 3.3V10z" fill="#fff" fillOpacity=".6" />
+    </svg>
+  );
+}
+
+export function FilterIcon(props: Props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 6h16" />
+      <path d="M7 12h10" />
+      <path d="M10 18h4" />
+    </svg>
+  );
+}
+
+export function DotsHorizontalIcon(props: Props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
     </svg>
   );
 }

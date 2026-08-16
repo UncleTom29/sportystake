@@ -1,0 +1,12 @@
+{
+  "chainId": 31337,
+  "network": "hardhat",
+  "deployedAt": "2026-07-23T09:07:56.720Z",
+  "addresses": {
+    "usdc": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "liquidityPool": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
+    "bettingCore": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+    "casinoHouse": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+    "crashGame": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318"
+  }
+}

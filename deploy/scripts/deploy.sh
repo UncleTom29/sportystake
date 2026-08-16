@@ -61,7 +61,11 @@ pnpm build
 # honors NODE_ENV and silently omits devDependencies — including the
 # @types/* packages `tsc` needs, which fails the build with confusing
 # "could not find declaration file" errors instead of a clear one.
-(cd packages/oracle && npm ci --include=dev && npm run build)
+# The explicit rm -rf is belt-and-suspenders: an npm ci run under the
+# wrong NODE_ENV once before can leave a partial node_modules that a
+# later `npm ci` doesn't always fully reconcile on its own — observed
+# firsthand on this exact box.
+(cd packages/oracle && rm -rf node_modules && npm ci --include=dev && npm run build)
 
 systemctl restart sportystake-web sportystake-oracle sportystake-sync-worker sportystake-settlement-worker sportystake-crash-worker
 

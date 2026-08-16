@@ -25,6 +25,16 @@ jobs:
           node-version: 20
       - run: pnpm install --frozen-lockfile
       - run: npx prisma generate
+      - name: debug prisma client output
+        run: |
+          echo "--- prisma/schema.prisma enum count ---"
+          grep -c "^enum " prisma/schema.prisma
+          echo "--- generated client files ---"
+          find node_modules/.prisma/client node_modules/@prisma/client -maxdepth 1 -type f 2>&1
+          echo "--- grep for CasinoStatus in generated output ---"
+          grep -rl "CasinoStatus" node_modules/.prisma/client node_modules/@prisma/client 2>&1 || echo "NOT FOUND ANYWHERE"
+          echo "--- @prisma/client package.json exports field ---"
+          cat node_modules/@prisma/client/package.json | node -e "const d=JSON.parse(require('fs').readFileSync(0,'utf8')); console.log(JSON.stringify(d.exports, null, 2))"
       - run: pnpm typecheck
       # Pre-existing lint debt (mostly no-explicit-any) predates this
       # pipeline — surface it without blocking deploys, same treatment as

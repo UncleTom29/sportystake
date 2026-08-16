@@ -55,8 +55,13 @@ pnpm build
 
 # packages/oracle has its own build step (tsc) and its own deps — it uses
 # npm (package-lock.json), not pnpm, matching the root package.json's
-# `npm --prefix packages/oracle` scripts.
-(cd packages/oracle && npm ci && npm run build)
+# `npm --prefix packages/oracle` scripts. --include=dev is required here:
+# /etc/sportystake/.env (sourced above) sets NODE_ENV=production, and
+# unlike the root `pnpm install --prod=false` above, a plain `npm ci`
+# honors NODE_ENV and silently omits devDependencies — including the
+# @types/* packages `tsc` needs, which fails the build with confusing
+# "could not find declaration file" errors instead of a clear one.
+(cd packages/oracle && npm ci --include=dev && npm run build)
 
 systemctl restart sportystake-web sportystake-oracle sportystake-sync-worker sportystake-settlement-worker sportystake-crash-worker
 

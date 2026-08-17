@@ -56,6 +56,30 @@ export default function MyBetsPage() {
     }
   };
 
+  /** For bets on a market the operator cancelled (see cancelMarket/
+   *  claimRefund in BettingCore.sol) — stake back, not a payout. Only
+   *  reachable for single bets; parlays use a separate claimParlayRefund
+   *  path that doesn't have a UI yet (see PRODUCTION_TODO.md). */
+  const handleRefund = async (betId: string) => {
+    setClaimingId(betId);
+    try {
+      const receipt = await privyContractWrite({
+        contractAddress: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}`,
+        abiFunctionSignature: "claimRefund(bytes32)",
+        abiParameters: [betId],
+      });
+      const res = await Bets.refund(betId, receipt.transactionHash);
+      const refundedAmount = parseFloat(res.refundUsdc || "0");
+      const formattedRefund = refundedAmount > 0 ? refundedAmount.toFixed(2) : "0.00";
+      setBets((cur) => cur.map((b) => b.id === betId ? { ...res.bet, status: "CLAIMED" } : b));
+      pushToast({ kind: "success", title: "Refund claimed", body: `$${formattedRefund} USDC sent to wallet` });
+    } catch (e) {
+      pushToast({ kind: "error", title: "Refund failed", body: (e as Error).message });
+    } finally {
+      setClaimingId(null);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -230,6 +254,16 @@ export default function MyBetsPage() {
                       >
                         <ZapIcon className="h-3.5 w-3.5" />
                         {claimingId === bet.id ? "Claiming…" : `Claim $${parseFloat(bet.potentialPayout).toFixed(2)}`}
+                      </button>
+                    )}
+                    {bet.status === "CANCELLED" && !bet.isCasino && !bet.parlayId && (
+                      <button
+                        onClick={() => void handleRefund(bet.id)}
+                        disabled={claimingId === bet.id}
+                        className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-3 text-[12px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <ZapIcon className="h-3.5 w-3.5" />
+                        {claimingId === bet.id ? "Refunding…" : `Claim Refund $${parseFloat(bet.amount).toFixed(2)}`}
                       </button>
                     )}
                     {bet.parlayId && (

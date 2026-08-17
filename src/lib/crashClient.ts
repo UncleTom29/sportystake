@@ -67,3 +67,54 @@ export async function getPendingCrashPayout(address: Address): Promise<bigint> {
     args: [address],
   });
 }
+
+export interface OnchainCrashEntry {
+  amount: bigint;
+  autoCashoutX100: number;
+  cashedOutAtX100: number | null;
+  resolved: boolean;
+}
+
+/**
+ * Reads `address`'s entry (if any) directly from CrashGame for `roundId` —
+ * the contract is the only source of truth for "have I already joined this
+ * round," since a page refresh (or a joinRound tx that confirmed on-chain
+ * but whose follow-up server recording call failed) both leave no trace in
+ * local React state. Batched into one round-trip via the public client's
+ * multicall setting; `getRoundPlayerCount` is typically small (capped at
+ * MAX_PLAYERS_PER_ROUND = 100 on-chain), so this stays cheap even in the
+ * worst case.
+ */
+export async function getMyCrashEntry(roundId: number, address: Address): Promise<OnchainCrashEntry | null> {
+  const client = getPublicClient();
+  const count = await client.readContract({
+    address: crashGameAddress(),
+    abi: crashGameAbi,
+    functionName: "getRoundPlayerCount",
+    args: [BigInt(roundId)],
+  });
+  if (count === 0n) return null;
+
+  const entries = await Promise.all(
+    Array.from({ length: Number(count) }, (_, i) =>
+      client.readContract({
+        address: crashGameAddress(),
+        abi: crashGameAbi,
+        functionName: "roundPlayers",
+        args: [BigInt(roundId), BigInt(i)],
+      }),
+    ),
+  );
+
+  const mine = entries.find((e) => (e[0] as string).toLowerCase() === address.toLowerCase());
+  if (!mine) return null;
+  const [, amount, autoCashoutX100, cashedOutAtX100, resolved] = mine as unknown as [
+    Address, bigint, bigint, bigint, boolean,
+  ];
+  return {
+    amount,
+    autoCashoutX100: Number(autoCashoutX100),
+    cashedOutAtX100: cashedOutAtX100 > 0n ? Number(cashedOutAtX100) : null,
+    resolved,
+  };
+}

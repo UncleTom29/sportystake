@@ -7,7 +7,7 @@ import { useWallet } from "@/lib/walletStore";
 import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { Casino } from "@/lib/api-client";
 import type { OnchainCrashRound } from "@/lib/api-client";
-import { joinCrashRound, cashOutCrashRound, claimCrashPayout, getPendingCrashPayout } from "@/lib/crashClient";
+import { joinCrashRound, cashOutCrashRound, claimCrashPayout, getPendingCrashPayout, getMyCrashEntry } from "@/lib/crashClient";
 import { formatUsdc } from "../../../../packages/sdk/src/utils";
 
 type Phase = "waiting" | "running" | "crashed";
@@ -222,6 +222,36 @@ export default function AviatorPage() {
     }
   }, [round, myBet]);
 
+  // `myBet` only ever lives in local React state, set after a join
+  // completes — so it's blank on every fresh page load, and also stays
+  // blank if joinRound confirmed on-chain but the follow-up
+  // Casino.crashJoin() recording call then failed (network hiccup, etc.).
+  // Either way the UI would otherwise show "no bet yet" for a round the
+  // wallet has already joined, letting the user submit a second join that
+  // CrashGame correctly (but confusingly) rejects with AlreadyJoined().
+  // The contract is the real source of truth here, so check it directly
+  // whenever the active round changes.
+  useEffect(() => {
+    if (!isAuthenticated || !address || !round) return;
+    let cancelled = false;
+    getMyCrashEntry(round.id, address)
+      .then((entry) => {
+        if (cancelled || !entry) return;
+        setMyBet((prev) =>
+          prev && prev.roundId === round.id
+            ? prev
+            : {
+                roundId: round.id,
+                amountUsdc: Number(formatUsdc(entry.amount, 6)),
+                autoCashoutX100: entry.autoCashoutX100,
+                cashedOutAtX100: entry.cashedOutAtX100,
+              },
+        );
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isAuthenticated, address, round?.id]);
+
   // Re-check the on-chain pending payout whenever a round just resolved (a
   // win credits `pendingPayout` at that point) or on sign-in.
   useEffect(() => {
@@ -284,19 +314,49 @@ export default function AviatorPage() {
       pushToast({ kind: "warn", title: "Round closing — wait for the next round" });
       return;
     }
+    if (myBet && myBet.roundId === round.id) {
+      pushToast({ kind: "warn", title: "You've already placed a bet this round" });
+      return;
+    }
     const amt = parseFloat(betAmount);
     if (!amt || amt <= 0) { pushToast({ kind: "warn", title: "Enter a valid bet amount" }); return; }
 
     setBusy("betting");
     try {
       const roundId = round.id;
+      // Belt-and-suspenders against the on-chain-succeeded-but-not-yet-
+      // rehydrated-locally window (the effect above polls, it isn't
+      // instant) — re-check the contract directly right before signing.
+      if (address) {
+        const existing = await getMyCrashEntry(roundId, address).catch(() => null);
+        if (existing) {
+          setMyBet({
+            roundId,
+            amountUsdc: Number(formatUsdc(existing.amount, 6)),
+            autoCashoutX100: existing.autoCashoutX100,
+            cashedOutAtX100: existing.cashedOutAtX100,
+          });
+          pushToast({ kind: "warn", title: "You've already placed a bet this round" });
+          setBusy("idle");
+          return;
+        }
+      }
       const clientSeed = crypto.randomUUID();
       const autoCashoutX100 = useAutoCashout && autoCashout ? Math.round(parseFloat(autoCashout) * 100) : 0;
 
       // Signs + confirms CrashGame.joinRound via the user's wallet, then
-      // records the verified on-chain receipt server-side.
+      // records the verified on-chain receipt server-side. These are two
+      // separate failure modes: if the tx itself never confirms, nothing
+      // happened on-chain and it's a genuine failure. If it confirms but
+      // the recording call afterward fails, the bet is real — the wallet
+      // is on-chain for this round regardless of what our own API says —
+      // so that path must not tell the user it failed.
       const { txHash } = await joinCrashRound({ roundId, amountUsdc: amt, autoCashoutX100 });
-      await Casino.crashJoin(txHash, clientSeed);
+      try {
+        await Casino.crashJoin(txHash, clientSeed);
+      } catch (recordErr) {
+        console.error("[crash] on-chain join confirmed but server recording failed:", recordErr);
+      }
 
       setMyBet({ roundId, amountUsdc: amt, autoCashoutX100, cashedOutAtX100: null });
       pushToast({

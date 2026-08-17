@@ -36,18 +36,23 @@ export default function MyBetsPage() {
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const pushToast = useNotifications((s) => s.pushToast);
 
-  const handleClaim = async (betId: string) => {
-    setClaimingId(betId);
+  /** Routes to claimWinnings/claimParlayWinnings depending on bet.parlayId —
+   *  a parlay's BetDTO.id is the on-chain parlayId, not a Bet.id, so calling
+   *  the single-bet function for one would revert BetNotFound. */
+  const handleClaim = async (bet: BetDTO) => {
+    setClaimingId(bet.id);
     try {
       const receipt = await privyContractWrite({
         contractAddress: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}`,
-        abiFunctionSignature: "claimWinnings(bytes32)",
-        abiParameters: [betId],
+        abiFunctionSignature: bet.parlayId ? "claimParlayWinnings(bytes32)" : "claimWinnings(bytes32)",
+        abiParameters: [bet.id],
       });
-      const res = await Bets.claim(betId, receipt.transactionHash);
-      const claimedAmount = parseFloat(res.payoutUsdc || "0") || parseFloat(res.bet?.potentialPayout || "0");
+      const res = bet.parlayId
+        ? await Bets.claimParlay(bet.id, receipt.transactionHash)
+        : await Bets.claim(bet.id, receipt.transactionHash);
+      const claimedAmount = parseFloat(res.payoutUsdc || "0") || parseFloat(bet.potentialPayout || "0");
       const formattedClaimed = claimedAmount > 0 ? claimedAmount.toFixed(2) : "0.00";
-      setBets((cur) => cur.map((b) => b.id === betId ? { ...res.bet, status: "CLAIMED", potentialPayout: String(claimedAmount || b.potentialPayout) } : b));
+      setBets((cur) => cur.map((b) => b.id === bet.id ? { ...b, status: "CLAIMED", potentialPayout: String(claimedAmount || b.potentialPayout) } : b));
       pushToast({ kind: "success", title: "Winnings claimed", body: `$${formattedClaimed} USDC sent to wallet` });
     } catch (e) {
       pushToast({ kind: "error", title: "Claim failed", body: (e as Error).message });
@@ -56,22 +61,23 @@ export default function MyBetsPage() {
     }
   };
 
-  /** For bets on a market the operator cancelled (see cancelMarket/
-   *  claimRefund in BettingCore.sol) — stake back, not a payout. Only
-   *  reachable for single bets; parlays use a separate claimParlayRefund
-   *  path that doesn't have a UI yet (see PRODUCTION_TODO.md). */
-  const handleRefund = async (betId: string) => {
-    setClaimingId(betId);
+  /** For bets/parlays on a market the operator cancelled (see cancelMarket/
+   *  claimRefund and claimParlayRefund in BettingCore.sol) — stake back,
+   *  not a payout. Same parlayId branching as handleClaim above. */
+  const handleRefund = async (bet: BetDTO) => {
+    setClaimingId(bet.id);
     try {
       const receipt = await privyContractWrite({
         contractAddress: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}`,
-        abiFunctionSignature: "claimRefund(bytes32)",
-        abiParameters: [betId],
+        abiFunctionSignature: bet.parlayId ? "claimParlayRefund(bytes32)" : "claimRefund(bytes32)",
+        abiParameters: [bet.id],
       });
-      const res = await Bets.refund(betId, receipt.transactionHash);
+      const res = bet.parlayId
+        ? await Bets.refundParlay(bet.id, receipt.transactionHash)
+        : await Bets.refund(bet.id, receipt.transactionHash);
       const refundedAmount = parseFloat(res.refundUsdc || "0");
       const formattedRefund = refundedAmount > 0 ? refundedAmount.toFixed(2) : "0.00";
-      setBets((cur) => cur.map((b) => b.id === betId ? { ...res.bet, status: "CLAIMED" } : b));
+      setBets((cur) => cur.map((b) => b.id === bet.id ? { ...b, status: "CLAIMED" } : b));
       pushToast({ kind: "success", title: "Refund claimed", body: `$${formattedRefund} USDC sent to wallet` });
     } catch (e) {
       pushToast({ kind: "error", title: "Refund failed", body: (e as Error).message });
@@ -248,7 +254,7 @@ export default function MyBetsPage() {
                   <div className="mt-3 flex items-center gap-2">
                     {bet.status === "WON" && !bet.isCasino && (
                       <button
-                        onClick={() => void handleClaim(bet.id)}
+                        onClick={() => void handleClaim(bet)}
                         disabled={claimingId === bet.id}
                         className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-3 text-[12px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
                       >
@@ -256,9 +262,26 @@ export default function MyBetsPage() {
                         {claimingId === bet.id ? "Claiming…" : `Claim $${parseFloat(bet.potentialPayout).toFixed(2)}`}
                       </button>
                     )}
-                    {bet.status === "CANCELLED" && !bet.isCasino && !bet.parlayId && (
+                    {bet.status === "CANCELLED" && !bet.isCasino && (
                       <button
-                        onClick={() => void handleRefund(bet.id)}
+                        onClick={() => void handleRefund(bet)}
+                        disabled={claimingId === bet.id}
+                        className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-3 text-[12px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <ZapIcon className="h-3.5 w-3.5" />
+                        {claimingId === bet.id ? "Refunding…" : `Claim Refund $${parseFloat(bet.amount).toFixed(2)}`}
+                      </button>
+                    )}
+                    {/* A parlay never itself flips to CANCELLED before the
+                        refund tx — claimParlayRefund only succeeds once one
+                        leg's market was cancelled and no other leg lost, so
+                        the parlay can still read PENDING right up until the
+                        claim. Surface it opportunistically off that leg
+                        signal; the contract call is the real authority and
+                        fails gracefully (toast) if not actually eligible. */}
+                    {bet.status === "PENDING" && bet.parlayId && bet.legs?.some((l) => l.marketStatus === "CANCELLED") && (
+                      <button
+                        onClick={() => void handleRefund(bet)}
                         disabled={claimingId === bet.id}
                         className="flex h-8 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-3 text-[12px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
                       >

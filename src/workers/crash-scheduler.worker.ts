@@ -36,7 +36,7 @@ import {
 import { redis } from "@/lib/server/redis";
 import { prisma } from "@/lib/server/db";
 import { serverEnv, clientEnv } from "@/lib/env";
-import { requireOperatorWallet, getOperatorAccount } from "@/lib/server/operatorWallet";
+import { requireOperatorWallet, getOperatorAccount, verifyOperatorRoles } from "@/lib/server/operatorWallet";
 import { logger } from "@/lib/server/logger";
 import { crashGameAbi } from "../../packages/sdk/src/contracts/abis/CrashGame";
 
@@ -112,6 +112,7 @@ async function bootstrap(): Promise<void> {
   }
 
   const wallet = requireOperatorWallet("crashGame");
+  await verifyOperatorRoles([{ name: "crashGame", address: crashGameAddress }]);
 
   const chain = {
     id: clientEnv.NEXT_PUBLIC_CHAIN_ID, name: "arc",

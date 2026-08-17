@@ -11,7 +11,7 @@
  * callers only see WalletClient, never the raw key.
  */
 
-import { createWalletClient, http, type WalletClient } from "viem";
+import { createPublicClient, createWalletClient, http, keccak256, toBytes, type WalletClient } from "viem";
 import { privateKeyToAccount, type Account } from "viem/accounts";
 import { clientEnv } from "@/lib/env";
 
@@ -110,4 +110,53 @@ export function requireOperatorWallet(contract: ContractName): WalletClient {
     throw new Error(`Operator wallet not configured for ${contract}`);
   }
   return wallet;
+}
+
+const OPERATOR_ROLE = keccak256(toBytes("OPERATOR_ROLE"));
+const HAS_ROLE_ABI = [
+  { type: "function", name: "hasRole", stateMutability: "view", inputs: [{ type: "bytes32" }, { type: "address" }], outputs: [{ type: "bool" }] },
+] as const;
+
+/**
+ * Verifies each configured operator wallet actually holds OPERATOR_ROLE on
+ * the contract it's meant to sign for — call once at each worker's
+ * startup. A misconfiguration here doesn't throw or block placing bets
+ * (users never touch this code path), it just makes every operator-only
+ * call (settleMarket, cancelMarket, voidBet, resolveRound, settleGame, …)
+ * revert AccessControlUnauthorizedAccount forever, silently, buried one
+ * log line per attempt per retry interval — exactly what happened to
+ * BettingCore's operator role for an unknown stretch before anyone
+ * noticed. This surfaces that class of misconfiguration loudly, once, at
+ * boot, instead of leaving it to be found by a stuck-bet report.
+ */
+export async function verifyOperatorRoles(
+  contracts: { name: ContractName; address: `0x${string}` }[],
+): Promise<void> {
+  const client = createPublicClient({ chain, transport: http(clientEnv.NEXT_PUBLIC_RPC_URL) });
+
+  for (const { name, address } of contracts) {
+    const account = getOperatorAccount(name);
+    if (!account) {
+      console.warn(`[operator] no key configured for ${name} — operator-only calls will no-op`);
+      continue;
+    }
+    try {
+      const has = await client.readContract({
+        address,
+        abi: HAS_ROLE_ABI,
+        functionName: "hasRole",
+        args: [OPERATOR_ROLE, account.address],
+      });
+      if (!has) {
+        console.error(
+          `[operator] CRITICAL: ${account.address} (configured for ${name}) does NOT hold OPERATOR_ROLE on ${address}. ` +
+          `Every operator-only call on this contract will revert until this is granted — see packages/contracts/scripts for a grantRole example.`,
+        );
+      } else {
+        console.log(`[operator] ${name}: OPERATOR_ROLE confirmed for ${account.address}`);
+      }
+    } catch (error) {
+      console.error(`[operator] role check failed for ${name} at ${address}`, error);
+    }
+  }
 }

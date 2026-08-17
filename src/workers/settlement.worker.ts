@@ -26,8 +26,8 @@
 // Env is loaded via Node's `--env-file=.env` flag (see package.json scripts).
 import { redisSubscriber } from "@/lib/server/redis";
 import { prisma } from "@/lib/server/db";
-import { serverEnv } from "@/lib/env";
-import { getOperatorAccount } from "@/lib/server/operatorWallet";
+import { serverEnv, clientEnv } from "@/lib/env";
+import { getOperatorAccount, verifyOperatorRoles } from "@/lib/server/operatorWallet";
 import { logger } from "@/lib/server/logger";
 import { planScoreBasedSettlement, executeMarketSettlement, resolveScoreBasedOutcome } from "@/lib/server/settlement";
 
@@ -52,6 +52,7 @@ async function bootstrap(): Promise<void> {
   }
 
   logger.info("[settlement] operator ready", { address: account.address });
+  await verifyOperatorRoles([{ name: "bettingCore", address: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}` }]);
 
   const sub = redisSubscriber();
   await sub.subscribe(CHANNEL_MARKET_FINISHED);

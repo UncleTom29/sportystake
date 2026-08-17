@@ -20,6 +20,9 @@ import { redisSubscriber } from "@/lib/server/redis";
 import { prisma } from "@/lib/server/db";
 import { MarketsRepo } from "@/lib/server/repos/markets.repo";
 import { syncPolymarketMarkets, settleResolvedPolymarketMarkets } from "@/lib/server/polymarket";
+import { cancelMarketOnchain } from "@/lib/server/settlement";
+import { verifyOperatorRoles } from "@/lib/server/operatorWallet";
+import { clientEnv } from "@/lib/env";
 
 const C_SYNC = "market:sync";
 const C_LIVE = "market:live";
@@ -294,16 +297,65 @@ async function pruneClosedSportsMarkets(): Promise<void> {
   }
 }
 
+// A market can end up with no possible path to a live/finished signal —
+// e.g. one sourced only from a provider the live-poller doesn't cover (see
+// XbetLiveJob: it watches exactly one provider's feed, keyed by that
+// provider's own fixture-id space, with no cross-provider id mapping) — and
+// just sit OPEN forever. First real case: a bettor's football bet stuck
+// PENDING for 3 real days because its market (betika-sourced) never once
+// received a live tick. Every football match is long over well within this
+// window regardless of provider/coverage/scraper-outage cause, so rather
+// than chase each individual gap, this is a provider-agnostic backstop:
+// cancel (refund) anything that's this stale, whatever broke.
+const STUCK_MARKET_CUTOFF_MS = 4 * 60 * 60 * 1000;
+const STUCK_MARKET_CHECK_MS = 30 * 60_000;
+
+async function recoverStuckSportsMarkets(): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - STUCK_MARKET_CUTOFF_MS);
+    const stuck = await prisma.market.findMany({
+      where: {
+        sport: { not: "prediction-markets" },
+        status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
+        closesAt: { lt: cutoff },
+      },
+      select: { id: true, homeTeam: true, awayTeam: true, closesAt: true, externalId: true },
+    });
+    if (stuck.length === 0) return;
+
+    console.warn(
+      `[oracle-sync] recovering ${stuck.length} market(s) stuck open >${STUCK_MARKET_CUTOFF_MS / 3_600_000}h past closesAt with no live/finished signal ever received`,
+      stuck.map((m) => `${m.homeTeam} vs ${m.awayTeam} (${m.externalId}, closed ${m.closesAt.toISOString()})`),
+    );
+
+    for (const market of stuck) {
+      try {
+        await cancelMarketOnchain(market.id);
+        console.log(`[oracle-sync] recovered stuck market ${market.id} (${market.homeTeam} vs ${market.awayTeam})`);
+      } catch (error) {
+        console.error(`[oracle-sync] failed to recover stuck market ${market.id}`, error);
+      }
+    }
+  } catch (error) {
+    console.error("[oracle-sync] recover stuck markets error", error);
+  }
+}
+
 async function bootstrap(): Promise<void> {
+  await verifyOperatorRoles([{ name: "bettingCore", address: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}` }]);
   await seedFromCache();
   await refreshPredictionMarkets();
   await pruneClosedSportsMarkets();
+  await recoverStuckSportsMarkets();
   setInterval(() => {
     void refreshPredictionMarkets();
   }, POLYMARKET_SYNC_MS);
   setInterval(() => {
     void pruneClosedSportsMarkets();
   }, PRUNE_CLOSED_MS);
+  setInterval(() => {
+    void recoverStuckSportsMarkets();
+  }, STUCK_MARKET_CHECK_MS);
 
   const sub = redisSubscriber();
   await sub.subscribe(C_SYNC, C_LIVE, C_FINISHED, C_ODDS);

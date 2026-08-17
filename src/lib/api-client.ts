@@ -129,6 +129,14 @@ export const Bets = {
     api.post<{ bet: BetDTO; payoutUsdc: string }>(`/api/bets/${id}/claim`, { txHash }),
   refund: (id: string, txHash: string) =>
     api.post<{ bet: BetDTO; refundUsdc: string }>(`/api/bets/${id}/refund`, { txHash }),
+  claimParlay: (parlayId: string, txHash: string) =>
+    api.post<{ parlay: { id: string; status: string; potentialPayout: string }; payoutUsdc: string }>(
+      `/api/bets/parlay/${parlayId}/claim`, { txHash },
+    ),
+  refundParlay: (parlayId: string, txHash: string) =>
+    api.post<{ parlay: { id: string; status: string }; refundUsdc: string }>(
+      `/api/bets/parlay/${parlayId}/refund`, { txHash },
+    ),
   myStats: () => api.get<UserStats>(`/api/bets/stats/me`),
   leaderboard: (period: "weekly" | "monthly" | "alltime" = "weekly") =>
     api.get<{ items: LeaderboardEntry[] }>(`/api/bets/stats/leaderboard?period=${period}`),

@@ -307,6 +307,15 @@ export async function executeMarketSettlement(
       const msg = String(err);
       if (msg.includes("MarketAlreadySettled")) {
         logger.info("[settlement] Market already settled on-chain, proceeding to DB reconciliation", { marketId });
+      } else if (msg.includes("MarketNotFound")) {
+        // Markets only get registered on-chain lazily, on their first real
+        // bet (see placeBetWithAttestation) — one with zero bets (common
+        // for prediction markets nobody wagered on) never exists on-chain
+        // at all, so there's nothing for settleMarket to act on. Not an
+        // error: proceed straight to Postgres reconciliation, which is a
+        // no-op here too since plan.winningBetIds/voidedBetIds are empty
+        // for a market nobody bet on.
+        logger.info("[settlement] Market was never registered on-chain (no bets placed) — DB-only settlement", { marketId });
       } else {
         logger.error("[settlement] settleMarket on-chain call failed", { marketId, error: msg });
         throw err;
@@ -330,8 +339,6 @@ export async function executeMarketSettlement(
       },
     );
   }
-
-  return { settleTxHash, voidTxHashes };
 
   return { settleTxHash, voidTxHashes };
 }

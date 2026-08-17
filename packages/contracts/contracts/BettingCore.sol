@@ -69,7 +69,15 @@ contract BettingCore is
     /// @notice Treasury address that receives the house edge.
     address public treasury;
 
-    /// @notice House edge in basis points (200 = 2%).
+    /// @notice House edge in basis points (200 = 2%), hard-capped at 1000
+    ///         (10%) by setHouseEdge. Used two ways: (1) a cut of the
+    ///         surplus when a market/parlay nets a profit for the pool
+    ///         (_finalizeMarketAccounting, reportParlayLoss), and (2) a
+    ///         reservation off the LiquidityPool's free capacity before any
+    ///         of it is offered to cover a winning payout's deficit
+    ///         (_computeMarketFillRatio, claimParlayWinnings) — one
+    ///         consistent margin regardless of which side of a bet the
+    ///         house is settling.
     uint256 public houseEdgeBps;
 
     /// @notice Lower bound on a single bet (5 USDC).
@@ -462,11 +470,11 @@ contract BettingCore is
         // Mark winners — potentialPayout stays as the original quoted ceiling.
         _markWinningBets(winningBetIds);
 
-        // Two-tier fill ratio: the market's own bet pool (losers' stakes)
-        // funds winners first, then the shared LiquidityPool covers the
-        // deficit up to its free capacity.
+        // Winners are funded directly from the shared LiquidityPool's free
+        // capacity (see _computeMarketFillRatio) — not netted against this
+        // market's own losing stakes first.
         uint256 totalBetAmount = m.totalBetAmount;
-        uint256 fillRatio = _computeMarketFillRatio(marketId, totalBetAmount, sumStakes, sumQuoted);
+        uint256 fillRatio = _computeMarketFillRatio(marketId, sumStakes, sumQuoted);
 
         m.status = MarketStatus.Settled;
         m.winningOutcome = winningOutcome;
@@ -507,35 +515,41 @@ contract BettingCore is
         }
     }
 
-    /// @dev Two-tier fill ratio: the market's own bet pool funds winners
-    ///      first, then the shared LiquidityPool covers the deficit up to
-    ///      its free capacity.
+    /// @dev Every single-bet winner is funded directly from the shared
+    ///      LiquidityPool's free capacity — no netting against this
+    ///      market's own losing stakes first (that used to let a
+    ///      sufficiently one-sided market skip the pool entirely; it no
+    ///      longer does). `houseEdgeBps` — the same admin-set parameter
+    ///      `_finalizeMarketAccounting` already takes its cut with on the
+    ///      surplus side — is reserved off the pool's capacity before any
+    ///      of it is offered to cover winners, so the house keeps a
+    ///      consistent margin on pool-funded payouts too, not only on
+    ///      markets that net a surplus on their own.
     ///
-    ///      deficit   = max(0, ΣQ − totalBetAmount)
-    ///      available = pool's free capacity, excluding this market's lock
+    ///      deficit   = ΣQ − ΣStakes  (profit owed to winners, above their own stake)
+    ///      available = pool's free capacity for this market, less houseEdgeBps
     ///      covered   = min(deficit, available)
-    ///      L         = totalBetAmount + covered
+    ///      L         = ΣStakes + covered
     ///
     ///      Returns a value in [0, 1000] where 1000 = full quoted payout.
     function _computeMarketFillRatio(
         bytes32 marketId,
-        uint256 totalBetAmount,
         uint256 sumStakes,
         uint256 sumQuoted
     ) internal view returns (uint256) {
         if (sumQuoted == 0 || sumQuoted <= sumStakes) return 1000;
 
-        // deficit = max(0, ΣQ − totalBetAmount)
-        uint256 deficit = sumQuoted > totalBetAmount ? sumQuoted - totalBetAmount : 0;
+        uint256 deficit = sumQuoted - sumStakes;
 
-        // Pool's free capacity, excluding this market's own reserved lock
-        uint256 available = address(liquidityPool) != address(0)
+        uint256 rawAvailable = address(liquidityPool) != address(0)
             ? liquidityPool.getFreeLiquidity(marketId)
             : 0;
+        // houseEdgeBps is hard-capped at 1000 (10%) by setHouseEdge, so this
+        // can never underflow — at most 10% of rawAvailable is reserved.
+        uint256 available = rawAvailable - (rawAvailable * houseEdgeBps) / BPS_DENOM;
         uint256 covered = deficit < available ? deficit : available;
 
-        // L = market's own money + whatever the pool can add
-        uint256 L = totalBetAmount + covered;
+        uint256 L = sumStakes + covered;
 
         if (L >= sumQuoted) return 1000;
         if (L <= sumStakes) return 0;
@@ -796,9 +810,13 @@ contract BettingCore is
         uint256 quoted = p.potentialPayout;
         uint256 stake = p.stake;
 
-        // Pool covers deficit (quoted - stake); cap to what it can deliver.
+        // Pool covers deficit (quoted - stake), minus houseEdgeBps reserved
+        // off its capacity first — same margin single bets take in
+        // _computeMarketFillRatio, and same overflow-safety reasoning
+        // (houseEdgeBps capped at 1000 by setHouseEdge).
         uint256 deficit = quoted - stake;
-        uint256 available = liquidityPool.getFreeLiquidity(parlayId);
+        uint256 rawAvailable = liquidityPool.getFreeLiquidity(parlayId);
+        uint256 available = rawAvailable - (rawAvailable * houseEdgeBps) / BPS_DENOM;
         uint256 covered = deficit < available ? deficit : available;
         uint256 payout = stake + covered;
 

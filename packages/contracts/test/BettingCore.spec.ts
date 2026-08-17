@@ -176,9 +176,13 @@ describe("BettingCore", () => {
       const poolSigner = await ethers.getImpersonatedSigner(poolAddr);
       await env.usdc_.connect(poolSigner).transfer(env.admin.address, usdc(600));
 
-      // Settle market: quoted ΣQ = 1000, stake ΣS = 100, totalBetAmount = 100.
-      // deficit = 1000 - 100 = 900, available = ~400, covered = 400, L = 500
-      // fillRatioX1000 = (500 - 100) * 1000 / (1000 - 100) = 400_000 / 900 = 444
+      // Settle market: quoted ΣQ = 1000, stake ΣS = 100. Winners are funded
+      // straight from the pool now (no netting against totalBetAmount), and
+      // houseEdgeBps (2% default) is reserved off the pool's capacity first:
+      // deficit = 1000 - 100 = 900
+      // rawAvailable = ~400, available = 400 - 400*200/10000 = 400 - 8 = 392
+      // covered = min(900, 392) = 392, L = 100 + 392 = 492
+      // fillRatioX1000 = (492 - 100) * 1000 / (1000 - 100) = 392_000 / 900 = 435
       await env.core.connect(env.admin).settleMarket(env.marketIdHex, 0, [betId], usdc(1000));
 
       // potentialPayout stays as the original quoted ceiling (not mutated)
@@ -188,14 +192,14 @@ describe("BettingCore", () => {
 
       // fillRatioX1000 stored on the Market struct
       const market = await env.core.markets(env.marketIdHex);
-      expect(market.fillRatioX1000).to.equal(444n);
+      expect(market.fillRatioX1000).to.equal(435n);
 
       // claimWinnings pays: stake + fillRatio * (quoted - stake) / 1000
-      // = 100e6 + 444 * 900e6 / 1000 = 100_000_000 + 399_600_000 = 499_600_000
+      // = 100e6 + 435 * 900e6 / 1000 = 100_000_000 + 391_500_000 = 491_500_000
       const balBefore = await env.usdc_.balanceOf(env.bettor1.address);
       await env.core.connect(env.bettor1).claimWinnings(betId);
       const balAfter = await env.usdc_.balanceOf(env.bettor1.address);
-      expect(balAfter - balBefore).to.equal(499_600_000n);
+      expect(balAfter - balBefore).to.equal(491_500_000n);
     });
   });
 
@@ -280,13 +284,15 @@ describe("BettingCore", () => {
       expect(after - before).to.equal(payout);
     });
 
-    it("fillRatioX1000 is 1000 when market self-funds (losers cover winners)", async () => {
+    it("fillRatioX1000 is 1000 when the pool has ample free liquidity for the deficit", async () => {
       const env = await loadFixture(createOpenMarket);
       await seedPool(env, env.lp1, usdc(10_000));
       const stake = usdc(100);
       const odds = 2_000n; // 2x
 
-      // Bettor1 bets outcome 0, bettor2 bets outcome 1 — whoever loses funds the winner.
+      // Bettor1 bets outcome 0, bettor2 bets outcome 1 (the eventual loser) —
+      // note this no longer matters to the payout: winners are funded from
+      // pool capacity directly, not from this market's own losing stakes.
       await env.usdc_.connect(env.bettor1).approve(await env.core.getAddress(), stake);
       const tx = await env.core.connect(env.bettor1).placeBet(env.marketIdHex, 0, stake, odds, odds);
       const r = await tx.wait();
@@ -299,7 +305,10 @@ describe("BettingCore", () => {
       await env.usdc_.connect(env.bettor2).approve(await env.core.getAddress(), usdc(150));
       await env.core.connect(env.bettor2).placeBet(env.marketIdHex, 1, usdc(150), odds, odds);
 
-      // totalBetAmount = 250, winning payout = 200. deficit = 0 → fillRatio = 1000.
+      // sumStakes = 100 (bettor1 only, the winner), winning payout = 200.
+      // deficit = 100, and the 10,000-USDC pool's edge-adjusted capacity is
+      // far more than that → fillRatio = 1000 regardless of what bettor2
+      // (the loser) staked.
       await env.core.settleMarket(env.marketIdHex, 0, [betId], usdc(200));
       const market = await env.core.markets(env.marketIdHex);
       expect(market.fillRatioX1000).to.equal(1000n);
@@ -309,6 +318,46 @@ describe("BettingCore", () => {
       await env.core.connect(env.bettor1).claimWinnings(betId);
       const after = await env.usdc_.balanceOf(env.bettor1.address);
       expect(after - before).to.equal(usdc(200));
+    });
+
+    it("houseEdgeBps can cap fillRatioX1000 below 1000 even when raw pool liquidity alone would have covered the deficit", async () => {
+      const env = await loadFixture(createOpenMarket);
+      await seedPool(env, env.lp1, usdc(1000));
+      const stake = usdc(100);
+      const odds = 2_000n; // 2x → quoted = 200, deficit = 100
+
+      await env.usdc_.connect(env.bettor1).approve(await env.core.getAddress(), stake);
+      const tx = await env.core.connect(env.bettor1).placeBet(env.marketIdHex, 0, stake, odds, odds);
+      const r = await tx.wait();
+      const betId = env.core.interface.parseLog(
+        r!.logs.find((l) => {
+          try { return env.core.interface.parseLog(l)?.name === "BetPlaced"; } catch { return false; }
+        })!
+      )!.args[0] as string;
+
+      // Push houseEdgeBps to its hard cap (10%) and drain the pool to
+      // exactly 110 USDC free — comfortably above the 100 deficit on its
+      // own, but 10% reserved leaves only 99, just short of it.
+      await env.core.connect(env.admin).setHouseEdge(1000n);
+      const poolAddr = await env.pool.getAddress();
+      await ethers.provider.send("hardhat_setBalance", [poolAddr, "0x1000000000000000000"]);
+      const poolSigner = await ethers.getImpersonatedSigner(poolAddr);
+      const poolBal = await env.usdc_.balanceOf(poolAddr);
+      await env.usdc_.connect(poolSigner).transfer(env.admin.address, poolBal - usdc(110));
+
+      // rawAvailable = 110, available = 110 - 110*1000/10000 = 110 - 11 = 99
+      // covered = min(100, 99) = 99, L = 100 + 99 = 199
+      // fillRatioX1000 = (199 - 100) * 1000 / (200 - 100) = 99_000 / 100 = 990
+      // (without the 10% edge, covered would be min(100, 110) = 100 = full deficit → 1000)
+      await env.core.settleMarket(env.marketIdHex, 0, [betId], usdc(200));
+      const market = await env.core.markets(env.marketIdHex);
+      expect(market.fillRatioX1000).to.equal(990n);
+
+      const before = await env.usdc_.balanceOf(env.bettor1.address);
+      await env.core.connect(env.bettor1).claimWinnings(betId);
+      const after = await env.usdc_.balanceOf(env.bettor1.address);
+      // stake + 990 * (200-100)/1000 = 100 + 99 = 199
+      expect(after - before).to.equal(usdc(199));
     });
 
     it("reverts settle with PayoutSumMismatch on wrong total", async () => {
@@ -563,14 +612,16 @@ describe("BettingCore", () => {
       // Leave only 100 USDC in pool — available < deficit (150)
       await env.usdc_.connect(poolSigner).transfer(env.admin.address, poolBal - usdc(100));
 
-      // covered = min(150, 100) = 100, payout = 50 + 100 = 150
+      // houseEdgeBps (2% default) is reserved off the pool's capacity first:
+      // rawAvailable = 100, available = 100 - 100*200/10000 = 100 - 2 = 98
+      // covered = min(150, 98) = 98, payout = 50 + 98 = 148
       const before = await env.usdc_.balanceOf(env.bettor1.address);
       await env.core.connect(env.bettor1).claimParlayWinnings(parlayId);
       const after = await env.usdc_.balanceOf(env.bettor1.address);
 
-      // Payout should be between stake (50) and quoted (200), specifically 150
+      // Payout should be between stake (50) and quoted (200), specifically 148
       const actualPayout = after - before;
-      expect(actualPayout).to.equal(usdc(150));
+      expect(actualPayout).to.equal(usdc(148));
       expect(actualPayout).to.be.greaterThan(stake);
       expect(actualPayout).to.be.lessThan(quoted);
     });

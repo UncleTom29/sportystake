@@ -522,65 +522,103 @@ export default function AviatorPage() {
         <div className="space-y-4">
           <div className="rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5 space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
-              <span className="text-xs font-black uppercase tracking-wider text-white">Place Bet</span>
+              <span className="text-xs font-black uppercase tracking-wider text-white">
+                {hasActiveBet ? "Your Bet" : "Place Bet"}
+              </span>
               <span className="mono text-xs text-[var(--color-ink-3)]">Round #{round?.id ?? "—"}</span>
             </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-[11px] font-bold text-[var(--color-ink-3)] uppercase">Bet Amount (USDC)</label>
-                <div className="relative mt-1">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white font-bold">$</span>
-                  <input
-                    type="number"
-                    value={betAmount}
-                    onChange={(e) => setBetAmount(e.target.value)}
-                    placeholder="10.00"
-                    className="mono w-full rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] py-2.5 pl-8 pr-3 text-sm font-bold text-white focus:border-[#ff2d55] focus:outline-none"
-                  />
+            {hasActiveBet && myBet ? (
+              <div className="space-y-3">
+                {/* Confirmed on-chain bet — pulled from myBet (rehydrated
+                    straight from CrashGame's roundPlayers, not just
+                    whatever's left in the input fields below), so this
+                    always reflects what was actually staked even across
+                    a page refresh. */}
+                <div className="rounded-xl bg-[var(--color-bg-1)] border border-[var(--color-line-1)] divide-y divide-[var(--color-line-1)]">
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-[11px] font-bold uppercase text-[var(--color-ink-3)]">Stake</span>
+                    <span className="mono text-sm font-bold text-white">${myBet.amountUsdc.toFixed(2)} USDC</span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-[11px] font-bold uppercase text-[var(--color-ink-3)]">Auto Cashout</span>
+                    <span className="mono text-sm font-bold text-white">
+                      {myBet.autoCashoutX100 > 0 ? `${(myBet.autoCashoutX100 / 100).toFixed(2)}×` : "Manual"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    <span className="text-[11px] font-bold uppercase text-[var(--color-ink-3)]">Status</span>
+                    <span className="mono text-sm font-bold text-[var(--color-brand-500)]">
+                      {myBet.cashedOutAtX100 !== null
+                        ? `Cashed out @ ${(myBet.cashedOutAtX100 / 100).toFixed(2)}×`
+                        : phase === "waiting"
+                          ? "Waiting for takeoff…"
+                          : phase === "running"
+                            ? `In flight — worth $${(myBet.amountUsdc * multiplier).toFixed(2)}`
+                            : "Round ended"}
+                    </span>
+                  </div>
                 </div>
               </div>
-
-              {/* Quick Preset Buttons */}
-              <div className="grid grid-cols-4 gap-2">
-                {["5", "10", "25", "50"].map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setBetAmount(v)}
-                    className="mono rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-1)] py-1.5 text-xs font-bold text-white hover:bg-[var(--color-bg-3)]"
-                  >
-                    ${v}
-                  </button>
-                ))}
-              </div>
-
-              {/* Auto Cashout Controls */}
-              <div className="rounded-xl bg-[var(--color-bg-1)] p-3 border border-[var(--color-line-1)] space-y-2">
-                <label className="flex items-center justify-between cursor-pointer">
-                  <span className="text-[11px] font-bold uppercase text-white">Auto Cashout</span>
-                  <input
-                    type="checkbox"
-                    checked={useAutoCashout}
-                    onChange={(e) => setUseAutoCashout(e.target.checked)}
-                    className="h-4 w-4 rounded accent-[#ff2d55]"
-                  />
-                </label>
-
-                {useAutoCashout && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <span className="mono text-xs font-bold text-[var(--color-ink-3)]">At</span>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-[11px] font-bold text-[var(--color-ink-3)] uppercase">Bet Amount (USDC)</label>
+                  <div className="relative mt-1">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white font-bold">$</span>
                     <input
                       type="number"
-                      step="0.1"
-                      value={autoCashout}
-                      onChange={(e) => setAutoCashout(e.target.value)}
-                      className="mono w-full rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-2)] px-2 py-1 text-xs font-bold text-white focus:outline-none"
+                      value={betAmount}
+                      onChange={(e) => setBetAmount(e.target.value)}
+                      placeholder="10.00"
+                      className="mono w-full rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] py-2.5 pl-8 pr-3 text-sm font-bold text-white focus:border-[#ff2d55] focus:outline-none"
                     />
-                    <span className="mono text-xs font-bold text-white">×</span>
                   </div>
-                )}
-              </div>
+                </div>
 
+                {/* Quick Preset Buttons */}
+                <div className="grid grid-cols-4 gap-2">
+                  {["5", "10", "25", "50"].map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setBetAmount(v)}
+                      className="mono rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-1)] py-1.5 text-xs font-bold text-white hover:bg-[var(--color-bg-3)]"
+                    >
+                      ${v}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Auto Cashout Controls */}
+                <div className="rounded-xl bg-[var(--color-bg-1)] p-3 border border-[var(--color-line-1)] space-y-2">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-[11px] font-bold uppercase text-white">Auto Cashout</span>
+                    <input
+                      type="checkbox"
+                      checked={useAutoCashout}
+                      onChange={(e) => setUseAutoCashout(e.target.checked)}
+                      className="h-4 w-4 rounded accent-[#ff2d55]"
+                    />
+                  </label>
+
+                  {useAutoCashout && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="mono text-xs font-bold text-[var(--color-ink-3)]">At</span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={autoCashout}
+                        onChange={(e) => setAutoCashout(e.target.value)}
+                        className="mono w-full rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-2)] px-2 py-1 text-xs font-bold text-white focus:outline-none"
+                      />
+                      <span className="mono text-xs font-bold text-white">×</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-3">
               {/* Action Button */}
               {canCashout ? (
                 <button

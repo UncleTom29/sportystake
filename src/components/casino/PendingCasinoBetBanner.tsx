@@ -9,6 +9,7 @@ import {
   type PendingCasinoBet,
 } from "@/lib/placeCasinoBet";
 import { useNotifications } from "@/lib/notificationStore";
+import { explorerTxUrl } from "@/lib/wagmi";
 
 interface Props {
   game: CasinoGameKey;
@@ -76,7 +77,9 @@ export default function PendingCasinoBetBanner({ game, onResolved }: Props) {
         <div>
           <p className="font-bold text-white">Unsettled On-Chain Bet Detected</p>
           <p className="mono text-[11px] text-[var(--color-ink-3)]">
-            Tx: {pending.txHash.slice(0, 10)}…{pending.txHash.slice(-8)}
+            Tx: <a href={explorerTxUrl(pending.txHash)} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              {pending.txHash.slice(0, 10)}…{pending.txHash.slice(-8)}
+            </a>
           </p>
         </div>
       </div>

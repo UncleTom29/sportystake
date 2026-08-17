@@ -13,8 +13,10 @@ import { defineChain } from "viem";
 import { clientEnv } from "./env";
 
 /**
- * Arc network chain definition. Replace `nativeCurrency` and explorer URL with
- * the canonical values once Arc's mainnet metadata is finalized.
+ * Arc network chain definition. `nativeCurrency` and the mainnet explorer
+ * URL are still placeholders — replace once Arc's mainnet metadata is
+ * finalized (testnet's explorer URL below is confirmed real, a prior
+ * `explorer.arc.network` placeholder here didn't even resolve).
  */
 export const arc = defineChain({
   id: clientEnv.NEXT_PUBLIC_CHAIN_ID,
@@ -25,7 +27,7 @@ export const arc = defineChain({
     public: { http: [clientEnv.NEXT_PUBLIC_RPC_URL] },
   },
   blockExplorers: {
-    default: { name: "Arc Explorer", url: "https://explorer.arc.network" },
+    default: { name: "Arcscan", url: "https://testnet.arcscan.app" },
   },
   // Standard deterministic-deployer address, confirmed deployed on Arc
   // Testnet — lets viem batch parallel readContract calls (pool stats,
@@ -50,6 +52,12 @@ export const wagmiConfig = createConfig({
   },
   ssr: true,
 });
+
+/** Block explorer link for a tx hash — the one canonical place this URL
+ *  gets built, so a future explorer/chain switch only needs updating here. */
+export function explorerTxUrl(txHash: string): string {
+  return `${arc.blockExplorers.default.url}/tx/${txHash}`;
+}
 
 export const CONTRACT_ADDRESSES = {
   bettingCore: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS,

@@ -7,6 +7,7 @@ import { ChevronLeft, ZapIcon, TrophyIcon, CloseIcon } from "@/components/icons/
 import { clientEnv } from "@/lib/env";
 import { privyContractWrite } from "@/lib/privyTx";
 import { useNotifications } from "@/lib/notificationStore";
+import { explorerTxUrl } from "@/lib/wagmi";
 
 type Filter = "ALL" | BetStatus;
 const FILTERS: Filter[] = ["ALL", "PENDING", "WON", "LOST", "CANCELLED", "CLAIMED"];
@@ -166,9 +167,15 @@ export default function MyBetsPage() {
                         <>
                           <p className="font-bold text-white">{bet.marketLabel}</p>
                           <p className="text-[13px] text-[var(--color-ink-2)]">
-                            {bet.selectionLabel === "—" ? "Awaiting result" : (
-                              <>Settled <span className="mono font-bold text-[var(--color-warn)]">{bet.selectionLabel}</span></>
-                            )}
+                            {bet.status === "PENDING"
+                              ? "Awaiting result"
+                              : bet.status === "CANCELLED"
+                                ? "Round cancelled — stake refunded"
+                                : bet.status === "LOST"
+                                  ? "No payout"
+                                  : (
+                                    <>Won @ <span className="mono font-bold text-[var(--color-warn)]">{bet.selectionLabel}</span></>
+                                  )}
                           </p>
                         </>
                       ) : (
@@ -203,7 +210,14 @@ export default function MyBetsPage() {
                     </span>
                     <span className="text-[var(--color-ink-3)]">{new Date(bet.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
                     {bet.txHash && (
-                      <span className="mono text-[var(--color-info)] cursor-pointer hover:underline">{bet.txHash.slice(0, 12)}…</span>
+                      <a
+                        href={explorerTxUrl(bet.txHash)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mono text-[var(--color-info)] hover:underline"
+                      >
+                        {bet.txHash.slice(0, 12)}…
+                      </a>
                     )}
                   </div>
 

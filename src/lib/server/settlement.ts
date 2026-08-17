@@ -362,15 +362,30 @@ export async function cancelMarketOnchain(marketId: string): Promise<{ cancelTxH
 
   let cancelTxHash: Hash | null = null;
   if (clients && bettingCoreAddress !== ZERO_ADDRESS) {
-    cancelTxHash = await clients.wallet.writeContract({
-      address: bettingCoreAddress,
-      abi: bettingCoreAbi,
-      functionName: "cancelMarket",
-      args: [marketId as `0x${string}`],
-      chain: clients.wallet.chain,
-      account: clients.wallet.account!,
-    });
-    await clients.publicClient.waitForTransactionReceipt({ hash: cancelTxHash });
+    try {
+      cancelTxHash = await clients.wallet.writeContract({
+        address: bettingCoreAddress,
+        abi: bettingCoreAbi,
+        functionName: "cancelMarket",
+        args: [marketId as `0x${string}`],
+        chain: clients.wallet.chain,
+        account: clients.wallet.account!,
+      });
+      await clients.publicClient.waitForTransactionReceipt({ hash: cancelTxHash });
+    } catch (err) {
+      const msg = String(err);
+      // Same lazy-registration case as executeMarketSettlement above — a
+      // market with zero real bets was never created on-chain, so there's
+      // nothing there to cancel. Callers that sweep in bulk (see
+      // oracle-sync.worker.ts's recoverStuckSportsMarkets) should already
+      // be filtering these out before ever reaching here, but this stays
+      // as the correctness backstop regardless of caller.
+      if (msg.includes("MarketNotFound") || msg.includes("MarketAlreadyCancelled")) {
+        cancelTxHash = null;
+      } else {
+        throw err;
+      }
+    }
   } else {
     // eslint-disable-next-line no-console
     console.warn(`[settlement] operator key or BettingCore address not configured — cancelling market ${marketId} off-chain only`);

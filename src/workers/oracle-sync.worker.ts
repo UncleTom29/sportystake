@@ -309,6 +309,12 @@ async function pruneClosedSportsMarkets(): Promise<void> {
 // cancel (refund) anything that's this stale, whatever broke.
 const STUCK_MARKET_CUTOFF_MS = 4 * 60 * 60 * 1000;
 const STUCK_MARKET_CHECK_MS = 30 * 60_000;
+// Real per-tick ceiling on ON-CHAIN calls only (each is a signed tx + a
+// wait for its receipt). The no-bet branch below is a single bulk UPDATE
+// regardless of how many thousands it touches, so this cap doesn't limit
+// how fast the (usually enormous, zero-bet) backlog drains — only how many
+// individual chain transactions one tick is willing to send.
+const STUCK_MARKET_ONCHAIN_BATCH = 20;
 
 async function recoverStuckSportsMarkets(): Promise<void> {
   try {
@@ -319,22 +325,47 @@ async function recoverStuckSportsMarkets(): Promise<void> {
         status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
         closesAt: { lt: cutoff },
       },
-      select: { id: true, homeTeam: true, awayTeam: true, closesAt: true, externalId: true },
+      select: {
+        id: true, homeTeam: true, awayTeam: true, closesAt: true, externalId: true,
+        _count: { select: { bets: true, parlayLegs: true } },
+      },
     });
     if (stuck.length === 0) return;
 
+    // Registration on BettingCore is lazy (first real bet's attestation) —
+    // a market nobody ever bet on was never created there, so there is
+    // nothing on-chain to cancel and no refund to issue. That's the
+    // overwhelming majority whenever a backlog has built up (e.g. this
+    // safety net's first-ever run, against months of a settlement pipeline
+    // that turned out to be broken end to end — discovered the same day
+    // this function was written). Skip the chain entirely for those; one
+    // bulk UPDATE handles any number of them.
+    const withMoney = stuck.filter((m) => m._count.bets > 0 || m._count.parlayLegs > 0);
+    const empty = stuck.filter((m) => m._count.bets === 0 && m._count.parlayLegs === 0);
+
     console.warn(
-      `[oracle-sync] recovering ${stuck.length} market(s) stuck open >${STUCK_MARKET_CUTOFF_MS / 3_600_000}h past closesAt with no live/finished signal ever received`,
-      stuck.map((m) => `${m.homeTeam} vs ${m.awayTeam} (${m.externalId}, closed ${m.closesAt.toISOString()})`),
+      `[oracle-sync] recovering ${stuck.length} market(s) stuck open >${STUCK_MARKET_CUTOFF_MS / 3_600_000}h past closesAt with no live/finished signal ever received ` +
+      `(${withMoney.length} with real bets — on-chain cancel, capped at ${STUCK_MARKET_ONCHAIN_BATCH}/tick; ${empty.length} with none — DB-only)`,
     );
 
-    for (const market of stuck) {
+    if (empty.length > 0) {
+      const result = await prisma.market.updateMany({
+        where: { id: { in: empty.map((m) => m.id) } },
+        data: { status: "CANCELLED" },
+      });
+      console.log(`[oracle-sync] bulk-cancelled ${result.count} bet-free stuck market(s), no chain calls needed`);
+    }
+
+    for (const market of withMoney.slice(0, STUCK_MARKET_ONCHAIN_BATCH)) {
       try {
         await cancelMarketOnchain(market.id);
-        console.log(`[oracle-sync] recovered stuck market ${market.id} (${market.homeTeam} vs ${market.awayTeam})`);
+        console.log(`[oracle-sync] recovered stuck market ${market.id} (${market.homeTeam} vs ${market.awayTeam}) — refunded any pending bets`);
       } catch (error) {
         console.error(`[oracle-sync] failed to recover stuck market ${market.id}`, error);
       }
+    }
+    if (withMoney.length > STUCK_MARKET_ONCHAIN_BATCH) {
+      console.log(`[oracle-sync] ${withMoney.length - STUCK_MARKET_ONCHAIN_BATCH} more bet-bearing stuck market(s) queued for next tick`);
     }
   } catch (error) {
     console.error("[oracle-sync] recover stuck markets error", error);

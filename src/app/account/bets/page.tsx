@@ -162,6 +162,15 @@ export default function MyBetsPage() {
                             <span className="mono font-bold text-[var(--color-warn)]">{(bet.oddsX1000 / 1000).toFixed(2)}</span>
                           </p>
                         </>
+                      ) : bet.isCasino ? (
+                        <>
+                          <p className="font-bold text-white">{bet.marketLabel}</p>
+                          <p className="text-[13px] text-[var(--color-ink-2)]">
+                            {bet.selectionLabel === "—" ? "Awaiting result" : (
+                              <>Settled <span className="mono font-bold text-[var(--color-warn)]">{bet.selectionLabel}</span></>
+                            )}
+                          </p>
+                        </>
                       ) : (
                         <>
                           <p className="font-bold text-white">{bet.marketType}</p>
@@ -199,7 +208,7 @@ export default function MyBetsPage() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-2">
-                    {bet.status === "WON" && (
+                    {bet.status === "WON" && !bet.isCasino && (
                       <button
                         onClick={() => void handleClaim(bet.id)}
                         disabled={claimingId === bet.id}

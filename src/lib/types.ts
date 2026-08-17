@@ -119,6 +119,11 @@ export interface BetDTO {
   createdAt: string;
   settledAt?: string;
   copyOfBetId?: string;
+  /** True when this row is a CasinoBet (Aviator/Dice/Slots/…), not a
+   *  BettingCore sports bet or parlay — no on-chain BettingCore betId
+   *  exists for it, so the frontend must not offer a claimWinnings()
+   *  action for these regardless of `status`. */
+  isCasino?: boolean;
   /** Present only when this row represents a parlay (parlayId is set) —
    *  one entry per leg, so bet history can show the individual matches
    *  played rather than just a flattened "N-Leg Parlay" summary. */

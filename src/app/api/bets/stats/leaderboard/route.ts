@@ -16,10 +16,11 @@ export const GET = withRequestId(async (req: NextRequest) => {
       ? new Date(Date.now() - 30 * 86_400_000)
       : new Date(0);
 
-  // Aggregate net PnL per user over `since`. Parlays live in a separate
-  // table from single Bets (see prisma/schema.prisma) — without merging
-  // both in, parlay-only bettors are invisible on the leaderboard.
-  const [bets, parlays] = await Promise.all([
+  // Aggregate net PnL per user over `since`. Parlays and casino bets
+  // (Aviator/Dice/Slots/…) both live in their own tables (see
+  // prisma/schema.prisma) — without merging all three in, parlay-only or
+  // casino-only bettors are invisible on the leaderboard.
+  const [bets, parlays, casinoBets] = await Promise.all([
     prisma.bet.findMany({
       where: { placedAt: { gte: since }, status: { in: ["WON", "LOST", "CLAIMED"] } },
       select: { userId: true, amount: true, potentialPayout: true, status: true, user: true },
@@ -28,6 +29,10 @@ export const GET = withRequestId(async (req: NextRequest) => {
       where: { placedAt: { gte: since }, status: { in: ["WON", "LOST", "CLAIMED"] } },
       select: { userId: true, stake: true, potentialPayout: true, status: true, user: true },
     }),
+    prisma.casinoBet.findMany({
+      where: { placedAt: { gte: since }, status: { in: ["WON", "LOST"] } },
+      select: { userId: true, amount: true, payout: true, status: true, user: true },
+    }),
   ]);
 
   const byUser = new Map<string, {
@@ -35,8 +40,9 @@ export const GET = withRequestId(async (req: NextRequest) => {
     bets: number; won: number; lost: number; vol: bigint; pnl: bigint;
   }>();
   for (const b of [
-    ...bets.map((b) => ({ userId: b.userId, amount: b.amount, potentialPayout: b.potentialPayout, status: b.status, user: b.user })),
-    ...parlays.map((p) => ({ userId: p.userId, amount: p.stake, potentialPayout: p.potentialPayout, status: p.status, user: p.user })),
+    ...bets.map((b) => ({ userId: b.userId, amount: b.amount, potentialPayout: b.potentialPayout, status: b.status as string, user: b.user })),
+    ...parlays.map((p) => ({ userId: p.userId, amount: p.stake, potentialPayout: p.potentialPayout, status: p.status as string, user: p.user })),
+    ...casinoBets.map((cb) => ({ userId: cb.userId, amount: cb.amount, potentialPayout: cb.payout, status: cb.status as string, user: cb.user })),
   ]) {
     const u = byUser.get(b.userId) ?? {
       user: b.user, bets: 0, won: 0, lost: 0, vol: 0n, pnl: 0n,

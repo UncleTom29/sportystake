@@ -127,6 +127,60 @@ function parlayToDto(p: NonNullable<ParlayRow>): BetDTO {
   };
 }
 
+const CASINO_GAME_LABEL: Record<string, string> = {
+  CRASH: "Aviator (Crash)",
+  DICE: "Provably Fair Dice",
+  SLOTS: "Slots",
+  BLACKJACK: "Blackjack Pro",
+  ROULETTE: "Roulette 3D",
+  BACCARAT: "Baccarat Squeeze",
+};
+
+/** CasinoStatus has no BettingCore equivalent for CLAIMED (casino payouts
+ *  settle automatically, no separate claim step) and REFUNDED isn't a
+ *  BetStatus value — mapped to CANCELLED, the closest existing meaning
+ *  ("stake returned, not a win or loss"). */
+function casinoStatusToBetStatus(status: string): BetStatus {
+  return status === "REFUNDED" ? "CANCELLED" : (status as BetStatus);
+}
+
+type CasinoBetRow = Awaited<ReturnType<typeof prisma.casinoBet.findFirst>> & {
+  user?: { walletAddress: string } | null;
+};
+
+/**
+ * CasinoBet lives in its own table (see prisma/schema.prisma) — no
+ * marketId/odds/selectionLabel in the sportsbook sense, so those fields
+ * get sensible stand-ins rather than left blank. `users.repo.ts`'s
+ * account-level stats() already folds these into "Total Bets"/"Total
+ * Wagered"; without this mapping, bet history disagreed with those
+ * numbers (a casino-only bettor saw real totals up top and an empty list
+ * below).
+ */
+function casinoBetToDto(cb: NonNullable<CasinoBetRow>): BetDTO {
+  const multiplier = cb.multiplierX100 ? cb.multiplierX100 / 100 : null;
+  return {
+    id: cb.id,
+    userId: cb.userId,
+    userAddress: (cb.user?.walletAddress ?? "") as Address,
+    marketId: cb.requestId ?? cb.id,
+    marketLabel: CASINO_GAME_LABEL[cb.game] ?? cb.game,
+    marketType: `casino_${cb.game.toLowerCase()}`,
+    outcome: 0,
+    selectionLabel: multiplier ? `${multiplier.toFixed(2)}×` : "—",
+    amount: usdcToString(cb.amount),
+    oddsX1000: multiplier ? Math.round(multiplier * 1000) : 0,
+    potentialPayout: usdcToString(cb.payout),
+    status: casinoStatusToBetStatus(cb.status),
+    isLive: false,
+    isPublic: false,
+    isCasino: true,
+    txHash: cb.txHash ?? undefined,
+    createdAt: cb.placedAt.toISOString(),
+    settledAt: cb.resolvedAt?.toISOString(),
+  };
+}
+
 export const BetsRepo = {
   async create(input: {
     id: string;
@@ -175,12 +229,28 @@ export const BetsRepo = {
     const where: Prisma.BetWhereInput = { userId, ...(opts.status ? { status: opts.status } : {}) };
     const parlayWhere: Prisma.ParlayWhereInput = { userId, ...(opts.status ? { status: opts.status } : {}) };
 
-    // Bets and parlays are separate tables merged into one chronological
-    // feed — cross-table pagination isn't a single SQL query, so over-fetch
-    // up to `offset + limit` from each side (the true top N can contain at
-    // most that many rows from either source) and merge+slice in memory.
+    // CasinoBet has its own status enum (see casinoStatusToBetStatus) — no
+    // BetStatus maps to CLAIMED (casino payouts settle automatically, no
+    // separate claim step), so that filter always excludes casino rows;
+    // CANCELLED matches either CANCELLED or REFUNDED since both map to it.
+    const casinoStatusFilter =
+      opts.status === "CLAIMED" ? null
+      : opts.status === "CANCELLED" ? (["CANCELLED", "REFUNDED"] as const)
+      : opts.status ? ([opts.status] as const)
+      : null;
+    const casinoWhere: Prisma.CasinoBetWhereInput = {
+      userId,
+      ...(casinoStatusFilter ? { status: { in: [...casinoStatusFilter] } } : {}),
+    };
+    const skipCasino = opts.status === "CLAIMED";
+
+    // Bets, parlays, and casino bets are three separate tables merged into
+    // one chronological feed — cross-table pagination isn't a single SQL
+    // query, so over-fetch up to `offset + limit` from each side (the true
+    // top N can contain at most that many rows from any one source) and
+    // merge+slice in memory.
     const fetchCap = offset + limit;
-    const [bets, betsTotal, parlays, parlaysTotal] = await Promise.all([
+    const [bets, betsTotal, parlays, parlaysTotal, casinoBets, casinoBetsTotal] = await Promise.all([
       prisma.bet.findMany({
         where,
         include: { user: true, market: true },
@@ -195,13 +265,20 @@ export const BetsRepo = {
         take: fetchCap,
       }),
       prisma.parlay.count({ where: parlayWhere }),
+      skipCasino ? [] : prisma.casinoBet.findMany({
+        where: casinoWhere,
+        include: { user: true },
+        orderBy: { placedAt: "desc" },
+        take: fetchCap,
+      }),
+      skipCasino ? 0 : prisma.casinoBet.count({ where: casinoWhere }),
     ]);
 
-    const merged = [...bets.map(toDto), ...parlays.map(parlayToDto)]
+    const merged = [...bets.map(toDto), ...parlays.map(parlayToDto), ...casinoBets.map(casinoBetToDto)]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(offset, offset + limit);
 
-    return { items: merged, total: betsTotal + parlaysTotal };
+    return { items: merged, total: betsTotal + parlaysTotal + casinoBetsTotal };
   },
 
   async publicFeed(limit = 30): Promise<BetDTO[]> {

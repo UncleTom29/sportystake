@@ -374,7 +374,6 @@ export default function LivePage() {
         <div className="flex flex-col items-center gap-3 py-20 text-center">
           <LiveIcon className="h-10 w-10 text-[var(--color-ink-3)] animate-pulse" />
           <p className="text-[15px] font-bold text-white">No matches in play right now</p>
-          <p className="text-[12px] text-[var(--color-ink-3)]">Live scores update every 30 seconds.</p>
           <Link href="/sportsbook" className="mt-2 text-[12px] text-[var(--color-brand-500)] hover:underline">
             Browse upcoming matches →
           </Link>

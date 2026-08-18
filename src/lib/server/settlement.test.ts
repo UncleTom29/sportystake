@@ -21,6 +21,14 @@ describe("resolveScoreBasedOutcome", () => {
     expect(resolveScoreBasedOutcome("over_under_35", 2, 2)).toBe(0); // 4 > 3.5 -> over
   });
 
+  it("resolves any line the scraper actually offers, not just 1.5/2.5/3.5", () => {
+    expect(resolveScoreBasedOutcome("over_under_5", 1, 0)).toBe(0);  // total 1 > 0.5 -> over
+    expect(resolveScoreBasedOutcome("over_under_5", 0, 0)).toBe(1);  // total 0 > 0.5? no -> under
+    expect(resolveScoreBasedOutcome("over_under_45", 2, 2)).toBe(1); // total 4 > 4.5? no -> under
+    expect(resolveScoreBasedOutcome("over_under_45", 3, 2)).toBe(0); // total 5 > 4.5 -> over
+    expect(resolveScoreBasedOutcome("over_under_65", 3, 3)).toBe(1); // total 6 > 6.5? no -> under
+  });
+
   it("btts: both score vs at least one blank, 0=Yes 1=No", () => {
     expect(resolveScoreBasedOutcome("btts", 1, 1)).toBe(0);
     expect(resolveScoreBasedOutcome("btts", 1, 0)).toBe(1);
@@ -30,7 +38,9 @@ describe("resolveScoreBasedOutcome", () => {
   it("returns null for asian_handicap and anything unrecognized — those need per-bet resolution, not a market-wide outcome", () => {
     expect(resolveScoreBasedOutcome("asian_handicap", 2, 1)).toBeNull();
     expect(resolveScoreBasedOutcome("double_chance", 2, 1)).toBeNull();
-    expect(resolveScoreBasedOutcome("half_time_result", 2, 1)).toBeNull();
+    expect(resolveScoreBasedOutcome("team_total_15", 2, 1)).toBeNull();
+    expect(resolveScoreBasedOutcome("over_under_", 2, 1)).toBeNull();
+    expect(resolveScoreBasedOutcome("over_under_abc", 2, 1)).toBeNull();
   });
 });
 

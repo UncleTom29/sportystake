@@ -54,19 +54,30 @@ function resolveBtts(homeScore: number, awayScore: number): number {
 }
 
 /**
+ * over_under_<line*10> — matches xbet_full.py's `_line_suffix` encoding
+ * exactly (e.g. "over_under_5" = 0.5, "over_under_25" = 2.5). Generic
+ * because the scraper emits one entry per line 1xbet actually offers, not
+ * a fixed set — this used to hardcode only 15/25/35, silently stranding
+ * any other line (0.5, 4.5, 5.5, 6.5, ...) as an unresolvable bet, the same
+ * "displayed and bettable but can never settle" shape already fixed for
+ * double_chance.
+ */
+function resolveOverUnderKey(marketType: string, homeScore: number, awayScore: number): number | null {
+  const match = /^over_under_(\d+)$/.exec(marketType);
+  if (!match) return null;
+  const line = Number.parseInt(match[1], 10) / 10;
+  return resolveOverUnder(line, homeScore, awayScore);
+}
+
+/**
  * Score-derivable market types only — null for anything needing per-bet
- * resolution (asian_handicap) or any type this app doesn't actually price
- * (see odds.normalizer.ts's normalizeMarket switch for what's real).
+ * resolution (asian_handicap, double_chance) or any type this app doesn't
+ * actually price (see scrape.normalizer.ts for what's real).
  */
 export function resolveScoreBasedOutcome(marketType: string, homeScore: number, awayScore: number): number | null {
-  switch (marketType) {
-    case "1X2": return resolve1X2(homeScore, awayScore);
-    case "over_under_15": return resolveOverUnder(1.5, homeScore, awayScore);
-    case "over_under_25": return resolveOverUnder(2.5, homeScore, awayScore);
-    case "over_under_35": return resolveOverUnder(3.5, homeScore, awayScore);
-    case "btts": return resolveBtts(homeScore, awayScore);
-    default: return null;
-  }
+  if (marketType === "1X2") return resolve1X2(homeScore, awayScore);
+  if (marketType === "btts") return resolveBtts(homeScore, awayScore);
+  return resolveOverUnderKey(marketType, homeScore, awayScore);
 }
 
 export type AsianHandicapVerdict = "win" | "lose" | "push" | "unsupported";

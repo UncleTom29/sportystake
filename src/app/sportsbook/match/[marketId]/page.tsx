@@ -110,23 +110,6 @@ function buildMarkets(odds: OddsBundle[]): MarketSection[] {
   }
   if (ahRows.length > 0) out.push({ id: "asian_handicap", label: "Asian Handicap", rows: ahRows });
 
-  // Team Totals — one entry per (team, line) combination (e.g. team_total_home_15 = home O/U 1.5)
-  const ttTypes = [...new Set(
-    odds.filter((o) => o.marketType.startsWith("team_total_")).map((o) => o.marketType),
-  )].sort();
-  const ttRows: MarketRow[] = [];
-  for (const ttType of ttTypes) {
-    const sels = selsFor(ttType);
-    if (sels.length === 0) continue;
-    const parts = ttType.replace("team_total_", "").split("_");
-    const teamPart = parts[0] ?? "";
-    const linePart = parts.slice(1).join("_");
-    const lineDisplay = linePart.replace(/(-?)(\d)(\d)$/, "$1$2.$3");
-    const teamLabel = teamPart === "home" ? "Home" : teamPart === "away" ? "Away" : teamPart;
-    ttRows.push({ label: `${teamLabel} ${lineDisplay}`, selections: sels });
-  }
-  if (ttRows.length > 0) out.push({ id: "team_totals", label: "Team Totals", rows: ttRows });
-
   return out;
 }
 
@@ -371,10 +354,6 @@ function MatchStatsPanel({ market }: { market: MarketDTO }) {
   const pAway = 100 - pHome - pDraw;
   const margin = Math.round((total - 1) * 1000) / 10;
 
-  const bookmakerCount = new Set(
-    (market.bookmakerOdds ?? []).filter((e) => e.marketType === "1X2").map((e) => e.bookmaker),
-  ).size;
-
   const marketTypes = [...new Set((market.odds ?? []).map((o) => o.marketType))];
 
   const ou25 = market.odds?.find((o) => o.marketType === "over_under_25");
@@ -397,8 +376,6 @@ function MatchStatsPanel({ market }: { market: MarketDTO }) {
     }
     const ah = mt.match(/^asian_handicap_(-?\d+)$/);
     if (ah) return `AH ${ah[1].replace(/(-?)(\d)(\d)$/, "$1$2.$3")}`;
-    const tt = mt.match(/^team_total_(home|away)_(\d+)$/);
-    if (tt) return `${tt[1] === "home" ? "H" : "A"} Total ${tt[2].replace(/(\d)(\d)$/, "$1.$2")}`;
     return mt.replace(/_/g, " ");
   };
 
@@ -465,11 +442,7 @@ function MatchStatsPanel({ market }: { market: MarketDTO }) {
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        <div className="rounded-lg bg-[var(--color-bg-1)] p-3">
-          <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Bookmakers</p>
-          <p className="mono mt-1 text-[20px] font-black text-white">{Math.max(bookmakerCount, 1)}</p>
-        </div>
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
         <div className="rounded-lg bg-[var(--color-bg-1)] p-3">
           <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Vig / Margin</p>
           <p className="mono mt-1 text-[20px] font-black text-white">{margin}%</p>
@@ -513,9 +486,6 @@ function MatchStatsPanel({ market }: { market: MarketDTO }) {
           <span className="capitalize">{market.sport.replace(/-/g, " ")}</span>
         )}
       </div>
-      <p className="mt-2 text-[10px] text-[var(--color-ink-3)]">
-        Win probabilities derived from market odds · Updated every 3 min
-      </p>
     </div>
   );
 }

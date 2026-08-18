@@ -122,10 +122,7 @@ export default function WalletPage() {
               )}
             </div>
             <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-              <p className="text-[13px] text-[var(--color-ink-2)]">Transaction history is on-chain.</p>
-              <p className="text-[12px] text-[var(--color-ink-3)]">
-                Use the Arc block explorer to see your full USDC transaction history.
-              </p>
+              <p className="text-[13px] text-[var(--color-ink-2)]">Full history is on the Arc block explorer.</p>
               {displayAddress && (
                 <a
                   href={`https://explorer.testnet.arc.network/address/${displayAddress}`}

@@ -6,9 +6,11 @@ Single-provider scraper for 1xbet.ng. Discovers every sport ID 1xbet exposes,
 pulls the full prematch event list per sport, then fetches per-event market
 detail via GetGameZip so we capture every available line/odds for every
 mappable market group (1X2, totals at every offered line, BTTS, DNB, double
-chance, individual team totals, asian handicaps). No genuine half-time-scoped
-market has been identified in this response shape — see _build_double_chance's
+chance, whole/half-line asian handicaps). No genuine half-time-scoped market
+has been identified in this response shape — see _build_double_chance's
 docstring for how that gap was previously misfilled by a mislabeled group.
+Individual team totals are deliberately not scraped — see the comment above
+where _build_team_totals used to be for why.
 
 Output: JSON array on stdout. Each row carries:
 
@@ -99,7 +101,6 @@ _G_1X2       = 1     # T=1 Home, T=2 Draw, T=3 Away
 _G_AH        = 2     # T=7 home line (P=h), T=8 away line (P=-h)
 _G_DC        = 8     # T=4 1X, T=5 12, T=6 X2 (double chance — see _build_double_chance)
 _G_DNB       = 14    # T=182 Home, T=183 Away
-_G_TEAM_TOT  = 15    # T=11 over (P=line), T=12 under
 _G_TOTAL     = 17    # T=9 over (P=line), T=10 under
 _G_BTTS      = 19    # T=180 Yes, T=181 No
 
@@ -400,6 +401,14 @@ def _build_asian_handicap(by_g: dict, home_name: str, away_name: str) -> list[di
         if -line not in away_lines: continue
         ho, ao = home_lines[line], away_lines[-line]
         if not (ho > 1 and ao > 1): continue
+        # Quarter lines (e.g. -0.25, +0.75) don't survive the ×10-integer
+        # round-trip _line_suffix/the frontend rely on for encoding — and
+        # settlement.ts's resolveAsianHandicapBet already refuses to
+        # auto-resolve them (splits stake across two half-lines under true
+        # Asian handicap rules, which BettingCore's win/lose/void has no way
+        # to express). Never offering them here keeps what's bettable in
+        # sync with what can actually be labeled correctly AND settled.
+        if abs(line * 2 - round(line * 2)) > 1e-9: continue
         suf = _line_suffix(line)
         # Human-friendly handicap labels: positive home line = "AH home +X",
         # negative = "AH home -X". Same applies to away with opposite sign.
@@ -416,34 +425,17 @@ def _build_asian_handicap(by_g: dict, home_name: str, away_name: str) -> list[di
     return out
 
 
-def _build_team_totals(by_g: dict) -> list[dict]:
-    """1xbet G=15 carries individual team totals — T=11 over, T=12 under, P=line.
-    For 3-way sports the first half of T=11/12 entries are home, second half
-    away. Without explicit team tagging in the feed, we publish the union of
-    valid (over,under) pairs under a generic 'team_total_*' tab so users can
-    see every offered line. Further refinement would need a per-sport guess
-    based on the count split, which we skip until we have richer metadata."""
-    lines: dict[float, dict] = {}
-    for e in by_g.get(_G_TEAM_TOT, []):
-        t, p, c = e.get("T"), e.get("P"), e.get("C")
-        if p is None or c is None: continue
-        if t == 11: lines.setdefault(float(p), {})["over"]  = float(c)
-        if t == 12: lines.setdefault(float(p), {})["under"] = float(c)
-    out: list[dict] = []
-    for line in sorted(lines):
-        v = lines[line]
-        o, u = v.get("over"), v.get("under")
-        if not (o and u and o > 1 and u > 1): continue
-        suf = _line_suffix(line)
-        out.append({
-            "key":   f"team_total_{suf}",
-            "label": f"Team Total {line}",
-            "outcomes": [
-                {"key": "over",  "label": f"Over {line}",  "odds": o},
-                {"key": "under", "label": f"Under {line}", "odds": u},
-            ],
-        })
-    return out
+## Individual team totals (1xbet G=15, T=11 over / T=12 under, P=line) are
+## deliberately NOT scraped. The feed carries no team tag on these entries —
+## when both teams' lines are offered they land in the same (T, P)-keyed
+## bucket with no way to tell which team a given "Over 1.5" belongs to, so
+## neither a correct label nor a safe settlement (homeScore vs awayScore
+## needs to know which side) is possible from this response shape. A
+## previous attempt published them anyway under a generic 'team_total_*'
+## key the frontend never actually parsed correctly (it expected a
+## 'team_total_<home|away>_<line>' shape this never produced), so the tab
+## was live but every row's label was garbled — and even a fixed label
+## would still have been unresolvable, so removed rather than repaired.
 
 
 # ─── Per-event detail enrichment ─────────────────────────────────────────────
@@ -476,7 +468,6 @@ def _augment(row: dict) -> None:
     markets.extend(_build_dnb(by_g, home_name, away_name))
     markets.extend(_build_double_chance(by_g))
     markets.extend(_build_asian_handicap(by_g, home_name, away_name))
-    markets.extend(_build_team_totals(by_g))
 
     if markets:
         row["markets"] = markets

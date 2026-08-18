@@ -312,6 +312,25 @@ contract CasinoHouse is
         emit BetReceived(requestId, msg.sender, game, amount, clientSeed);
     }
 
+    /// @notice Real free capacity available for `requestId`'s own
+    ///         resolution — raw balance minus every OTHER currently-pending
+    ///         bet's reserved exposure. This bet's own reservation is
+    ///         excluded, the same self-exclusion shape as
+    ///         `LiquidityPool.getFreeLiquidity`: a bet should never be
+    ///         blocked by its own worst-case reservation. Used by the
+    ///         off-chain resolver (pre-hoc solvency gating, e.g. Dice) as
+    ///         the authoritative capacity figure — kept on-chain rather
+    ///         than replicated in TypeScript so it can never drift, and so
+    ///         a player can independently re-derive it from public state at
+    ///         the resolving block.
+    function availableCapacityFor(bytes32 requestId) external view returns (uint256) {
+        uint256 otherReserved = totalPendingExposure > bets[requestId].reservedExposure
+            ? totalPendingExposure - bets[requestId].reservedExposure
+            : 0;
+        uint256 bal = usdc.balanceOf(address(this));
+        return bal > otherReserved ? bal - otherReserved : 0;
+    }
+
     /// @notice Settle a placed bet with `payout` USDC (0 = full loss).
     /// @dev Applies solvency-aware payout scaling if bankroll balance < quoted payout.
     function settleGame(bytes32 requestId, uint256 randomResult, uint256 payout)

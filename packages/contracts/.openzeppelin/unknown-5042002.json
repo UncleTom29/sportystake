@@ -6237,6 +6237,352 @@
           ]
         }
       }
+    },
+    "59e4ffda244cd7fe7cb33c7cf7d77f1a744951ff1e05990f9c65e70d3ae335ee": {
+      "address": "0xb388a4d66A33c92c6A69E521AAd4958c49ce5F2E",
+      "txHash": "0x1799f7156e1f53cb0eaf17019b74c5d35ad87c37d275d226a836cb39c99820b8",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "bets",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_bytes32,t_struct(CasinoBet)2692_storage)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:49"
+          },
+          {
+            "label": "nonces",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:52"
+          },
+          {
+            "label": "maxMultiplierX100",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_enum(GameType)2676,t_uint256)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:54"
+          },
+          {
+            "label": "totalPendingExposure",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_uint256",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:55"
+          },
+          {
+            "label": "currentRoundId",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:58"
+          },
+          {
+            "label": "rounds",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_uint256,t_struct(RoundState)2730_storage)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:68"
+          },
+          {
+            "label": "roundUserDeposits",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_mapping(t_uint256,t_mapping(t_address,t_uint256))",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:69"
+          },
+          {
+            "label": "roundParticipants",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_mapping(t_uint256,t_array(t_address)dyn_storage)",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:70"
+          },
+          {
+            "label": "rtpBps",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_uint256",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:80"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_array(t_uint256)43_storage",
+            "contract": "CasinoHouse",
+            "src": "contracts/CasinoHouse.sol:82"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)24_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(AccessControlStorage)34_storage": {
+            "label": "struct AccessControlUpgradeable.AccessControlStorage",
+            "members": [
+              {
+                "label": "_roles",
+                "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(InitializableStorage)445_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)1348_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)24_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "hasRole",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_array(t_address)dyn_storage": {
+            "label": "address[]",
+            "numberOfBytes": "32"
+          },
+          "t_array(t_uint256)43_storage": {
+            "label": "uint256[43]",
+            "numberOfBytes": "1376"
+          },
+          "t_enum(GameType)2676": {
+            "label": "enum CasinoHouse.GameType",
+            "members": [
+              "Dice",
+              "Slots",
+              "Blackjack",
+              "Roulette",
+              "Baccarat"
+            ],
+            "numberOfBytes": "1"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(CasinoBet)2692_storage)": {
+            "label": "mapping(bytes32 => struct CasinoHouse.CasinoBet)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_enum(GameType)2676,t_uint256)": {
+            "label": "mapping(enum CasinoHouse.GameType => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_array(t_address)dyn_storage)": {
+            "label": "mapping(uint256 => address[])",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(uint256 => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(RoundState)2730_storage)": {
+            "label": "mapping(uint256 => struct CasinoHouse.RoundState)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(CasinoBet)2692_storage": {
+            "label": "struct CasinoHouse.CasinoBet",
+            "members": [
+              {
+                "label": "player",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "amount",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "game",
+                "type": "t_enum(GameType)2676",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "clientSeed",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "settled",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "payout",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "reservedExposure",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              }
+            ],
+            "numberOfBytes": "224"
+          },
+          "t_struct(RoundState)2730_storage": {
+            "label": "struct CasinoHouse.RoundState",
+            "members": [
+              {
+                "label": "roundId",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "startedAt",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "totalDeposits",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "totalPayouts",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "resolved",
+                "type": "t_bool",
+                "offset": 0,
+                "slot": "4"
+              }
+            ],
+            "numberOfBytes": "160"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "contracts/vendor/ReentrancyGuardUpgradeable.sol:30",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.AccessControl": [
+            {
+              "contract": "AccessControlUpgradeable",
+              "label": "_roles",
+              "type": "t_mapping(t_bytes32,t_struct(RoleData)24_storage)",
+              "src": "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol:61",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
     }
   }
 }

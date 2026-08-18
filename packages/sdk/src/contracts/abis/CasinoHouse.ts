@@ -94,6 +94,13 @@ export const casinoHouseAbi = [
   },
   {
     type: 'function',
+    name: 'availableCapacityFor',
+    stateMutability: 'view',
+    inputs: [{ name: 'requestId', type: 'bytes32' }],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
     name: 'totalPendingExposure',
     stateMutability: 'view',
     inputs: [],

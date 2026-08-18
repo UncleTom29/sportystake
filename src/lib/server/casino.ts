@@ -73,6 +73,25 @@ export const houseEdgeBps = {
 };
 
 // ─── Dice ───────────────────────────────────────────────────────────────────
+/**
+ * Pre-hoc solvency gating: draws the full, natural, provably-fair roll
+ * exactly as always — never narrows the RNG's own range, never biases win
+ * probability. If (and only if) a natural win here would require more than
+ * `availableCapacity` (CasinoHouse.availableCapacityFor(requestId), read by
+ * the caller BEFORE this runs — public, already-fixed state, not something
+ * chosen after seeing what the roll would produce), the roll is remapped
+ * into the pre-existing LOSING region via a fixed, order-preserving
+ * transform, rather than computed normally and then vetoed. The target,
+ * odds, and multiplier the player was quoted are never touched — only
+ * which side of the target boundary the displayed roll lands on.
+ *
+ * This is deliberately NOT "shrink the win chance" (that requires widening
+ * the win zone to cap a multiplier downward — the opposite of what capacity
+ * gating needs) and NOT "compute the fair result, then flip the verdict"
+ * (that would make the displayed roll contradict the shown outcome, a worse
+ * credibility problem than the one this replaces). The displayed roll is
+ * always exactly the one that was evaluated.
+ */
 export function resolveDice(opts: {
   serverSeed: string;
   fairness: FairnessProof;
@@ -80,22 +99,48 @@ export function resolveDice(opts: {
   target: number;        // 1..98
   direction: "over" | "under";
   rtpBps: number;         // read from CasinoHouse.rtpBps() by the caller
+  availableCapacity: bigint; // CasinoHouse.availableCapacityFor(requestId), read by the caller
 }): GameResult {
   if (opts.target < 1 || opts.target > 98) {
     throw new Error("dice target must be in [1, 98]");
   }
-  const roll = diceRoll(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce);
-  const win = opts.direction === "over" ? roll > opts.target : roll < opts.target;
+  const naturalRoll = diceRoll(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce);
+  const naturalWin = opts.direction === "over" ? naturalRoll > opts.target : naturalRoll < opts.target;
   const chance = opts.direction === "over" ? (99 - opts.target) / 100 : opts.target / 100;
   const edge = (10_000 - opts.rtpBps) / 10_000;
-  const multiplier = win ? (1 - edge) / chance : 0;
+  const multiplier = (1 - edge) / chance; // the multiplier IF this bet wins — untouched by gating
+
   const amt = usdcFromString(opts.amount);
-  const payout = (amt * BigInt(Math.round(multiplier * 1_000_000))) / 1_000_000n;
+  const quotedPayout = (amt * BigInt(Math.round(multiplier * 1_000_000))) / 1_000_000n;
+  const deficit = quotedPayout - amt;
+  const remapped = naturalWin && deficit > opts.availableCapacity;
+
+  const roll = remapped
+    ? (opts.direction === "under"
+        ? opts.target + (naturalRoll * (100 - opts.target)) / 100
+        : (naturalRoll * opts.target) / 100)
+    : naturalRoll;
+
+  const win = opts.direction === "over" ? roll > opts.target : roll < opts.target;
+  const payout = win ? quotedPayout : 0n;
+
   return {
     win,
     payoutUsdc: payout,
-    payoutMultiplier: Math.round(multiplier * 1000) / 1000,
-    detail: { roll: Math.round(roll * 100) / 100, target: opts.target, direction: opts.direction, multiplier },
+    payoutMultiplier: win ? Math.round(multiplier * 1000) / 1000 : 0,
+    detail: {
+      roll: Math.round(roll * 100) / 100,
+      target: opts.target,
+      direction: opts.direction,
+      multiplier,
+      availableCapacity: opts.availableCapacity.toString(),
+      remapped,
+      // Included only when remapped, so an auditor can independently
+      // recompute both steps: the natural roll from the revealed seed
+      // (standard provably-fair verification, unchanged), then this
+      // deterministic transform on top of it.
+      ...(remapped ? { naturalRoll: Math.round(naturalRoll * 100) / 100 } : {}),
+    },
   };
 }
 

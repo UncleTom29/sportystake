@@ -141,3 +141,27 @@ export async function getCasinoRtpBps(): Promise<number> {
   });
   return Number(bps);
 }
+
+/** Effectively-unconstrained sentinel for dev mode (no CasinoHouse deployed)
+ *  — comfortably larger than any realistic USDC amount, so the pre-hoc
+ *  capacity gate never fires when there's no real bankroll to model. */
+const UNCONSTRAINED_CAPACITY = 10n ** 30n;
+
+/**
+ * Reads `requestId`'s real free capacity for its own resolution —
+ * CasinoHouse's raw balance minus every OTHER currently-pending bet's
+ * reserved exposure (this bet's own reservation excluded). Requires the
+ * `placeCasinoBet` tx to already be mined (the on-chain counter it reads
+ * only reflects bets ordered before that point) — callers should read this
+ * after verifying the placement receipt, never before.
+ */
+export async function getCasinoAvailableCapacity(requestId: `0x${string}`): Promise<bigint> {
+  const address = casinoHouseAddress();
+  if (address === ZERO_ADDRESS) return UNCONSTRAINED_CAPACITY;
+  return publicClient().readContract({
+    address,
+    abi: casinoHouseAbi,
+    functionName: "availableCapacityFor",
+    args: [requestId],
+  });
+}

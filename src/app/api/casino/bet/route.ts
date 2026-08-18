@@ -8,7 +8,7 @@ import { publish } from "@/lib/server/event-bus";
 import { prisma } from "@/lib/server/db";
 import { generateServerSeed, hashServerSeed } from "@/lib/server/provably-fair";
 import { verifyCasinoBetPlaced } from "@/lib/server/casinoVerification";
-import { settleCasinoBetOnchain, getCasinoRtpBps, SettlementError } from "@/lib/server/casinoOnchain";
+import { settleCasinoBetOnchain, getCasinoRtpBps, getCasinoAvailableCapacity, SettlementError } from "@/lib/server/casinoOnchain";
 import {
   resolveDice,
   resolveSlots,
@@ -146,8 +146,16 @@ export const POST = withRequestId(async (req: NextRequest) => {
   let outcome;
   switch (body.game) {
     case "dice": {
-      const rtpBps = await getCasinoRtpBps();
-      outcome = resolveDice({ serverSeed, fairness, amount, target: body.target, direction: body.direction, rtpBps });
+      // Read AFTER verifyCasinoBetPlaced has already confirmed the
+      // placeCasinoBet tx is mined, so availableCapacityFor's on-chain
+      // totalPendingExposure counter already reflects this bet (and every
+      // other bet ordered before it) — no separate off-chain tracker, no
+      // race beyond what settleGame's balance clamp already backstops.
+      const [rtpBps, availableCapacity] = await Promise.all([
+        getCasinoRtpBps(),
+        getCasinoAvailableCapacity(verified.requestId),
+      ]);
+      outcome = resolveDice({ serverSeed, fairness, amount, target: body.target, direction: body.direction, rtpBps, availableCapacity });
       break;
     }
     case "slots":

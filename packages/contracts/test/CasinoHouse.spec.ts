@@ -241,6 +241,37 @@ describe("CasinoHouse", () => {
     });
   });
 
+  describe("availableCapacityFor", () => {
+    it("excludes a bet's own reservation but includes everyone else's — self-exclusion, mirroring LiquidityPool.getFreeLiquidity", async () => {
+      const env = await loadFixture(deploy);
+      const bankroll = await env.usdc_.balanceOf(await env.casino.getAddress());
+
+      // Dice reserves stake * 9900 / 100 at placement (maxMultiplierX100[Dice]).
+      const { requestId: id1 } = await placeBet(env, env.p1, usdc(10)); // reserves 990
+      const { requestId: id2 } = await placeBet(env, env.p2, usdc(20)); // reserves 1980
+
+      expect(await env.casino.totalPendingExposure()).to.equal(usdc(990) + usdc(1980));
+      const balance = bankroll + usdc(10) + usdc(20);
+      expect(await env.usdc_.balanceOf(await env.casino.getAddress())).to.equal(balance);
+
+      // bet1's own capacity excludes its own 990 but is reduced by bet2's 1980.
+      expect(await env.casino.availableCapacityFor(id1)).to.equal(balance - usdc(1980));
+      // bet2's own capacity excludes its own 1980 but is reduced by bet1's 990.
+      expect(await env.casino.availableCapacityFor(id2)).to.equal(balance - usdc(990));
+      // A never-placed requestId has no self-reservation to exclude — full
+      // exposure is treated as "other".
+      const fakeId = ethers.keccak256(ethers.toUtf8Bytes("never-placed"));
+      expect(await env.casino.availableCapacityFor(fakeId)).to.equal(balance - usdc(990) - usdc(1980));
+    });
+
+    it("returns exactly the full balance when only one bet is pending", async () => {
+      const env = await loadFixture(deploy);
+      const bankroll = await env.usdc_.balanceOf(await env.casino.getAddress());
+      const { requestId } = await placeBet(env, env.p1, usdc(10));
+      expect(await env.casino.availableCapacityFor(requestId)).to.equal(bankroll + usdc(10));
+    });
+  });
+
   describe("UUPS upgrade", () => {
     it("only DEFAULT_ADMIN_ROLE can authorize an upgrade", async () => {
       const env = await loadFixture(deploy);

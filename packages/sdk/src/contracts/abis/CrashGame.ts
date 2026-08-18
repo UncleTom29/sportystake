@@ -132,6 +132,28 @@ export const crashGameAbi = [
     inputs: [],
     outputs: [{ name: '', type: 'address' }],
   },
+  // --- RTP (Phase 0: shared, admin-configurable house edge) ---
+  {
+    type: 'function',
+    name: 'rtpBps',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'setRtp',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'newBps', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'totalPendingPayouts',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
   // --- Events ---
   {
     type: 'event',
@@ -276,4 +298,14 @@ export const crashGameAbi = [
   { type: 'error', name: 'NoPendingPayout', inputs: [] },
   { type: 'error', name: 'ZeroAmount', inputs: [] },
   { type: 'error', name: 'RoundNotTimedOut', inputs: [] },
+  { type: 'error', name: 'InvalidRtp', inputs: [] },
+  {
+    type: 'event',
+    name: 'RtpUpdated',
+    inputs: [
+      { name: 'oldBps', type: 'uint256', indexed: false },
+      { name: 'newBps', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
 ] as const;

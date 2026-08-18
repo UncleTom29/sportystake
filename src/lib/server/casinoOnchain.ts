@@ -9,7 +9,7 @@
  *   - `null`  when not configured (dev mode / contract not deployed)
  *   - Throws `SettlementError` on genuine on-chain failure
  */
-import { createWalletClient, http, type Hash } from "viem";
+import { createWalletClient, decodeEventLog, http, type Hash, type TransactionReceipt } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { clientEnv } from "@/lib/env";
 import { publicClient } from "@/lib/server/chain";
@@ -47,19 +47,48 @@ export class SettlementError extends Error {
 
 let warned = false;
 
+export interface CasinoSettlement {
+  txHash: Hash;
+  /** The payout `settleGame` actually transferred — decoded from the
+   *  `GameSettled` event, NOT the `payout` this function was asked to
+   *  settle for. These differ exactly when CasinoHouse's balance-clamp
+   *  backstop fires; callers MUST persist/display this value, never the
+   *  requested one, or a display can show more than a wallet received. */
+  actualPayout: bigint;
+}
+
+/** Decodes `GameSettled` from a settleGame receipt — mirrors
+ *  `crash-scheduler.worker.ts::decodePayouts`'s pattern for `PayoutCredited`. */
+function decodeSettledPayout(logs: TransactionReceipt["logs"], requestId: `0x${string}`): bigint | null {
+  for (const log of logs) {
+    try {
+      const decoded = decodeEventLog({ abi: casinoHouseAbi, data: log.data, topics: log.topics });
+      if (decoded.eventName === "GameSettled" && (decoded.args.requestId as string).toLowerCase() === requestId.toLowerCase()) {
+        return decoded.args.payout as bigint;
+      }
+    } catch { /* not this event */ }
+  }
+  return null;
+}
+
 /**
  * Settles a placed casino bet on-chain.
  *
- * @returns The settlement txHash on success, or `null` if the contract isn't
- *          deployed / operator key isn't configured (dev-mode graceful no-op).
- * @throws  {SettlementError} if the on-chain call genuinely fails — callers
- *          MUST treat this as a hard error and not persist the bet.
+ * @returns `{ txHash, actualPayout }` on success — `actualPayout` is what
+ *          `settleGame` actually transferred, read back from `GameSettled`,
+ *          which can be less than the requested `payout` if CasinoHouse's
+ *          balance-clamp backstop fires. Returns `null` if the contract
+ *          isn't deployed / operator key isn't configured (dev-mode
+ *          graceful no-op).
+ * @throws  {SettlementError} if the on-chain call genuinely fails, or if
+ *          `GameSettled` is unexpectedly absent from a successful receipt —
+ *          callers MUST treat this as a hard error and not persist the bet.
  */
 export async function settleCasinoBetOnchain(
   requestId: `0x${string}`,
   randomResult: bigint,
   payout: bigint,
-): Promise<Hash | null> {
+): Promise<CasinoSettlement | null> {
   const address = casinoHouseAddress();
   const operatorKey =
     process.env.OPERATOR_PRIVATE_KEY_CASINO ??
@@ -84,12 +113,31 @@ export async function settleCasinoBetOnchain(
       functionName: "settleGame",
       args: [requestId, randomResult, payout],
     });
-    await publicClient().waitForTransactionReceipt({ hash: txHash });
-    return txHash;
+    const receipt = await publicClient().waitForTransactionReceipt({ hash: txHash });
+    const actualPayout = decodeSettledPayout(receipt.logs, requestId);
+    if (actualPayout === null) {
+      throw new SettlementError(
+        `settleGame receipt for requestId ${requestId} had no decodable GameSettled event`,
+      );
+    }
+    return { txHash, actualPayout };
   } catch (err) {
+    if (err instanceof SettlementError) throw err;
     throw new SettlementError(
       `On-chain settlement failed for requestId ${requestId}`,
       err,
     );
   }
+}
+
+/** Reads CasinoHouse's shared, admin-configurable RTP (bps, 9000 = 90%). */
+export async function getCasinoRtpBps(): Promise<number> {
+  const address = casinoHouseAddress();
+  if (address === ZERO_ADDRESS) return 9000; // dev-mode default, matches the live default
+  const bps = await publicClient().readContract({
+    address,
+    abi: casinoHouseAbi,
+    functionName: "rtpBps",
+  });
+  return Number(bps);
 }

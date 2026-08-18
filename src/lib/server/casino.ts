@@ -40,13 +40,36 @@ function usdcToString(n: bigint): string {
   return `${whole.toString()}.${frac}`;
 }
 
+/**
+ * Per-game house edge. `dice` is now driven by `CasinoHouse.rtpBps` (see
+ * `resolveDice`'s `rtpBps` param, read on-chain by the caller in
+ * `/api/casino/bet/route.ts` via `getCasinoRtpBps()`) — the entry here is
+ * gone, not decorative-and-forgotten.
+ *
+ * `slots` stays here until its Phase 4 rebuild (weighted symbol selection
+ * calibrated to a real RTP — today's uniform `byte % symbolCount` draw
+ * never reads this constant at all).
+ *
+ * `roulette`/`baccarat` are informational only, not read by their resolve
+ * functions below — their real edge comes structurally from the classic,
+ * real-world-recognizable payout ratios (35:1 straight-up, 1.95x banker,
+ * etc.), which deliberately do NOT get forced onto the shared `rtpBps` knob
+ * the way Dice/Crash/Slots do (see the redesign plan's Phase 0 notes).
+ *
+ * `blackjack` is stale — the whole resolver is replaced by a real rules
+ * engine in Phase 5, whose edge emerges from actual game rules, not a
+ * tunable parameter.
+ *
+ * `crash` was always dead — `resolveCrash`/`crashMultiplier` below have no
+ * callers; the real crash game is entirely on-chain in `CrashGame.sol`,
+ * governed by its own `rtpBps`.
+ */
 export const houseEdgeBps = {
-  dice: 100,      // 1%
-  slots: 350,     // 3.5%
-  roulette: 270,  // 2.70% (European)
-  blackjack: 50,
-  baccarat: 120,
-  crash: 100,
+  slots: 350,     // 3.5% — placeholder pending Phase 4
+  roulette: 270,  // 2.70% (European) — informational, see above
+  blackjack: 50,  // stale — placeholder pending Phase 5 rebuild
+  baccarat: 120,  // informational, see above
+  crash: 100,     // dead — resolveCrash has no callers
 };
 
 // ─── Dice ───────────────────────────────────────────────────────────────────
@@ -56,6 +79,7 @@ export function resolveDice(opts: {
   amount: string;
   target: number;        // 1..98
   direction: "over" | "under";
+  rtpBps: number;         // read from CasinoHouse.rtpBps() by the caller
 }): GameResult {
   if (opts.target < 1 || opts.target > 98) {
     throw new Error("dice target must be in [1, 98]");
@@ -63,7 +87,7 @@ export function resolveDice(opts: {
   const roll = diceRoll(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce);
   const win = opts.direction === "over" ? roll > opts.target : roll < opts.target;
   const chance = opts.direction === "over" ? (99 - opts.target) / 100 : opts.target / 100;
-  const edge = houseEdgeBps.dice / 10_000;
+  const edge = (10_000 - opts.rtpBps) / 10_000;
   const multiplier = win ? (1 - edge) / chance : 0;
   const amt = usdcFromString(opts.amount);
   const payout = (amt * BigInt(Math.round(multiplier * 1_000_000))) / 1_000_000n;

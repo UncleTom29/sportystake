@@ -99,6 +99,21 @@ export const casinoHouseAbi = [
     inputs: [],
     outputs: [{ name: '', type: 'uint256' }],
   },
+  // --- RTP (Phase 0: shared, admin-configurable house edge) ---
+  {
+    type: 'function',
+    name: 'rtpBps',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+  {
+    type: 'function',
+    name: 'setRtp',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'newBps', type: 'uint256' }],
+    outputs: [],
+  },
   // --- Access control views (Fix #4: governance verification) ---
   {
     type: 'function',
@@ -175,6 +190,15 @@ export const casinoHouseAbi = [
     inputs: [
       { name: 'game', type: 'uint8', indexed: true },
       { name: 'multiplierX100', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'RtpUpdated',
+    inputs: [
+      { name: 'oldBps', type: 'uint256', indexed: false },
+      { name: 'newBps', type: 'uint256', indexed: false },
     ],
     anonymous: false,
   },

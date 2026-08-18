@@ -36,6 +36,8 @@ contract CrashGame is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
+    uint256 private constant BPS_DENOM = 10000;
+
     enum RoundStatus {
         Pending,
         Running,
@@ -91,7 +93,20 @@ contract CrashGame is
     /// @notice Withdrawable USDC per player, accumulated on round resolution.
     mapping(address => uint256) public pendingPayout;
 
-    uint256[50] private __gap;
+    /// @notice Running total of `pendingPayout` across every player — lets
+    ///         free-capacity math (resolveRound, withdrawBankroll) compute
+    ///         `balanceOf(this) - totalPendingPayouts` instead of raw
+    ///         balance, which would otherwise double-count USDC already
+    ///         owed to unclaimed prior winners (pull-payment means a win
+    ///         can sit uncollected across many later rounds).
+    uint256 public totalPendingPayouts;
+
+    /// @notice Return-to-player in bps (9000 = 90% RTP / 10% edge),
+    ///         replacing the previous hardcoded 1%-edge constants in
+    ///         `_crashFromSeed`. Bounded [5000,9900] by setRtp.
+    uint256 public rtpBps;
+
+    uint256[48] private __gap;
 
     // -----------------------------------------------------------------------
     // Errors
@@ -114,6 +129,7 @@ contract CrashGame is
     error NoPendingPayout();
     error ZeroAmount();
     error RoundNotTimedOut();
+    error InvalidRtp();
 
     // -----------------------------------------------------------------------
     // Events
@@ -138,6 +154,7 @@ contract CrashGame is
     event PayoutClaimed(address indexed player, uint256 amount);
     event BankrollDeposit(address indexed from, uint256 amount);
     event BankrollWithdraw(address indexed to, uint256 amount);
+    event RtpUpdated(uint256 oldBps, uint256 newBps);
 
     /// @param _usdc USDC token (6 decimals). Immutable — identical across upgrades.
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -156,6 +173,25 @@ contract CrashGame is
         _grantRole(ADMIN_ROLE, admin);
         _grantRole(OPERATOR_ROLE, admin);
         _grantRole(PAUSER_ROLE, admin);
+    }
+
+    /// @notice V2 upgrade hook — sets the initial RTP. Bundled atomically
+    ///         with the upgrade itself (via upgradeProxy's `call` option),
+    ///         same reasoning as CasinoHouse's identical hook: never leave a
+    ///         live window where `rtpBps` reads its zero default.
+    /// @custom:oz-upgrades-validate-as-initializer
+    function initializeV2(uint256 initialRtpBps) external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (initialRtpBps < 5000 || initialRtpBps > 9900) revert InvalidRtp();
+        rtpBps = initialRtpBps;
+    }
+
+    /// @notice Update RTP in basis points. Bounded [5000,9900] — same
+    ///         reasoning as CasinoHouse.setRtp.
+    function setRtp(uint256 newBps) external onlyRole(ADMIN_ROLE) {
+        if (newBps < 5000 || newBps > 9900) revert InvalidRtp();
+        uint256 old = rtpBps;
+        rtpBps = newBps;
+        emit RtpUpdated(old, newBps);
     }
 
     // -----------------------------------------------------------------------
@@ -280,7 +316,7 @@ contract CrashGame is
         PlayerEntry[] storage entries = roundPlayers[roundId];
         (uint256 sumStakes, uint256 sumQuoted) = _sumWinningPayouts(entries, crashX100);
 
-        uint256 L = usdc.balanceOf(address(this));
+        uint256 L = _freeCapacity();
         uint256 fillRatioBps = _calculateFillRatioBps(sumStakes, sumQuoted, L);
 
         uint256 n = entries.length;
@@ -301,6 +337,7 @@ contract CrashGame is
                 uint256 payout = _computeScaledPayout(e.amount, mult, L, sumStakes, sumQuoted, fillRatioBps);
                 if (payout > 0) {
                     pendingPayout[e.player] += payout;
+                    totalPendingPayouts += payout;
                     emit PayoutCredited(roundId, e.player, payout);
                 }
             }
@@ -404,6 +441,7 @@ contract CrashGame is
             if (e.resolved) continue;
             e.resolved = true;
             pendingPayout[e.player] += e.amount;
+            totalPendingPayouts += e.amount;
         }
     }
 
@@ -412,6 +450,7 @@ contract CrashGame is
         uint256 amt = pendingPayout[msg.sender];
         if (amt == 0) revert NoPendingPayout();
         pendingPayout[msg.sender] = 0;
+        totalPendingPayouts -= amt;
         usdc.safeTransfer(msg.sender, amt);
         emit PayoutClaimed(msg.sender, amt);
     }
@@ -428,12 +467,23 @@ contract CrashGame is
     }
 
     /// @notice Withdraw `amount` USDC from the contract to `to`. Refuses if
-    ///         doing so would drop the balance below the sum of accrued
-    ///         `pendingPayout` (best-effort: operator must avoid griefing).
+    ///         doing so would dip into `totalPendingPayouts` (accrued,
+    ///         unclaimed prior winnings) or the current round's
+    ///         `maxPotentialPayout` if it hasn't resolved yet — previously
+    ///         this doc comment claimed that protection but the code never
+    ///         actually enforced it (only checked raw balance).
     function withdrawBankroll(uint256 amount, address to) external onlyRole(ADMIN_ROLE) {
         if (amount == 0) revert ZeroAmount();
         uint256 bal = usdc.balanceOf(address(this));
-        if (bal < amount) revert InsufficientBankroll();
+        uint256 reserved = totalPendingPayouts;
+        if (currentRoundId != 0) {
+            Round storage r = rounds[currentRoundId];
+            if (r.status != RoundStatus.Resolved) {
+                reserved += r.maxPotentialPayout;
+            }
+        }
+        uint256 unlocked = bal > reserved ? bal - reserved : 0;
+        if (amount > unlocked) revert InsufficientBankroll();
         usdc.safeTransfer(to, amount);
         emit BankrollWithdraw(to, amount);
     }
@@ -462,20 +512,35 @@ contract CrashGame is
         if (r.id == 0) revert RoundNotFound();
     }
 
+    /// @dev Split out of `resolveRound` to keep its stack footprint under
+    ///      the EVM's local-variable limit (same reason BettingCore splits
+    ///      several of its own placement/parlay helpers). Real free
+    ///      capacity: raw balance minus USDC already owed to unclaimed
+    ///      prior winners.
+    function _freeCapacity() internal view returns (uint256) {
+        uint256 bal = usdc.balanceOf(address(this));
+        return bal > totalPendingPayouts ? bal - totalPendingPayouts : 0;
+    }
+
     /// @notice Crash point derived deterministically from the (revealed) seed.
-    /// @dev Returns multiplier x100. Floor of 100 (= 1.00x). House edge of 1%.
-    ///      Distribution: `1 / (1 - h * U)` where U is uniform in [0,1) and
-    ///      `h = 0.99` (1% house edge). A small fraction of rounds insta-bust
-    ///      at 1.00x to give the house its edge.
-    function _crashFromSeed(bytes32 seed, uint256 roundId) internal pure returns (uint256) {
+    /// @dev Returns multiplier x100. Floor of 100 (= 1.00x). House edge is
+    ///      `(BPS_DENOM - rtpBps) / BPS_DENOM` (was a hardcoded 1% before
+    ///      `rtpBps` existed — this generalizes the exact same formula
+    ///      shape rather than changing it: at rtpBps=9900 this reproduces
+    ///      the old constants' distribution exactly). Distribution:
+    ///      `rtpBps/100 / (1 - U)` where U is uniform in [0,1). A fraction
+    ///      of rounds equal to the house edge insta-bust at 1.00x.
+    ///      `view` not `pure` now that it reads `rtpBps`.
+    function _crashFromSeed(bytes32 seed, uint256 roundId) internal view returns (uint256) {
         bytes32 mix = keccak256(abi.encodePacked(seed, roundId));
         uint256 r = uint256(mix);
-        // 1% house edge: 1 in 100 rounds instantly busts at 1.00x.
-        if (r % 100 == 0) return 100;
-        // Map remaining 99% into 1.01x → ~100x.
+        // Instant-bust probability = house edge fraction.
+        if (r % BPS_DENOM < (BPS_DENOM - rtpBps)) return 100;
+        // Map the remaining fraction into 1.01x → ~1000x.
         uint256 e = (r % 1_000_000); // 0..999_999
-        // Curve: crash = (99 * 1e6) / (1e6 - e + 1) → fast head, fat tail.
-        uint256 crashX100 = (99 * 1_000_000) / (1_000_000 - e);
+        // Curve: crash = (rtpBps/100 * 1e6) / (1e6 - e), computed as one
+        // division to avoid truncating rtpBps/100 before the multiply.
+        uint256 crashX100 = (rtpBps * 1_000_000) / (100 * (1_000_000 - e));
         if (crashX100 < 101) return 101;
         if (crashX100 > MAX_AUTOCASHOUT_X100) return MAX_AUTOCASHOUT_X100;
         return crashX100;

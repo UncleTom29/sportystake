@@ -18,8 +18,14 @@ describe("CasinoHouse", () => {
     const casino = await upgrades.deployProxy(Casino, [admin.address], {
       kind: "uups",
       constructorArgs: [await usdc_.getAddress()],
+      // initializeV2 (reinitializer(2)) sets rtpBps separately from
+      // initialize()'s AccessControl/ReentrancyGuard inits — the validator
+      // can't see across the two-phase split. See BettingCore.spec.ts for
+      // the identical, established pattern.
+      unsafeAllow: ["missing-initializer-call", "incorrect-initializer-order"],
     });
     await casino.waitForDeployment();
+    await casino.connect(admin).initializeV2(9000n); // 90% RTP / 10% edge default
 
     for (const u of [p1, p2]) await usdc_.mint(u.address, usdc(10_000));
     await usdc_.mint(admin.address, usdc(1_000_000));
@@ -164,6 +170,74 @@ describe("CasinoHouse", () => {
       await expect(
         env.casino.connect(env.admin).withdrawBankroll(bankroll + usdc(1), env.admin.address)
       ).to.be.revertedWithCustomError(env.casino, "InsufficientBankroll");
+    });
+
+    it("withdrawBankroll refuses to dip into totalPendingExposure — an unsettled bet's worst case is protected", async () => {
+      const env = await loadFixture(deploy);
+
+      // Dice's maxMultiplierX100 is 9900 (99x) — a 10 USDC bet reserves
+      // 990 USDC of worst-case exposure the instant it's placed, before
+      // settleGame ever runs.
+      await placeBet(env, env.p1, usdc(10));
+      const bankroll = await env.usdc_.balanceOf(await env.casino.getAddress());
+      const reserved = await env.casino.totalPendingExposure();
+      expect(reserved).to.equal(usdc(990));
+
+      const unlocked = bankroll - reserved;
+      await expect(
+        env.casino.connect(env.admin).withdrawBankroll(unlocked + usdc(1), env.admin.address)
+      ).to.be.revertedWithCustomError(env.casino, "InsufficientBankroll");
+
+      // Exactly the unlocked amount still works.
+      await expect(env.casino.connect(env.admin).withdrawBankroll(unlocked, env.admin.address))
+        .to.not.be.reverted;
+    });
+  });
+
+  describe("rtpBps", () => {
+    it("defaults to 9000 (90% RTP) via initializeV2 in the test fixture", async () => {
+      const env = await loadFixture(deploy);
+      expect(await env.casino.rtpBps()).to.equal(9000n);
+    });
+
+    it("initializeV2 also (re-)seeds maxMultiplierX100 for every game and round 1 — required for upgrading a proxy whose live implementation predates those fields entirely", async () => {
+      const env = await loadFixture(deploy);
+      expect(await env.casino.maxMultiplierX100(Game.Dice)).to.equal(9900n);
+      expect(await env.casino.maxMultiplierX100(Game.Slots)).to.equal(5000n);
+      expect(await env.casino.maxMultiplierX100(Game.Blackjack)).to.equal(300n);
+      expect(await env.casino.maxMultiplierX100(Game.Roulette)).to.equal(3600n);
+      expect(await env.casino.maxMultiplierX100(Game.Baccarat)).to.equal(900n);
+      expect(await env.casino.currentRoundId()).to.equal(1n);
+    });
+
+    it("initializeV2 cannot be run twice", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.casino.connect(env.admin).initializeV2(9000n)).to.be.reverted;
+    });
+
+    it("setRtp updates the value and emits an event", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.casino.connect(env.admin).setRtp(8500n))
+        .to.emit(env.casino, "RtpUpdated")
+        .withArgs(9000n, 8500n);
+      expect(await env.casino.rtpBps()).to.equal(8500n);
+    });
+
+    it("reverts below the 50% floor", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.casino.connect(env.admin).setRtp(4999n))
+        .to.be.revertedWithCustomError(env.casino, "InvalidRtp");
+    });
+
+    it("reverts above the 99% cap", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.casino.connect(env.admin).setRtp(9901n))
+        .to.be.revertedWithCustomError(env.casino, "InvalidRtp");
+    });
+
+    it("reverts for a non-ADMIN_ROLE caller", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.casino.connect(env.p1).setRtp(8500n)).to.be.reverted;
     });
   });
 

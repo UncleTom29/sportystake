@@ -8,7 +8,7 @@ import { publish } from "@/lib/server/event-bus";
 import { prisma } from "@/lib/server/db";
 import { generateServerSeed, hashServerSeed } from "@/lib/server/provably-fair";
 import { verifyCasinoBetPlaced } from "@/lib/server/casinoVerification";
-import { settleCasinoBetOnchain, SettlementError } from "@/lib/server/casinoOnchain";
+import { settleCasinoBetOnchain, getCasinoRtpBps, SettlementError } from "@/lib/server/casinoOnchain";
 import {
   resolveDice,
   resolveSlots,
@@ -145,9 +145,11 @@ export const POST = withRequestId(async (req: NextRequest) => {
 
   let outcome;
   switch (body.game) {
-    case "dice":
-      outcome = resolveDice({ serverSeed, fairness, amount, target: body.target, direction: body.direction });
+    case "dice": {
+      const rtpBps = await getCasinoRtpBps();
+      outcome = resolveDice({ serverSeed, fairness, amount, target: body.target, direction: body.direction, rtpBps });
       break;
+    }
     case "slots":
       outcome = resolveSlots({ serverSeed, fairness, amount, lines: body.lines });
       break;
@@ -173,9 +175,20 @@ export const POST = withRequestId(async (req: NextRequest) => {
   // hard stop — we do NOT persist the DB row, because writing it despite a
   // failed on-chain settle is what enabled the original replay attack
   // (the swallowed BetAlreadySettled revert).
+  //
+  // `settlement.actualPayout` — not `outcome.payoutUsdc` — is what gets
+  // persisted/returned below. They can differ if CasinoHouse's balance
+  // clamp fires; previously this route always used the off-chain intended
+  // value, so a clamp could make the DB/API display more than a wallet
+  // actually received.
   let settleTxHash: string | null = null;
+  let finalPayout = outcome.payoutUsdc;
   try {
-    settleTxHash = await settleCasinoBetOnchain(verified.requestId, randomResult, outcome.payoutUsdc);
+    const settlement = await settleCasinoBetOnchain(verified.requestId, randomResult, outcome.payoutUsdc);
+    if (settlement) {
+      settleTxHash = settlement.txHash;
+      finalPayout = settlement.actualPayout;
+    }
   } catch (err) {
     if (err instanceof SettlementError && err.isAlreadySettled) {
       // eslint-disable-next-line no-console
@@ -187,14 +200,20 @@ export const POST = withRequestId(async (req: NextRequest) => {
     settleTxHash = body.txHash;
   }
 
+  // Authoritative win/loss follows the payout that actually landed, not
+  // the off-chain-computed intent — the two only disagree when the
+  // balance-clamp backstop fired, in which case "won" should follow
+  // what was paid.
+  const won = finalPayout > 0n;
+
   await prisma.casinoBet.create({
     data: {
       userId: auth.sub,
       game: GAME_TO_ENUM[body.game],
       amount: verified.amount,
       multiplierX100: Math.round(outcome.payoutMultiplier * 100),
-      payout: outcome.payoutUsdc,
-      status: outcome.win ? "WON" : "LOST",
+      payout: finalPayout,
+      status: won ? "WON" : "LOST",
       requestId: verified.requestId,
       seedServerHash: serverSeedHash,
       seedClient: body.clientSeed,
@@ -206,18 +225,18 @@ export const POST = withRequestId(async (req: NextRequest) => {
     },
   });
 
-  if (outcome.win) {
+  if (won) {
     publish("casino:win", {
       userId: auth.sub,
       game: body.game,
-      payout: casinoUtils.usdcToString(outcome.payoutUsdc),
+      payout: casinoUtils.usdcToString(finalPayout),
     });
   }
 
   return ok({
     outcome: {
-      win: outcome.win,
-      payout: casinoUtils.usdcToString(outcome.payoutUsdc),
+      win: won,
+      payout: casinoUtils.usdcToString(finalPayout),
       multiplier: outcome.payoutMultiplier,
       detail: outcome.detail,
     },

@@ -22,6 +22,8 @@ contract CasinoHouse is
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
+    uint256 private constant BPS_DENOM = 10000;
+
     enum GameType {
         Dice,
         Slots,
@@ -67,7 +69,17 @@ contract CasinoHouse is
     mapping(uint256 => mapping(address => uint256)) public roundUserDeposits;
     mapping(uint256 => address[]) public roundParticipants;
 
-    uint256[40] private __gap;
+    /// @notice Return-to-player in bps (9000 = 90% RTP / 10% edge), governing
+    ///         Dice's win-multiplier formula directly and (once wired) any
+    ///         other game whose payout is a smooth function of a probability
+    ///         parameter. Roulette/Baccarat deliberately keep their classic,
+    ///         structurally-fixed payout ratios (35:1 straight-up etc.)
+    ///         rather than being forced onto this shared knob — those ratios
+    ///         ARE the games' real-world-recognizable identity, not a
+    ///         separately-tunable edge. Bounded [5000,9900] by setRtp.
+    uint256 public rtpBps;
+
+    uint256[43] private __gap;
 
     // -----------------------------------------------------------------------
     // Errors
@@ -80,6 +92,7 @@ contract CasinoHouse is
     error MaxMultiplierNotSet();
     error RoundAlreadyResolved();
     error PayoutExceedsCap();
+    error InvalidRtp();
 
     // -----------------------------------------------------------------------
     // Events
@@ -106,6 +119,7 @@ contract CasinoHouse is
     event RoundOpened(uint256 indexed roundId, uint256 startedAt);
     event RoundJoined(uint256 indexed roundId, address indexed player, GameType indexed game, uint256 amount);
     event RoundResolved(uint256 indexed roundId, uint256 totalDeposits, uint256 totalPayouts, uint256 winnersCount);
+    event RtpUpdated(uint256 oldBps, uint256 newBps);
 
     /// @param _usdc USDC token (6 decimals). Immutable — identical across upgrades.
     /// @custom:oz-upgrades-unsafe-allow constructor
@@ -138,6 +152,61 @@ contract CasinoHouse is
             resolved: false
         });
         emit RoundOpened(1, block.timestamp);
+    }
+
+    /// @notice V2 upgrade hook. Bundled atomically with the upgrade itself
+    ///         (via upgradeProxy's `call` option) so there's never a live
+    ///         moment where `rtpBps` reads its zero default, which would
+    ///         make Dice's `(1-edge)/chance` formula divide by a 100% edge
+    ///         and pay every winner $0.
+    ///
+    ///         Also re-seeds `maxMultiplierX100`/`currentRoundId`/`rounds[1]`
+    ///         exactly as `initialize()` would — required because the live
+    ///         proxy this was first run against had been sitting on a much
+    ///         older implementation (a 5-field `CasinoBet` struct with no
+    ///         `maxMultiplierX100`/`totalPendingExposure`/round tracking at
+    ///         all — discovered via the `.openzeppelin` manifest's recorded
+    ///         layout for its actual live implementation address, unrelated
+    ///         to anything from this change). Upgrading straight to the
+    ///         current source without this would have left every
+    ///         `maxMultiplierX100[game]` at its zero default, and
+    ///         `placeCasinoBet` reverts with `MaxMultiplierNotSet` whenever
+    ///         that's zero — i.e. it would have broken every bet placement
+    ///         the moment this upgrade landed. Harmless no-op churn on a
+    ///         fresh deploy (initialize() already set the same values).
+    /// @custom:oz-upgrades-validate-as-initializer
+    function initializeV2(uint256 initialRtpBps) external reinitializer(2) onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (initialRtpBps < 5000 || initialRtpBps > 9900) revert InvalidRtp();
+        rtpBps = initialRtpBps;
+
+        maxMultiplierX100[GameType.Dice] = 9900;
+        maxMultiplierX100[GameType.Slots] = 5000;
+        maxMultiplierX100[GameType.Blackjack] = 300;
+        maxMultiplierX100[GameType.Roulette] = 3600;
+        maxMultiplierX100[GameType.Baccarat] = 900;
+
+        if (currentRoundId == 0) {
+            currentRoundId = 1;
+            rounds[1] = RoundState({
+                roundId: 1,
+                startedAt: block.timestamp,
+                totalDeposits: 0,
+                totalPayouts: 0,
+                resolved: false
+            });
+            emit RoundOpened(1, block.timestamp);
+        }
+    }
+
+    /// @notice Update RTP in basis points. Bounded [5000,9900] — floor
+    ///         prevents an unreasonably predatory edge, ceiling keeps the
+    ///         instant-bust/no-payout branches in the parametric games from
+    ///         vanishing to a rounding error.
+    function setRtp(uint256 newBps) external onlyRole(ADMIN_ROLE) {
+        if (newBps < 5000 || newBps > 9900) revert InvalidRtp();
+        uint256 old = rtpBps;
+        rtpBps = newBps;
+        emit RtpUpdated(old, newBps);
     }
 
     function setMaxMultiplier(GameType game, uint256 multiplierX100) external onlyRole(ADMIN_ROLE) {
@@ -279,10 +348,18 @@ contract CasinoHouse is
         emit BankrollDeposit(msg.sender, amount);
     }
 
-    /// @notice Pull `amount` USDC out of the bankroll to `to`.
+    /// @notice Pull `amount` USDC out of the bankroll to `to`. Refuses to
+    ///         dip into `totalPendingExposure` — the worst-case reserved for
+    ///         bets already accepted (stake pulled in) but not yet settled —
+    ///         mirroring `LiquidityPool.executeWithdrawal`'s
+    ///         `unlocked = totalLiquidity - lockedForPayouts` check. Without
+    ///         this, an admin withdrawal between `placeCasinoBet` and
+    ///         `settleGame` could starve a bet that was already accepted.
     function withdrawBankroll(uint256 amount, address to) external onlyRole(ADMIN_ROLE) {
         if (amount == 0) revert ZeroAmount();
-        if (usdc.balanceOf(address(this)) < amount) revert InsufficientBankroll();
+        uint256 bal = usdc.balanceOf(address(this));
+        uint256 unlocked = bal > totalPendingExposure ? bal - totalPendingExposure : 0;
+        if (amount > unlocked) revert InsufficientBankroll();
         usdc.safeTransfer(to, amount);
         emit BankrollWithdraw(to, amount);
     }

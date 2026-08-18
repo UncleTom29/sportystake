@@ -72,6 +72,7 @@ export const crashGameAbi = [
       { name: 'totalStaked', type: 'uint256' },
       { name: 'maxPotentialPayout', type: 'uint256' },
       { name: 'status', type: 'uint8' },
+      { name: 'maxSustainableCrashX100', type: 'uint256' },
     ],
   },
   {
@@ -170,6 +171,7 @@ export const crashGameAbi = [
     inputs: [
       { name: 'roundId', type: 'uint256', indexed: true },
       { name: 'startedAt', type: 'uint64', indexed: false },
+      { name: 'maxSustainableCrashX100', type: 'uint256', indexed: false },
     ],
     anonymous: false,
   },

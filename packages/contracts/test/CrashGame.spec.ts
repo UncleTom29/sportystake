@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { anyUint } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 
 const ONE_USDC = 10n ** 6n;
 const usdc = (n: bigint | number) => BigInt(n) * ONE_USDC;
@@ -324,6 +325,126 @@ describe("CrashGame", () => {
       // claim() correctly decrements the running total.
       await env.crash.connect(env.p1).claim();
       expect(await env.crash.totalPendingPayouts()).to.equal(p2Pending);
+    });
+  });
+
+  describe("maxSustainableCrashX100 (pre-hoc solvency cap, computed at lockRound)", () => {
+    async function drainTo(env: Awaited<ReturnType<typeof deploy>>, freeAmount: bigint) {
+      const addr = await env.crash.getAddress();
+      await ethers.provider.send("hardhat_setBalance", [addr, "0x1000000000000000000"]);
+      const signer = await ethers.getImpersonatedSigner(addr);
+      const bal = await env.usdc_.balanceOf(addr);
+      await env.usdc_.connect(signer).transfer(env.admin.address, bal - freeAmount);
+    }
+
+    it("healthy bankroll: no cap needed, full natural ceiling preserved (the 'upscale randomness when risk is minimal' case)", async () => {
+      const env = await loadFixture(deploy); // default 1,000,000 USDC bankroll
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("healthy-round"));
+      await env.crash.startRound(seedHashOf(seed));
+      await env.usdc_.connect(env.p1).approve(await env.crash.getAddress(), usdc(50));
+      await env.crash.connect(env.p1).joinRound(1, usdc(50), 300);
+
+      await expect(env.crash.lockRound(1))
+        .to.emit(env.crash, "RoundLocked")
+        .withArgs(1, anyUint, 100_000n);
+      expect((await env.crash.rounds(1)).maxSustainableCrashX100).to.equal(100_000n);
+    });
+
+    it("all-manual players still get a real, non-trivial cap — not the floor, despite no auto-cashout thresholds to test against", async () => {
+      // Drain to 1000 USDC free, then p1 joins 500 manually (no
+      // auto-cashout). Balance at lock = 1000 + 500 = 1500.
+      // available = 1500 * 90% (rtpBps margin) = 1350.
+      // Solve 500 * X / 100 <= 1350 -> X <= 270.
+      const env = await loadFixture(deploy);
+      await drainTo(env, usdc(1000));
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("all-manual-round"));
+      await env.crash.startRound(seedHashOf(seed));
+      await env.usdc_.connect(env.p1).approve(await env.crash.getAddress(), usdc(500));
+      await env.crash.connect(env.p1).joinRound(1, usdc(500), 0);
+
+      await env.crash.lockRound(1);
+      expect((await env.crash.rounds(1)).maxSustainableCrashX100).to.equal(270n);
+    });
+
+    it("a single auto-cashout whale is capped BELOW their own threshold once it's unaffordable — not smeared proportionally toward 1000x the way a naive available/maxPotentialPayout ratio would", async () => {
+      // Drain to 5000 USDC free, then p1 joins the max stake (5000) at
+      // autoCashoutX100=200 (2x). Balance at lock = 5000 + 5000 = 10000.
+      // available = 10000 * 90% = 9000. Once crash reaches 2x, this whale's
+      // fixed contribution jumps to 5000*200/100 = 10000, which alone
+      // already exceeds the 9000 available — so nowhere at or past 2x is
+      // safe. A naive ratio (available/maxPotentialPayout * 1000x =
+      // 9000/10000 * 100000 = 90000, i.e. 900x!) would be catastrophically
+      // wrong here — it would let the round climb to 900x while owing the
+      // whale their full $10,000 the instant it merely touches 2x.
+      const env = await loadFixture(deploy);
+      await drainTo(env, usdc(5000));
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("whale-round"));
+      await env.crash.startRound(seedHashOf(seed));
+      await env.usdc_.connect(env.p1).approve(await env.crash.getAddress(), usdc(5000));
+      await env.crash.connect(env.p1).joinRound(1, usdc(5000), 200);
+
+      await env.crash.lockRound(1);
+      expect((await env.crash.rounds(1)).maxSustainableCrashX100).to.equal(199n);
+    });
+
+    it("mixed auto-cashout + manual players: the segment walk combines a step (auto) and a linear (manual) contribution correctly", async () => {
+      // Drain to 3000, p1 joins 1000 at autoCashoutX100=300 (3x, fixed
+      // contribution 3000 once activated), p2 joins 200 manually. Balance
+      // at lock = 3000 + 1000 + 200 = 4200. available = 4200*90% = 3780.
+      // Below 3x: liability is purely p2's linear term (tiny, safe all the
+      // way to 299). At/above 3x: liability = 3000 (p1, now fixed) +
+      // manual term. Solve 3000 + 200*X/100 <= 3780 -> X <= 390.
+      const env = await loadFixture(deploy);
+      await drainTo(env, usdc(3000));
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("mixed-round"));
+      await env.crash.startRound(seedHashOf(seed));
+      await env.usdc_.connect(env.p1).approve(await env.crash.getAddress(), usdc(1000));
+      await env.crash.connect(env.p1).joinRound(1, usdc(1000), 300);
+      await env.usdc_.connect(env.p2).approve(await env.crash.getAddress(), usdc(200));
+      await env.crash.connect(env.p2).joinRound(1, usdc(200), 0);
+
+      await env.crash.lockRound(1);
+      expect((await env.crash.rounds(1)).maxSustainableCrashX100).to.equal(390n);
+    });
+
+    it("end-to-end: the whale never wins (capped below their threshold), a small player who cashed out early is paid in FULL with zero post-hoc scaling — even though the round's natural, uncapped trajectory (11.18x) would have made the whale's win real and unaffordable", async () => {
+      const env = await loadFixture(deploy);
+      await drainTo(env, usdc(5000));
+      // Verified offline: this seed's natural (uncapped) crash for roundId=1
+      // at rtpBps=9000 is 1118 (11.18x) — comfortably past both the 2x whale
+      // threshold and the round's computed cap, so the cap is what actually
+      // determines the outcome, not a lucky low natural roll.
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("e2e-whale-cap-1"));
+      await env.crash.startRound(seedHashOf(seed));
+
+      await env.usdc_.connect(env.p1).approve(await env.crash.getAddress(), usdc(5000));
+      await env.crash.connect(env.p1).joinRound(1, usdc(5000), 200); // whale, 2x auto-cashout
+      await env.usdc_.connect(env.p2).approve(await env.crash.getAddress(), usdc(10));
+      await env.crash.connect(env.p2).joinRound(1, usdc(10), 0); // small, manual
+
+      await env.crash.lockRound(1);
+      expect((await env.crash.rounds(1)).maxSustainableCrashX100).to.equal(199n);
+
+      await env.crash.connect(env.p2).cashOut(1, 150); // 1.50x, well inside the safe zone
+
+      await env.crash.resolveRound(1, seed);
+      const round = await env.crash.rounds(1);
+      expect(round.crashMultiplierX100).to.equal(199n); // capped, not the natural 1118
+
+      // Whale never crosses their own 2x (200) threshold under the capped
+      // result — no win, no payout, exactly as the cap intended.
+      expect(await env.crash.pendingPayout(env.p1.address)).to.equal(0n);
+
+      // Small player is paid their FULL quoted amount (10 * 1.50 = 15) —
+      // no fill-ratio scaling applied, because the pre-hoc cap already
+      // guaranteed the round could afford everyone who's actually eligible
+      // to win under it.
+      expect(await env.crash.pendingPayout(env.p2.address)).to.equal(usdc(15));
+
+      const before = await env.usdc_.balanceOf(env.p2.address);
+      await env.crash.connect(env.p2).claim();
+      const after = await env.usdc_.balanceOf(env.p2.address);
+      expect(after - before).to.equal(usdc(15));
     });
   });
 });

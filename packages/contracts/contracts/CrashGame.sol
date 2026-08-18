@@ -54,6 +54,15 @@ contract CrashGame is
         uint256 totalStaked;
         uint256 maxPotentialPayout;
         RoundStatus status;
+        /// @notice Highest crash multiplier (x100) this round's bankroll can
+        ///         fully sustain given every joined player's worst-case
+        ///         exposure, computed once at `lockRound` and applied as a
+        ///         ceiling in `resolveRound`. Pre-hoc solvency: the crash
+        ///         point itself never implies a payout the pool can't
+        ///         actually honor, instead of computing an unconstrained
+        ///         crash point and scaling winners' payouts down after the
+        ///         fact. See `_computeMaxSustainableCrashX100`.
+        uint256 maxSustainableCrashX100;
     }
 
     struct PlayerEntry {
@@ -136,7 +145,7 @@ contract CrashGame is
     // -----------------------------------------------------------------------
 
     event RoundStarted(uint256 indexed roundId, bytes32 serverSeedHash);
-    event RoundLocked(uint256 indexed roundId, uint64 startedAt);
+    event RoundLocked(uint256 indexed roundId, uint64 startedAt, uint256 maxSustainableCrashX100);
     event PlayerJoined(
         uint256 indexed roundId,
         address indexed player,
@@ -224,7 +233,8 @@ contract CrashGame is
             crashMultiplierX100: 0,
             totalStaked: 0,
             maxPotentialPayout: 0,
-            status: RoundStatus.Pending
+            status: RoundStatus.Pending,
+            maxSustainableCrashX100: 0
         });
         emit RoundStarted(roundId, serverSeedHash);
     }
@@ -269,13 +279,30 @@ contract CrashGame is
         emit PlayerJoined(roundId, msg.sender, amount, autoCashoutX100);
     }
 
-    /// @notice Lock a round to disable new joins.
+    /// @notice Lock a round to disable new joins, and compute the highest
+    ///         crash multiplier this round's bankroll can fully sustain
+    ///         given every joined player's worst-case exposure. The
+    ///         participant set is final the moment this runs (no more
+    ///         joins possible past Pending), so this is the right, and
+    ///         only, point to compute it — `resolveRound` just applies the
+    ///         cap already decided here.
     function lockRound(uint256 roundId) external onlyRole(OPERATOR_ROLE) {
         Round storage r = _round(roundId);
         if (r.status != RoundStatus.Pending) revert RoundNotPending();
         r.status = RoundStatus.Running;
         r.startedAt = uint64(block.timestamp);
-        emit RoundLocked(roundId, r.startedAt);
+
+        uint256 rawBal = usdc.balanceOf(address(this));
+        uint256 available = rawBal > totalPendingPayouts ? rawBal - totalPendingPayouts : 0;
+        // Reserve the same edge fraction off capacity that rtpBps already
+        // takes on the expected-value side — one consistent margin
+        // regardless of which side of the round the house is protecting,
+        // same reasoning BettingCore's houseEdgeBps reuse used.
+        available = (available * rtpBps) / BPS_DENOM;
+
+        r.maxSustainableCrashX100 = _computeMaxSustainableCrashX100(roundId, available);
+
+        emit RoundLocked(roundId, r.startedAt, r.maxSustainableCrashX100);
     }
 
     /// @notice Player-initiated cashout. Operator settles outcomes later;
@@ -306,7 +333,22 @@ contract CrashGame is
         if (r.status != RoundStatus.Running) revert RoundNotRunning();
         if (keccak256(abi.encodePacked(serverSeed)) != r.serverSeedHash) revert SeedMismatch();
 
+        // Solvency-bounded by construction: the crash point that actually
+        // gets used — revealed, displayed, and determines every winner — is
+        // never allowed to exceed what lockRound already confirmed the
+        // bankroll can fully sustain. This is the single source of truth
+        // for the round from here on; there's no separate "natural" value
+        // shown anywhere else it could ever disagree with.
+        //
+        // maxSustainableCrashX100 == 0 means this round was locked before
+        // this cap existed (an in-flight round straddling the upgrade that
+        // added it) — fall back to fully uncapped, relying on the
+        // pre-existing post-hoc fill-ratio scaling below exactly as before,
+        // rather than wrongly clamping a legitimate round to zero.
         uint256 crashX100 = _crashFromSeed(serverSeed, roundId);
+        if (r.maxSustainableCrashX100 != 0 && crashX100 > r.maxSustainableCrashX100) {
+            crashX100 = r.maxSustainableCrashX100;
+        }
 
         r.status = RoundStatus.Resolved;
         r.resolvedAt = uint64(block.timestamp);
@@ -366,6 +408,105 @@ contract CrashGame is
                 sumQuoted += (e.amount * mult) / 100;
             }
         }
+    }
+
+    /// @dev Largest crash multiplier (x100) this round's bankroll can fully
+    ///      sustain, given every joined player's worst-case exposure —
+    ///      called once, at `lockRound`, when the participant set is final.
+    ///
+    ///      Worst-case liability at a candidate ceiling X is NOT linear in
+    ///      X the way a naive `available/maxPotentialPayout` ratio would
+    ///      assume: an auto-cashout player's contribution is a step
+    ///      function (zero until crash reaches their threshold, then a
+    ///      FIXED amount that never grows further — a $100k stake at 2x
+    ///      auto-cashout realizes its full payout the instant crash hits
+    ///      2x, not smeared proportionally out to 1000x). A manual (no
+    ///      auto-cashout) player's worst case genuinely does grow linearly
+    ///      with X, since they could click cash-out at literally any point
+    ///      up to the candidate ceiling.
+    ///
+    ///      So liability(X) is piecewise-linear and non-decreasing: FLAT
+    ///      between consecutive auto-cashout thresholds (only the manual
+    ///      stakes' linear term moves it), and JUMPS UP by a fixed amount
+    ///      exactly at each threshold. This sorts thresholds ascending and
+    ///      walks the segments between them, solving directly for the
+    ///      crossing point within whichever segment contains it — an
+    ///      all-manual round (the common "everyone plays by hand" case)
+    ///      still gets a real, non-trivial cap instead of collapsing to the
+    ///      floor for lack of any auto-cashout "breakpoints" to test.
+    function _computeMaxSustainableCrashX100(uint256 roundId, uint256 available)
+        internal
+        view
+        returns (uint256)
+    {
+        PlayerEntry[] storage entries = roundPlayers[roundId];
+        uint256 n = entries.length;
+        if (n == 0) return MAX_AUTOCASHOUT_X100;
+
+        uint256 manualStakeSum = 0;
+        uint256[] memory thresholds = new uint256[](n);
+        uint256[] memory stakes = new uint256[](n);
+        uint256 k = 0; // count of auto-cashout entries
+        for (uint256 i = 0; i < n; ++i) {
+            PlayerEntry storage e = entries[i];
+            if (e.autoCashoutX100 == 0) {
+                manualStakeSum += e.amount;
+            } else {
+                thresholds[k] = e.autoCashoutX100;
+                stakes[k] = e.amount;
+                k++;
+            }
+        }
+
+        // Selection sort ascending by threshold — k <= MAX_PLAYERS_PER_ROUND
+        // (100), trivially cheap.
+        for (uint256 i = 0; i < k; ++i) {
+            uint256 minIdx = i;
+            for (uint256 j = i + 1; j < k; ++j) {
+                if (thresholds[j] < thresholds[minIdx]) minIdx = j;
+            }
+            if (minIdx != i) {
+                (thresholds[i], thresholds[minIdx]) = (thresholds[minIdx], thresholds[i]);
+                (stakes[i], stakes[minIdx]) = (stakes[minIdx], stakes[i]);
+            }
+        }
+
+        uint256 fixedSum = 0;
+        uint256 segStart = 101;
+        uint256 best = 101; // floor — matches _crashFromSeed's own minimum non-instabust result
+
+        // k+1 segments: before thresholds[0], between consecutive
+        // thresholds, and after thresholds[k-1] (up to the game's ceiling).
+        for (uint256 i = 0; i <= k; ++i) {
+            uint256 segEndInclusive = (i < k) ? thresholds[i] - 1 : MAX_AUTOCASHOUT_X100;
+
+            if (segEndInclusive >= segStart) {
+                if (fixedSum > available) {
+                    // fixedSum only grows from here on (more thresholds
+                    // just add more) — nothing later can possibly help.
+                    break;
+                }
+                if (manualStakeSum == 0) {
+                    // Flat segment: liability is constant (== fixedSum,
+                    // already confirmed <= available) throughout.
+                    if (segEndInclusive > best) best = segEndInclusive;
+                } else {
+                    // Liability grows linearly with X in this segment —
+                    // solve for the largest X where
+                    // fixedSum + manualStakeSum * X / 100 <= available.
+                    uint256 x = ((available - fixedSum) * 100) / manualStakeSum;
+                    if (x > segEndInclusive) x = segEndInclusive;
+                    if (x >= segStart && x > best) best = x;
+                }
+            }
+
+            if (i < k) {
+                fixedSum += (stakes[i] * thresholds[i]) / 100;
+                segStart = thresholds[i];
+            }
+        }
+
+        return best;
     }
 
     function _calculateFillRatioBps(uint256 sumStakes, uint256 sumQuoted, uint256 L)

@@ -165,7 +165,8 @@ async function recoverStuckRounds(
       args: [currentId],
     }) as unknown as readonly unknown[];
 
-    // Round struct: [id, serverSeedHash, serverSeed, startedAt, resolvedAt, crashMultiplierX100, totalStaked, maxPotentialPayout, status]
+    // Round struct: [id, serverSeedHash, serverSeed, startedAt, resolvedAt, crashMultiplierX100, totalStaked, maxPotentialPayout, status, maxSustainableCrashX100]
+    // (maxSustainableCrashX100 appended at the end — status stays at [8])
     const status = Number(round[8]);
     const startedAt = Number(round[3]);
 

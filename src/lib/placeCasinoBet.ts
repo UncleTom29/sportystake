@@ -9,7 +9,7 @@ import { useWallet } from "@/lib/walletStore";
 import { CONTRACT_ADDRESSES } from "@/lib/wagmi";
 import { clientEnv } from "@/lib/env";
 import { privyApproveIfNeeded, privyContractWrite } from "@/lib/privyTx";
-import { Casino } from "@/lib/api-client";
+import { Casino, type BlackjackHandResult } from "@/lib/api-client";
 import { parseUsdc } from "../../packages/sdk/src/utils";
 
 export type CasinoGameKey = "dice" | "slots" | "roulette" | "blackjack" | "baccarat";
@@ -116,6 +116,56 @@ export async function resolveCasinoBetWithRetry(
     txHash: body.txHash,
     game: body.game,
     amount: Number(body.amount ?? 0),
+    clientSeed: body.clientSeed,
+    params: body,
+    timestamp: Date.now(),
+  });
+
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
+/**
+ * Deals (or, on retry/reload, resumes — `/deal` is idempotent per txHash) a
+ * blackjack hand, with the same backoff-then-persist-for-recovery shape as
+ * `resolveCasinoBetWithRetry`. Unlike that function, success here doesn't
+ * always mean "done" — a non-natural hand comes back `status: "player_turn"`
+ * and still needs hit/stand action calls, so the pending-bet marker is kept
+ * (not cleared) until the hand actually resolves, letting a page reload
+ * mid-hand recover into the same in-progress cards via this same call.
+ */
+export async function dealBlackjackWithRetry(
+  body: { txHash: string; clientSeed: string },
+  maxRetries = 3,
+): Promise<BlackjackHandResult> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await Casino.dealBlackjack(body);
+      if (res.status === "resolved") {
+        clearPendingCasinoBet("blackjack");
+      } else {
+        savePendingCasinoBet({
+          txHash: body.txHash,
+          game: "blackjack",
+          amount: 0,
+          clientSeed: body.clientSeed,
+          params: body,
+          timestamp: Date.now(),
+        });
+      }
+      return res;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxRetries) {
+        await new Promise((r) => setTimeout(r, 1200 * attempt));
+      }
+    }
+  }
+
+  savePendingCasinoBet({
+    txHash: body.txHash,
+    game: "blackjack",
+    amount: 0,
     clientSeed: body.clientSeed,
     params: body,
     timestamp: Date.now(),

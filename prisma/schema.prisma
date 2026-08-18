@@ -278,9 +278,47 @@ model CasinoBet {
   txHash        String?      @unique @db.VarChar(66)
   placedAt      DateTime     @default(now())
   resolvedAt    DateTime?
+  blackjackHand BlackjackHand?
 
   @@index([userId, placedAt(sort: Desc)])
   @@index([game, placedAt(sort: Desc)])
+}
+
+/// In-progress (and, briefly, just-resolved) state for a real-rules
+/// blackjack hand — deliberately NOT folded into CasinoBet.metadata, which
+/// every other game treats as a write-once, resolution-time-only field;
+/// reusing it here for repeated in-flight mutation would break that
+/// invariant everywhere else it's read, and block an indexable query for
+/// abandoned hands the way CasinoBet.metadata (untyped JSON) can't support.
+model BlackjackHand {
+  id          String    @id @default(cuid())
+  casinoBetId String    @unique
+  casinoBet   CasinoBet @relation(fields: [casinoBetId], references: [id])
+  /// Next provably-fair draw offset to try (see blackjackEngine.ts's
+  /// drawCard) — persisted rather than derived, since some offsets get
+  /// skipped on a same-card collision and that skip must survive a hit
+  /// landing in a later request.
+  cursor      Int       @default(0)
+  /// Array of hands — always exactly one today (no split support yet), kept
+  /// as an array so split can be added later without another migration.
+  /// Each entry: { cards: number[], done: boolean }.
+  playerHands Json
+  /// { cards: number[] } — index 1 (the hole card) is drawn immediately at
+  /// deal time (so it's fully committed) but withheld from API responses
+  /// until the hand resolves.
+  dealerHand  Json
+  /// Optimistic-concurrency guard: every action does
+  /// `UPDATE ... WHERE id=? AND actionSeq=?`, checks the affected-row
+  /// count, and rejects on mismatch — Prisma's update() replaces a JSON
+  /// column rather than patching it, so two concurrent actions on the same
+  /// hand (a double-click, a retried request) would otherwise silently
+  /// lost-update the shoe cursor and desync the deck.
+  actionSeq   Int       @default(0)
+  status      String    // "player_turn" | "resolved"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, updatedAt])
 }
 
 enum CasinoGame {

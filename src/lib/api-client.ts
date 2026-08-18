@@ -18,6 +18,21 @@ export interface OnchainCrashRound {
   serverSeed?: string;
 }
 
+export interface BlackjackHandResult {
+  casinoBetId: string;
+  actionSeq: number;
+  status: "player_turn" | "resolved";
+  playerHands: { cards: number[]; done: boolean }[];
+  dealerUpCard?: number; // player_turn only — hole card withheld
+  dealerCards?: number[]; // resolved only — full reveal
+  outcome?: string;
+  multiplier?: number;
+  bonusGated?: boolean;
+  payout?: string;
+  win?: boolean;
+  fairness?: { serverSeedHash: string; serverSeed?: string; clientSeed: string; nonce: number };
+}
+
 export class ApiClientError extends Error {
   constructor(public code: string, message: string, public status: number, public details?: unknown) {
     super(message);
@@ -181,6 +196,10 @@ export const Casino = {
     api.post<{ cashedOutAtX100: number }>(`/api/casino/crash/cashout`, { txHash }),
   crashClaim: (txHash: string) => api.post<{ amount: string }>(`/api/casino/crash/claim`, { txHash }),
   crashHistory: () => api.get<{ items: { id: number; crashMultiplierX100: number; at?: string }[] }>(`/api/casino/crash/history`),
+  dealBlackjack: (body: { txHash: string; clientSeed: string }) =>
+    api.post<BlackjackHandResult>(`/api/casino/blackjack/deal`, body),
+  blackjackAction: (body: { casinoBetId: string; action: "hit" | "stand"; actionSeq: number }) =>
+    api.post<BlackjackHandResult>(`/api/casino/blackjack/action`, body),
 };
 
 export const Analytics = {

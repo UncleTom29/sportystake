@@ -59,9 +59,11 @@ function usdcToString(n: bigint): string {
  * etc.), which deliberately do NOT get forced onto the shared `rtpBps` knob
  * the way Dice/Crash/Slots do (see the redesign plan's Phase 0 notes).
  *
- * `blackjack` is stale — the whole resolver is replaced by a real rules
- * engine in Phase 5, whose edge emerges from actual game rules, not a
- * tunable parameter.
+ * `blackjack` is display-only, like roulette/baccarat — real edge emerges
+ * from `blackjackEngine.ts`'s actual rules-accurate play (dealer stands on
+ * all 17s, 3:2 naturals), not a tunable parameter. `50` approximates
+ * basic-strategy house edge for the catalog listing in
+ * `/api/casino/games/route.ts`.
  *
  * `crash` was always dead — `resolveCrash`/`crashMultiplier` below have no
  * callers; the real crash game is entirely on-chain in `CrashGame.sol`,
@@ -388,44 +390,10 @@ export function resolveCrash(opts: {
   };
 }
 
-// ─── Blackjack / Baccarat (probabilistic, not full game sims) ──────────────
-export function resolveBlackjack(opts: {
-  serverSeed: string;
-  fairness: FairnessProof;
-  amount: string;
-}): GameResult {
-  // Draw using the provably-fair byte stream — 4 cards.
-  const a = uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 11, 0) + 1;
-  const b = uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 11, 4) + 1;
-  const c = uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 11, 8) + 1;
-  const d = uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 11, 12) + 1;
-  let player = a + b;
-  let dealer = c + d;
-  // Simple play: player hits if <17 with 50% prob; dealer hits to 17.
-  if (player < 17) {
-    const e = uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 11, 16) + 1;
-    player += e;
-  }
-  while (dealer < 17) {
-    const f = uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 11, 20) + 1;
-    dealer += f;
-    if (dealer >= 17) break;
-  }
-  const playerBust = player > 21;
-  const dealerBust = dealer > 21;
-  let multiplier = 0;
-  if (playerBust) multiplier = 0;
-  else if (dealerBust || player > dealer) multiplier = 2;
-  else if (player === dealer) multiplier = 1;
-  const amt = usdcFromString(opts.amount);
-  return {
-    win: multiplier > 1,
-    payoutUsdc: amt * BigInt(multiplier),
-    payoutMultiplier: multiplier,
-    detail: { player, dealer, playerBust, dealerBust },
-  };
-}
-
+// ─── Baccarat (probabilistic, not a full game sim) ─────────────────────────
+// Blackjack now has its own real rules engine — see blackjackEngine.ts,
+// wired through the dedicated /api/casino/blackjack/{deal,action} routes
+// rather than this file's single-shot resolvers.
 function baccaratWinner(p: number, b: number): "player" | "banker" | "tie" {
   return p > b ? "player" : b > p ? "banker" : "tie";
 }

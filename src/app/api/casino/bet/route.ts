@@ -13,7 +13,6 @@ import {
   resolveDice,
   resolveSlots,
   resolveRoulette,
-  resolveBlackjack,
   resolveBaccarat,
   utils as casinoUtils,
 } from "@/lib/server/casino";
@@ -42,11 +41,6 @@ const Body = z.discriminatedUnion("game", [
     clientSeed: z.string().min(1).max(64).default("default"),
   }),
   z.object({
-    game: z.literal("blackjack"),
-    txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
-    clientSeed: z.string().min(1).max(64).default("default"),
-  }),
-  z.object({
     game: z.literal("baccarat"),
     txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
     bet: z.enum(["player", "banker", "tie"]),
@@ -54,14 +48,16 @@ const Body = z.discriminatedUnion("game", [
   }),
 ]);
 
+// Blackjack is deliberately absent — it's handled by the dedicated
+// /api/casino/blackjack/{deal,action} routes (multi-step hit/stand state),
+// not this single-shot resolver.
 const GAME_TO_ENUM = {
-  dice: "DICE", slots: "SLOTS", roulette: "ROULETTE",
-  blackjack: "BLACKJACK", baccarat: "BACCARAT",
+  dice: "DICE", slots: "SLOTS", roulette: "ROULETTE", baccarat: "BACCARAT",
 } as const;
 
 /** Solidity CasinoHouse.GameType enum order — Dice=0, Slots=1, Blackjack=2, Roulette=3, Baccarat=4. */
 const GAME_TO_ONCHAIN_TYPE: Record<keyof typeof GAME_TO_ENUM, number> = {
-  dice: 0, slots: 1, blackjack: 2, roulette: 3, baccarat: 4,
+  dice: 0, slots: 1, roulette: 3, baccarat: 4,
 };
 
 /**
@@ -168,9 +164,6 @@ export const POST = withRequestId(async (req: NextRequest) => {
       outcome = resolveRoulette({ serverSeed, fairness, amount, bet: { type: body.betType, selection: body.selection }, availableCapacity });
       break;
     }
-    case "blackjack":
-      outcome = resolveBlackjack({ serverSeed, fairness, amount });
-      break;
     case "baccarat": {
       const availableCapacity = await getCasinoAvailableCapacity(verified.requestId);
       outcome = resolveBaccarat({ serverSeed, fairness, amount, bet: body.bet, availableCapacity });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveDice } from "./casino";
+import { resolveDice, resolveRoulette, resolveBaccarat, resolveSlots } from "./casino";
 
 // Deterministic (serverSeed, clientSeed, nonce) -> diceRoll() fixtures,
 // precomputed offline against provably-fair.ts's exact HMAC formula so
@@ -142,5 +142,251 @@ describe("resolveDice", () => {
       expect(result.payoutUsdc).toBe(180_000_000n);
       expect(result.detail.roll as number).toBeCloseTo(24.32, 1);
     });
+  });
+});
+
+describe("resolveRoulette", () => {
+  // ("r-seed-1","r-client-1",0) -> number = 6 (black, even, low)
+
+  it("straight-up win remaps to the very next number when the 36x payout is unaffordable", () => {
+    const result = resolveRoulette({
+      serverSeed: "r-seed-1",
+      fairness: { serverSeedHash: "", clientSeed: "r-client-1", nonce: 0 },
+      amount: "10",
+      bet: { type: "straight", selection: 6 },
+      availableCapacity: 100_000_000n, // 100 USDC, deficit is 350 USDC (10 * 35)
+    });
+    expect(result.detail.remapped).toBe(true);
+    expect(result.win).toBe(false);
+    expect(result.payoutUsdc).toBe(0n);
+    expect(result.detail.number).toBe(7); // next number after 6, which already loses a straight-on-6 bet
+    expect(result.detail.naturalNumber).toBe(6);
+  });
+
+  it("a color bet remaps to the nearest number of the OTHER color when unaffordable", () => {
+    const result = resolveRoulette({
+      serverSeed: "r-seed-1",
+      fairness: { serverSeedHash: "", clientSeed: "r-client-1", nonce: 0 },
+      amount: "1000",
+      bet: { type: "black" }, // 6 is black -> natural win
+      availableCapacity: 500_000_000n, // 500 USDC, deficit is 1000 USDC
+    });
+    expect(result.detail.remapped).toBe(true);
+    expect(result.win).toBe(false);
+    expect(result.detail.number).toBe(7);
+    expect(result.detail.color).toBe("red");
+  });
+
+  it("no remap when capacity is sufficient — pays the full natural result", () => {
+    const result = resolveRoulette({
+      serverSeed: "r-seed-1",
+      fairness: { serverSeedHash: "", clientSeed: "r-client-1", nonce: 0 },
+      amount: "10",
+      bet: { type: "straight", selection: 6 },
+      availableCapacity: 1_000_000_000n, // 1000 USDC, comfortably above the 350 deficit
+    });
+    expect(result.detail.remapped).toBe(false);
+    expect(result.win).toBe(true);
+    expect(result.detail.number).toBe(6);
+    expect(result.payoutUsdc).toBe(360_000_000n); // 10 * 36
+  });
+
+  it("a natural loss is never remapped, regardless of capacity", () => {
+    const result = resolveRoulette({
+      serverSeed: "r-seed-1",
+      fairness: { serverSeedHash: "", clientSeed: "r-client-1", nonce: 0 },
+      amount: "10",
+      bet: { type: "straight", selection: 5 }, // number is 6, not 5 -> natural loss
+      availableCapacity: 0n,
+    });
+    expect(result.detail.remapped).toBe(false);
+    expect(result.win).toBe(false);
+    expect(result.detail.number).toBe(6); // untouched
+  });
+});
+
+describe("resolveBaccarat", () => {
+  // ("bc-seed-3","bc-client-3",0) -> p=3, b=2, winner=player
+  // ("bc-tie-seed-11","bc-tie-client-11",0) -> p=9, b=9, winner=tie
+
+  it("a player win remaps to the nearest (p,b) pair with a different winner when unaffordable", () => {
+    const result = resolveBaccarat({
+      serverSeed: "bc-seed-3",
+      fairness: { serverSeedHash: "", clientSeed: "bc-client-3", nonce: 0 },
+      amount: "10",
+      bet: "player",
+      availableCapacity: 0n, // deficit is 10 USDC (2x - 1x on a 10 stake)
+    });
+    expect(result.detail.remapped).toBe(true);
+    expect(result.win).toBe(false);
+    expect(result.payoutUsdc).toBe(0n);
+    expect(result.detail.winner).not.toBe("player");
+    expect(result.detail.naturalPlayer).toBe(3);
+    expect(result.detail.naturalBanker).toBe(2);
+  });
+
+  it("a tie win (9x) remaps correctly even when the very next combined index is still a tie", () => {
+    // naturalIdx = 9*10+9 = 99. idx+1=0 -> (0,0), STILL a tie (0===0) -> keep
+    // walking. idx+2=1 -> (0,1), banker wins -> first genuine loss for "tie".
+    const result = resolveBaccarat({
+      serverSeed: "bc-tie-seed-11",
+      fairness: { serverSeedHash: "", clientSeed: "bc-tie-client-11", nonce: 0 },
+      amount: "10",
+      bet: "tie",
+      availableCapacity: 10_000_000n, // 10 USDC, deficit is 80 USDC (9x-1x on a 10 stake)
+    });
+    expect(result.detail.remapped).toBe(true);
+    expect(result.win).toBe(false);
+    expect(result.detail.player).toBe(0);
+    expect(result.detail.banker).toBe(1);
+    expect(result.detail.winner).toBe("banker");
+    expect(result.detail.naturalPlayer).toBe(9);
+    expect(result.detail.naturalBanker).toBe(9);
+  });
+
+  it("no remap when capacity is sufficient", () => {
+    const result = resolveBaccarat({
+      serverSeed: "bc-seed-3",
+      fairness: { serverSeedHash: "", clientSeed: "bc-client-3", nonce: 0 },
+      amount: "10",
+      bet: "player",
+      availableCapacity: 20_000_000n, // 20 USDC, above the 10 USDC deficit
+    });
+    expect(result.detail.remapped).toBe(false);
+    expect(result.win).toBe(true);
+    expect(result.payoutUsdc).toBe(20_000_000n);
+    expect(result.detail.player).toBe(3);
+    expect(result.detail.banker).toBe(2);
+  });
+
+  it("a natural loss (bet doesn't match the natural winner) is never remapped", () => {
+    const result = resolveBaccarat({
+      serverSeed: "bc-seed-3",
+      fairness: { serverSeedHash: "", clientSeed: "bc-client-3", nonce: 0 },
+      amount: "10",
+      bet: "banker", // natural winner is player -> natural loss
+      availableCapacity: 0n,
+    });
+    expect(result.detail.remapped).toBe(false);
+    expect(result.win).toBe(false);
+    expect(result.detail.player).toBe(3);
+    expect(result.detail.banker).toBe(2);
+  });
+});
+
+describe("resolveSlots", () => {
+  // ("slot-seed-10","slot-client-10",0) -> row0=[cherry,cherry,cherry,star,cherry]
+  // (3 matches, mult=6), row1=[lemon,cherry,cherry,lemon,cherry] (no match
+  // beyond position 0, mult=0), row2=[star,cherry,cherry,bell,bell] (mult=0).
+  // Only row0 wins naturally.
+  //
+  // ("slot-multi-156","slot-multi-c-156",0) -> row0 mult=6 (3 matches),
+  // row1=[cherry,cherry,cherry,cherry,lemon] (4 matches, mult=8), row2 mult=0.
+  // Both row0 and row1 win naturally.
+
+  it("no remap when capacity comfortably covers the single natural win", () => {
+    const result = resolveSlots({
+      serverSeed: "slot-seed-10",
+      fairness: { serverSeedHash: "", clientSeed: "slot-client-10", nonce: 0 },
+      amount: "9",
+      lines: 3,
+      availableCapacity: 20_000_000n, // deficit is 9 USDC (perLine=3 * 6 - amt=9)
+    });
+    expect(result.detail.remapped).toBe(false);
+    expect(result.win).toBe(true);
+    expect(result.payoutMultiplier).toBe(6);
+    expect(result.payoutUsdc).toBe(18_000_000n); // perLine(3) * 6
+    expect(result.detail.winLines).toEqual([0]);
+    expect((result.detail.reels as number[][])[0]).toEqual([0, 0, 0, 2, 0]);
+  });
+
+  it("remaps the single winning row to a guaranteed loss when its deficit is unaffordable — displayed reels always match the verdict", () => {
+    const result = resolveSlots({
+      serverSeed: "slot-seed-10",
+      fairness: { serverSeedHash: "", clientSeed: "slot-client-10", nonce: 0 },
+      amount: "9",
+      lines: 3,
+      availableCapacity: 5_000_000n, // 5 USDC, short of the 9 USDC deficit
+    });
+    expect(result.detail.remapped).toBe(true);
+    expect(result.win).toBe(false);
+    expect(result.payoutUsdc).toBe(0n);
+    expect(result.detail.winLines).toEqual([]);
+    const reels = result.detail.reels as number[][];
+    expect(reels[0]).toEqual([0, 0, 1, 2, 0]); // position 2 forced off cherry
+    const remappedRows = result.detail.remappedRows as Record<number, number[]>;
+    expect(remappedRows[0]).toEqual([0, 0, 0, 2, 0]); // natural row disclosed for re-verification
+  });
+
+  it("confirms rows left-to-right against a running spin-wide budget — both natural wins fit when capacity allows", () => {
+    const result = resolveSlots({
+      serverSeed: "slot-multi-156",
+      fairness: { serverSeedHash: "", clientSeed: "slot-multi-c-156", nonce: 0 },
+      amount: "9",
+      lines: 3,
+      availableCapacity: 40_000_000n, // covers the combined deficit of 33 USDC (perLine=3*14 - 9)
+    });
+    expect(result.detail.remapped).toBe(false);
+    expect(result.payoutMultiplier).toBe(14); // 6 (row0) + 8 (row1)
+    expect(result.payoutUsdc).toBe(42_000_000n); // perLine(3) * 14
+    expect(result.detail.winLines).toEqual([0, 1]);
+  });
+
+  it("confirms the first row that fits and remaps only the row that pushes the running total over capacity — NOT an all-or-nothing veto of the whole spin", () => {
+    const result = resolveSlots({
+      serverSeed: "slot-multi-156",
+      fairness: { serverSeedHash: "", clientSeed: "slot-multi-c-156", nonce: 0 },
+      amount: "9",
+      lines: 3,
+      // Covers row0 alone (9 USDC deficit) but not row0+row1 together (33).
+      availableCapacity: 20_000_000n,
+    });
+    expect(result.detail.remapped).toBe(true);
+    expect(result.payoutMultiplier).toBe(6); // row0 only
+    expect(result.payoutUsdc).toBe(18_000_000n);
+    expect(result.detail.winLines).toEqual([0]); // row1 excluded, remapped to a loss
+    const remappedRows = result.detail.remappedRows as Record<number, number[]>;
+    expect(Object.keys(remappedRows)).toEqual(["1"]);
+    expect(remappedRows[1]).toEqual([0, 0, 0, 0, 1]); // row1's natural (4-match) draw
+  });
+
+  it("rows beyond the played line count are still drawn and shown, but never evaluated for wins or gated by capacity", () => {
+    const result = resolveSlots({
+      serverSeed: "slot-seed-10",
+      fairness: { serverSeedHash: "", clientSeed: "slot-client-10", nonce: 0 },
+      amount: "9",
+      lines: 1, // only row 0 is scored — perLine is the FULL stake (9 USDC)
+      // here, not amt/3, so row0's deficit is 9*6-9=45 USDC — needs more
+      // capacity than the lines=3 tests above to stay unremapped.
+      availableCapacity: 100_000_000n,
+    });
+    const reels = result.detail.reels as number[][];
+    expect(reels.length).toBe(3); // all 3 rows still shown
+    expect(reels[0]).toEqual([0, 0, 0, 2, 0]);
+    expect(reels[1]).toEqual([1, 0, 0, 1, 0]); // drawn, unevaluated
+    expect(reels[2]).toEqual([2, 0, 0, 4, 4]); // drawn, unevaluated
+    expect(result.detail.winLines).toEqual([0]);
+  });
+
+  it("a spin with no natural wins anywhere is never remapped and pays nothing, regardless of capacity", () => {
+    // ("slot-nowin-2","slot-nowin-c-2",0) -> all 3 rows fail to reach 3
+    // matches (max run lengths of 1 each) — nothing for the gate to do.
+    const result = resolveSlots({
+      serverSeed: "slot-nowin-2",
+      fairness: { serverSeedHash: "", clientSeed: "slot-nowin-c-2", nonce: 0 },
+      amount: "9",
+      lines: 3,
+      availableCapacity: 0n, // thinnest possible capacity — irrelevant here
+    });
+    expect(result.detail.remapped).toBe(false);
+    expect(result.win).toBe(false);
+    expect(result.payoutUsdc).toBe(0n);
+    expect(result.detail.winLines).toEqual([]);
+    const reels = result.detail.reels as number[][];
+    expect(reels).toEqual([
+      [1, 0, 0, 1, 0],
+      [0, 4, 0, 1, 1],
+      [0, 1, 0, 4, 1],
+    ]);
   });
 });

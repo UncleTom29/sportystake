@@ -77,29 +77,35 @@ export function crashMultiplier(serverSeed: string, clientSeed: string, nonce: n
   return Math.min(1000, Math.max(1.01, Math.floor(m * 100) / 100));
 }
 
-/** Slots: pull 5 reels × 3 rows from successive bytes of the HMAC. */
-export function slotReels(
+/**
+ * Weighted draw for one slot grid cell. `weights[i]` is symbol i's relative
+ * weight (not required to be normalized). Derives its OWN independent HMAC
+ * digest per cell (clientSeed suffixed with `cellIndex`) rather than
+ * carving up a single shared digest by cursor — a 3x5 grid needs 15 draws,
+ * more than the 8 four-byte windows one 32-byte HMAC provides, and
+ * `uniformIndex`'s cursor-exhausted retry path always resolves to the same
+ * `serverSeed + ":retry"` digest regardless of which cursor triggered it,
+ * so cells beyond the 8th would silently collide if driven by cursor alone.
+ * Verifiable the same way as any other provably-fair draw — a verifier just
+ * needs the documented convention (cell i's entropy source is
+ * `clientSeed + ":cell" + i`).
+ */
+export function weightedCellIndex(
   serverSeed: string,
   clientSeed: string,
   nonce: number,
-  symbolCount: number,
-): number[][] {
-  const hmac = deriveResult(serverSeed, clientSeed, nonce);
-  const rows = 3;
-  const cols = 5;
-  const reels: number[][] = [];
-  let i = 0;
-  for (let r = 0; r < rows; r++) {
-    const row: number[] = [];
-    for (let c = 0; c < cols; c++) {
-      // 2 bytes per cell — plenty of entropy for ≤256 symbols.
-      const byte = hmac[i % hmac.length] ^ hmac[(i + 7) % hmac.length];
-      row.push(byte % symbolCount);
-      i++;
-    }
-    reels.push(row);
+  cellIndex: number,
+  weights: number[],
+): number {
+  const total = weights.reduce((a, b) => a + b, 0);
+  if (total <= 0) throw new Error("weightedCellIndex: weights must sum to > 0");
+  const draw = uniformIndex(serverSeed, `${clientSeed}:cell${cellIndex}`, nonce, total, 0);
+  let acc = 0;
+  for (let i = 0; i < weights.length; i++) {
+    acc += weights[i];
+    if (draw < acc) return i;
   }
-  return reels;
+  return weights.length - 1; // unreachable given draw < total; defensive only
 }
 
 /** Roulette: 0..36 inclusive (European single-zero wheel). */

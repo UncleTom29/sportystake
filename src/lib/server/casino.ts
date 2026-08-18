@@ -9,7 +9,7 @@ import {
   crashMultiplier,
   diceRoll,
   rouletteNumber,
-  slotReels,
+  weightedCellIndex,
   uniformIndex,
 } from "./provably-fair";
 
@@ -46,9 +46,12 @@ function usdcToString(n: bigint): string {
  * `/api/casino/bet/route.ts` via `getCasinoRtpBps()`) — the entry here is
  * gone, not decorative-and-forgotten.
  *
- * `slots` stays here until its Phase 4 rebuild (weighted symbol selection
- * calibrated to a real RTP — today's uniform `byte % symbolCount` draw
- * never reads this constant at all).
+ * `slots` now matches reality: `SLOT_WEIGHTS` below is solved (closed-form,
+ * not decorative) to land row RTP at exactly 90% — this constant is purely
+ * DISPLAY, not itself read by `resolveSlots`, whose actual edge comes from
+ * the weight table. Fixed rather than admin-adjustable (unlike Dice/Crash's
+ * `rtpBps`) — the weights would need re-solving for a different target, not
+ * just a parameter flip.
  *
  * `roulette`/`baccarat` are informational only, not read by their resolve
  * functions below — their real edge comes structurally from the classic,
@@ -65,7 +68,7 @@ function usdcToString(n: bigint): string {
  * governed by its own `rtpBps`.
  */
 export const houseEdgeBps = {
-  slots: 350,     // 3.5% — placeholder pending Phase 4
+  slots: 1000,    // 10% — matches SLOT_WEIGHTS' solved 90% RTP exactly
   roulette: 270,  // 2.70% (European) — informational, see above
   blackjack: 50,  // stale — placeholder pending Phase 5 rebuild
   baccarat: 120,  // informational, see above
@@ -149,83 +152,216 @@ const SLOT_SYMBOLS = ["🍒", "🍋", "⭐", "💎", "🔔", "7️⃣", "🃏"];
 const SLOT_PAYOUTS: Record<string, number> = {
   "🍒": 2, "🍋": 3, "⭐": 5, "🔔": 8, "💎": 15, "7️⃣": 25, "🃏": 50,
 };
+const WILD_INDEX = 6; // SLOT_SYMBOLS.indexOf("🃏")
 
+/**
+ * Relative draw weights, index-aligned with SLOT_SYMBOLS, calibrated so the
+ * exact expected per-row return (accounting for the wild's dual role as
+ * both a 50x-paying symbol AND a substitute for every other symbol's match
+ * run) lands at 90.00% — solved directly from the row-win probability
+ * formula below, not simulated or eyeballed. Recalibrate if SLOT_PAYOUTS or
+ * the match rule ever changes; see the "expectedRowMultiplier" derivation
+ * in this session's history for the closed-form math (per starting symbol
+ * i, win probability at exactly k matches follows a geometric-tail shape in
+ * (p_i + p_wild), so expected return is fully solvable in closed form —
+ * no Monte Carlo needed). The wild's resulting probability is extremely
+ * small (~1-in-700,000) — a direct, correct consequence of it paying up to
+ * 250x (5-in-a-row) while ALSO substituting for every other symbol.
+ */
+const SLOT_WEIGHTS = [286_204, 220_290, 130_507, 9_524, 59_510, 695, 1]; // cherry, lemon, star, diamond, bell, seven, wild
+
+interface SlotRowOutcome {
+  matches: number;
+  multiplier: number;
+}
+
+function evaluateSlotRow(row: number[]): SlotRowOutcome {
+  const first = row[0];
+  let matches = 1;
+  for (let c = 1; c < row.length; c++) {
+    if (row[c] === first || row[c] === WILD_INDEX) matches++;
+    else break;
+  }
+  if (matches < 3) return { matches, multiplier: 0 };
+  const mult = SLOT_PAYOUTS[SLOT_SYMBOLS[first]] ?? 1;
+  return { matches, multiplier: mult * matches };
+}
+
+/** Deterministic substitute for row position 2 that's guaranteed to NOT
+ *  continue a match with `first` (and isn't the wild either) — breaking
+ *  the match chain at the earliest position beyond what's required to
+ *  already be a winning row (positions 0 and 1 both continuing is what
+ *  makes a natural row eligible for remapping in the first place), so the
+ *  remapped row is guaranteed matches<3 regardless of what the untouched
+ *  positions 0, 1, 3, 4 were. */
+function firstNonMatchingSymbol(first: number): number {
+  for (let candidate = 0; candidate < SLOT_SYMBOLS.length; candidate++) {
+    if (candidate !== first && candidate !== WILD_INDEX) return candidate;
+  }
+  return 0; // unreachable — 7 symbols, at most 2 excluded
+}
+
+/**
+ * Same pre-hoc gating principle as the other games, adapted to slots' three
+ * independent rows: each row is drawn (now via weighted, RTP-calibrated
+ * symbol selection rather than the previous unweighted `byte % 7`) exactly
+ * as always. Rows are then confirmed left-to-right against a running
+ * spin-wide budget — there is only ONE stake collected for the whole spin,
+ * not one per row, so what matters is the AGGREGATE deficit
+ * (perLine × confirmedMultiplier − amount) staying within capacity, not a
+ * per-row fiction. The first row(s) that fit are confirmed as natural
+ * wins; a row whose natural contribution would push the running total over
+ * capacity is remapped to a guaranteed loss instead (via
+ * `firstNonMatchingSymbol`) rather than computed fairly and then denied.
+ */
 export function resolveSlots(opts: {
   serverSeed: string;
   fairness: FairnessProof;
   amount: string;
   lines: number;
+  availableCapacity: bigint;
 }): GameResult {
-  const reels = slotReels(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, SLOT_SYMBOLS.length);
-  const cols = reels[0].length;
-  const winLines: number[] = [];
-  let totalMultiplier = 0;
-  for (let r = 0; r < Math.min(reels.length, opts.lines); r++) {
-    const first = reels[r][0];
-    let matches = 1;
-    for (let c = 1; c < cols; c++) {
-      if (reels[r][c] === first || reels[r][c] === 6 /* wild */) matches++;
-      else break;
-    }
-    if (matches >= 3) {
-      winLines.push(r);
-      const sym = SLOT_SYMBOLS[first];
-      const mult = SLOT_PAYOUTS[sym] ?? 1;
-      totalMultiplier += mult * matches;
-    }
-  }
   const amt = usdcFromString(opts.amount);
-  const perLine = amt / BigInt(Math.max(1, opts.lines));
-  const payout = perLine * BigInt(Math.round(totalMultiplier * 1000)) / 1000n;
+  const lineCount = Math.max(1, opts.lines);
+  const perLine = amt / BigInt(lineCount);
+  const rowsToEvaluate = Math.min(3, lineCount);
+
+  const reels: number[][] = [];
+  const winLines: number[] = [];
+  const remappedRows: Record<number, number[]> = {};
+  let confirmedMultiplier = 0;
+
+  for (let r = 0; r < 3; r++) {
+    const naturalRow: number[] = [];
+    for (let c = 0; c < 5; c++) {
+      naturalRow.push(weightedCellIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, r * 5 + c, SLOT_WEIGHTS));
+    }
+
+    if (r >= rowsToEvaluate) {
+      // Not a scored line at this bet size — still drawn and shown
+      // (matches the pre-existing display behavior), never evaluated.
+      reels.push(naturalRow);
+      continue;
+    }
+
+    const natural = evaluateSlotRow(naturalRow);
+    let row = naturalRow;
+    let outcome = natural;
+
+    if (natural.multiplier > 0) {
+      const tentativeMultiplier = confirmedMultiplier + natural.multiplier;
+      const tentativePayout = perLine * BigInt(tentativeMultiplier);
+      const tentativeDeficit = tentativePayout > amt ? tentativePayout - amt : 0n;
+      if (tentativeDeficit > opts.availableCapacity) {
+        row = [...naturalRow];
+        row[2] = firstNonMatchingSymbol(naturalRow[0]);
+        outcome = evaluateSlotRow(row); // guaranteed matches < 3
+        remappedRows[r] = naturalRow;
+      } else {
+        confirmedMultiplier = tentativeMultiplier;
+      }
+    }
+
+    reels.push(row);
+    if (outcome.multiplier > 0) winLines.push(r);
+  }
+
+  const payout = perLine * BigInt(confirmedMultiplier);
+  const remapped = Object.keys(remappedRows).length > 0;
   return {
     win: payout > 0n,
     payoutUsdc: payout,
-    payoutMultiplier: totalMultiplier,
-    detail: { reels, symbols: SLOT_SYMBOLS, winLines, totalMultiplier },
+    payoutMultiplier: confirmedMultiplier,
+    detail: {
+      reels,
+      symbols: SLOT_SYMBOLS,
+      winLines,
+      totalMultiplier: confirmedMultiplier,
+      availableCapacity: opts.availableCapacity.toString(),
+      remapped,
+      ...(remapped ? { remappedRows } : {}),
+    },
   };
 }
 
 // ─── Roulette ───────────────────────────────────────────────────────────────
-export function resolveRoulette(opts: {
-  serverSeed: string;
-  fairness: FairnessProof;
-  amount: string;
-  bet: { type: string; selection?: number | string };
-}): GameResult {
-  const number = rouletteNumber(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce);
+/** Pure win/multiplier check for one drawn number against one bet — shared
+ *  by the natural draw and, if needed, the remap walk below. */
+function evaluateRouletteBet(number: number, betType: string, selection: number | string | undefined): number {
   const color = number === 0 ? "green" : number % 2 === 0 ? "black" : "red";
-  let multiplier = 0;
-  const sel = opts.bet.selection;
-  switch (opts.bet.type) {
-    case "straight": if (Number(sel) === number) multiplier = 36; break;
-    case "red":      if (color === "red") multiplier = 2; break;
-    case "black":    if (color === "black") multiplier = 2; break;
-    case "even":     if (number > 0 && number % 2 === 0) multiplier = 2; break;
-    case "odd":      if (number % 2 === 1) multiplier = 2; break;
-    case "low":      if (number >= 1 && number <= 18) multiplier = 2; break;
-    case "high":     if (number >= 19 && number <= 36) multiplier = 2; break;
+  const sel = selection;
+  switch (betType) {
+    case "straight": return Number(sel) === number ? 36 : 0;
+    case "red":      return color === "red" ? 2 : 0;
+    case "black":    return color === "black" ? 2 : 0;
+    case "even":     return number > 0 && number % 2 === 0 ? 2 : 0;
+    case "odd":      return number % 2 === 1 ? 2 : 0;
+    case "low":      return number >= 1 && number <= 18 ? 2 : 0;
+    case "high":     return number >= 19 && number <= 36 ? 2 : 0;
     case "dozen": {
       const d = Number(sel);
       if ((d === 1 && number >= 1 && number <= 12) ||
           (d === 2 && number >= 13 && number <= 24) ||
           (d === 3 && number >= 25 && number <= 36)) {
-        multiplier = 3;
+        return 3;
       }
-      break;
+      return 0;
     }
     case "column": {
       const c = Number(sel);
-      if (number > 0 && number % 3 === (c === 3 ? 0 : c)) multiplier = 3;
-      break;
+      return number > 0 && number % 3 === (c === 3 ? 0 : c) ? 3 : 0;
     }
-    default: multiplier = 0;
+    default: return 0;
   }
+}
+
+/**
+ * Same pre-hoc gating principle as Dice, adapted to a discrete 37-number
+ * wheel: draw the natural number exactly as always; if it's a win this bet
+ * can't currently afford, walk forward (mod 37) to the nearest number that
+ * loses for THIS bet, and use that instead. The largest possible winning
+ * set (red/black/even/odd/low/high) is 18 of 37 numbers, so at least 19
+ * losing numbers always exist and the walk is bounded — no per-bet-type
+ * remap formula needed, this one rule covers every bet type uniformly.
+ */
+export function resolveRoulette(opts: {
+  serverSeed: string;
+  fairness: FairnessProof;
+  amount: string;
+  bet: { type: string; selection?: number | string };
+  availableCapacity: bigint;
+}): GameResult {
+  const naturalNumber = rouletteNumber(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce);
+  const naturalMultiplier = evaluateRouletteBet(naturalNumber, opts.bet.type, opts.bet.selection);
   const amt = usdcFromString(opts.amount);
+  const deficit = amt * BigInt(Math.max(0, naturalMultiplier - 1));
+  const remapped = naturalMultiplier > 0 && deficit > opts.availableCapacity;
+
+  let number = naturalNumber;
+  if (remapped) {
+    for (let i = 1; i <= 37; i++) {
+      const candidate = (naturalNumber + i) % 37;
+      if (evaluateRouletteBet(candidate, opts.bet.type, opts.bet.selection) === 0) {
+        number = candidate;
+        break;
+      }
+    }
+  }
+
+  const multiplier = evaluateRouletteBet(number, opts.bet.type, opts.bet.selection);
+  const color = number === 0 ? "green" : number % 2 === 0 ? "black" : "red";
   return {
     win: multiplier > 0,
     payoutUsdc: amt * BigInt(multiplier),
     payoutMultiplier: multiplier,
-    detail: { number, color, multiplier },
+    detail: {
+      number,
+      color,
+      multiplier,
+      availableCapacity: opts.availableCapacity.toString(),
+      remapped,
+      ...(remapped ? { naturalNumber } : {}),
+    },
   };
 }
 
@@ -290,32 +426,75 @@ export function resolveBlackjack(opts: {
   };
 }
 
+function baccaratWinner(p: number, b: number): "player" | "banker" | "tie" {
+  return p > b ? "player" : b > p ? "banker" : "tie";
+}
+
+function evaluateBaccaratBet(p: number, b: number, bet: "player" | "banker" | "tie"): number {
+  if (baccaratWinner(p, b) !== bet) return 0;
+  return bet === "tie" ? 9 : bet === "banker" ? 1.95 : 2;
+}
+
+/**
+ * Same pre-hoc gating principle as Roulette, adapted to baccarat's two-draw
+ * outcome: the natural (player, banker) point totals are drawn exactly as
+ * always; if the natural winner matches this bet and it's unaffordable,
+ * walk forward through the combined index space (p*10+b, mod 100) to the
+ * nearest (p,b) pair whose winner does NOT match this bet.
+ */
 export function resolveBaccarat(opts: {
   serverSeed: string;
   fairness: FairnessProof;
   amount: string;
   bet: "player" | "banker" | "tie";
+  availableCapacity: bigint;
 }): GameResult {
-  const p = (
+  const naturalP = (
     uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 10, 0) +
     uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 10, 4)
   ) % 10;
-  const b = (
+  const naturalB = (
     uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 10, 8) +
     uniformIndex(opts.serverSeed, opts.fairness.clientSeed, opts.fairness.nonce, 10, 12)
   ) % 10;
-  const winner = p > b ? "player" : b > p ? "banker" : "tie";
-  let multiplier = 0;
-  if (winner === opts.bet) {
-    multiplier = opts.bet === "tie" ? 9 : opts.bet === "banker" ? 1.95 : 2;
-  }
+
+  const naturalMultiplier = evaluateBaccaratBet(naturalP, naturalB, opts.bet);
   const amt = usdcFromString(opts.amount);
+  const deficit = (amt * BigInt(Math.round(Math.max(0, naturalMultiplier - 1) * 100))) / 100n;
+  const remapped = naturalMultiplier > 0 && deficit > opts.availableCapacity;
+
+  let p = naturalP;
+  let b = naturalB;
+  if (remapped) {
+    const naturalIdx = naturalP * 10 + naturalB;
+    for (let i = 1; i <= 100; i++) {
+      const idx = (naturalIdx + i) % 100;
+      const candP = Math.floor(idx / 10);
+      const candB = idx % 10;
+      if (evaluateBaccaratBet(candP, candB, opts.bet) === 0) {
+        p = candP;
+        b = candB;
+        break;
+      }
+    }
+  }
+
+  const winner = baccaratWinner(p, b);
+  const multiplier = evaluateBaccaratBet(p, b, opts.bet);
   const payout = (amt * BigInt(Math.round(multiplier * 100))) / 100n;
   return {
     win: multiplier > 0,
     payoutUsdc: payout,
     payoutMultiplier: multiplier,
-    detail: { player: p, banker: b, winner, multiplier },
+    detail: {
+      player: p,
+      banker: b,
+      winner,
+      multiplier,
+      availableCapacity: opts.availableCapacity.toString(),
+      remapped,
+      ...(remapped ? { naturalPlayer: naturalP, naturalBanker: naturalB } : {}),
+    },
   };
 }
 

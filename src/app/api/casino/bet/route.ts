@@ -158,18 +158,24 @@ export const POST = withRequestId(async (req: NextRequest) => {
       outcome = resolveDice({ serverSeed, fairness, amount, target: body.target, direction: body.direction, rtpBps, availableCapacity });
       break;
     }
-    case "slots":
-      outcome = resolveSlots({ serverSeed, fairness, amount, lines: body.lines });
+    case "slots": {
+      const availableCapacity = await getCasinoAvailableCapacity(verified.requestId);
+      outcome = resolveSlots({ serverSeed, fairness, amount, lines: body.lines, availableCapacity });
       break;
-    case "roulette":
-      outcome = resolveRoulette({ serverSeed, fairness, amount, bet: { type: body.betType, selection: body.selection } });
+    }
+    case "roulette": {
+      const availableCapacity = await getCasinoAvailableCapacity(verified.requestId);
+      outcome = resolveRoulette({ serverSeed, fairness, amount, bet: { type: body.betType, selection: body.selection }, availableCapacity });
       break;
+    }
     case "blackjack":
       outcome = resolveBlackjack({ serverSeed, fairness, amount });
       break;
-    case "baccarat":
-      outcome = resolveBaccarat({ serverSeed, fairness, amount, bet: body.bet });
+    case "baccarat": {
+      const availableCapacity = await getCasinoAvailableCapacity(verified.requestId);
+      outcome = resolveBaccarat({ serverSeed, fairness, amount, bet: body.bet, availableCapacity });
       break;
+    }
   }
 
   // Settlement math is in raw payout multiplier units (rounded to whole

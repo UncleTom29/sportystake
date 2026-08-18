@@ -20,21 +20,11 @@ import type { RedisPublisher } from '../publishers/redis-publisher.js';
 import { CacheKeys, CacheTtl, type JobHealth } from '../cache/cache-keys.js';
 import { resolvePython3 } from '../python-runtime.js';
 import { scraperLiveRowToFixture } from '../normalizers/scrape.normalizer.js';
+import { reconcileLiveTracking, type LiveRow, type LiveTrackingState } from './live-tracking.js';
 
 const execFileAsync = promisify(execFile);
 
-export interface LiveRow {
-  match_id: string;
-  match: string;
-  sport: string;
-  league: string;
-  country: string;
-  match_time: string;
-  score: { home: number; away: number };
-  period: string | null;
-  minute: number | null;
-  finished: boolean;
-}
+export type { LiveRow };
 
 const SCRIPT_TIMEOUT_MS = 120_000;
 
@@ -102,6 +92,12 @@ export class XbetLiveJob {
       return;
     }
 
+    // Runs even when `rows` is empty: a genuinely empty tick is real signal
+    // that anything previously tracked is now missing too (as opposed to a
+    // failed scrape above, which returns before this and correctly leaves
+    // tracking untouched — "we don't know" must never count as "missing").
+    await this.runDisappearanceTracking(rows, log);
+
     if (rows.length === 0) {
       log.debug('live:no-events');
       // Still cache empty array so the API doesn't serve stale data. Zero
@@ -137,6 +133,28 @@ export class XbetLiveJob {
 
     log.info({ live, finished, elapsed: Date.now() - t0 }, 'job:done');
     await this.recordHealth({ ok: true, rows: rows.length });
+  }
+
+  /**
+   * See live-tracking.ts's doc comment for why this exists: the explicit
+   * `row.finished` flag below essentially never fires in practice, so this
+   * is what actually resolves most naturally-finished matches instead of
+   * leaving them to the 4-hour stuck-market safety net (which can only
+   * cancel, having no score of its own to resolve with).
+   */
+  private async runDisappearanceTracking(rows: LiveRow[], log: Logger): Promise<void> {
+    const previous = (await this.cache.get<LiveTrackingState>(CacheKeys.liveTracking())) ?? {};
+    const { nextState, inferredFinished } = reconcileLiveTracking(previous, rows);
+
+    for (const f of inferredFinished) {
+      log.info(
+        { fixtureId: f.fixtureId, homeScore: f.homeScore, awayScore: f.awayScore },
+        'live:inferred-finished — disappeared from live feed, resolving with last known score',
+      );
+      await this.publisher.publishMatchFinished(f.fixtureId, f.homeScore, f.awayScore);
+    }
+
+    await this.cache.set(CacheKeys.liveTracking(), nextState, CacheTtl.LIVE_TRACKING);
   }
 
   private async recordHealth(result: { ok: boolean; rows: number; error?: string }): Promise<void> {

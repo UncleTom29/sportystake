@@ -15,6 +15,9 @@ export const CacheTtl = {
   QUOTA_STATUS: 60,               // 60s
   JOB_HEALTH: 86400,              // 24h — long-lived so staleness is computed
                                    // from the timestamp, not key expiry.
+  LIVE_TRACKING: 3600,            // 1h — generous buffer over the 2m poll
+                                   // cadence so a brief oracle restart doesn't
+                                   // immediately lose disappearance-streak state.
 } as const;
 
 export type CacheTtlKey = keyof typeof CacheTtl;
@@ -34,6 +37,7 @@ export const CacheKeys = {
     `${NS}:standings:${leagueId}:${season}`,
   quotaStatus: (): string => `${NS}:quota:status`,
   jobHealth: (job: string): string => `${NS}:health:${job}`,
+  liveTracking: (): string => `${NS}:live:tracking`,
 } as const;
 
 /** Shape written by every job on every run (success, empty, or error) so

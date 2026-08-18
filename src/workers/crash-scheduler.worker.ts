@@ -29,7 +29,6 @@ import {
   createPublicClient,
   http,
   keccak256,
-  encodePacked,
   decodeEventLog,
   type Hash,
 } from "viem";
@@ -38,6 +37,7 @@ import { prisma } from "@/lib/server/db";
 import { serverEnv, clientEnv } from "@/lib/env";
 import { requireOperatorWallet, getOperatorAccount, verifyOperatorRoles } from "@/lib/server/operatorWallet";
 import { logger } from "@/lib/server/logger";
+import { onchainCrashMultiplierX100, flightDurationMs } from "@/lib/server/crashMath";
 import { crashGameAbi } from "../../packages/sdk/src/contracts/abis/CrashGame";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -47,9 +47,6 @@ const HISTORY_KEEP = 50;
 
 const WAIT_MS = 15 * 60 * 1000; // 15-minute betting window
 const CRASH_GRACE_MS = 4_000;  // pause after crash before the next round
-const MAX_FLIGHT_MS = 25_000;  // hard cap so a huge multiplier can't stall the loop
-const GROWTH_RATE = 0.07;      // matches the client's animation curve (100 * e^(rate*t))
-const MAX_AUTOCASHOUT_X100 = 100_000;
 const ROUND_TIMEOUT_SECONDS = 30 * 60; // 30 minutes — matches CrashGame.ROUND_TIMEOUT
 
 interface PublicRoundState {
@@ -60,24 +57,6 @@ interface PublicRoundState {
   startedAt?: number;
   crashMultiplierX100?: number;
   serverSeed?: `0x${string}`;
-}
-
-/** Mirrors CrashGame._crashFromSeed exactly — keccak256-based, NOT the HMAC formula in provably-fair.ts. */
-function onchainCrashMultiplierX100(seed: `0x${string}`, roundId: bigint): number {
-  const mix = keccak256(encodePacked(["bytes32", "uint256"], [seed, roundId]));
-  const r = BigInt(mix);
-  if (r % 100n === 0n) return 100;
-  const e = r % 1_000_000n;
-  let crashX100 = (99n * 1_000_000n) / (1_000_000n - e);
-  if (crashX100 < 101n) crashX100 = 101n;
-  if (crashX100 > BigInt(MAX_AUTOCASHOUT_X100)) crashX100 = BigInt(MAX_AUTOCASHOUT_X100);
-  return Number(crashX100);
-}
-
-function flightDurationMs(crashX100: number): number {
-  const ratio = crashX100 / 100;
-  const seconds = Math.log(ratio) / GROWTH_RATE;
-  return Math.min(MAX_FLIGHT_MS, Math.max(500, Math.round(seconds * 1000)));
 }
 
 async function writeState(state: PublicRoundState): Promise<void> {
@@ -251,15 +230,26 @@ async function runRound(
   const startedAt = Date.now();
   await writeState({ id: Number(roundId), status: "running", serverSeedHash, waitingSince, startedAt });
 
-  // Precomputed locally — never written to Redis until resolve.
-  const crashMultiplierX100 = onchainCrashMultiplierX100(serverSeed, roundId);
-  await sleep(flightDurationMs(crashMultiplierX100));
+  // Predicted locally, timing-only — never written to Redis until resolve,
+  // and never trusted as the actual result below. `rtpBps` is read fresh
+  // per round since it's admin-adjustable (setRtp) between rounds.
+  const rtpBps = await publicClient.readContract({
+    address: crashGameAddress, abi: crashGameAbi, functionName: "rtpBps",
+  });
+  const predictedCrashX100 = onchainCrashMultiplierX100(serverSeed, roundId, rtpBps);
+  await sleep(flightDurationMs(predictedCrashX100));
 
   const resolveTxHash = await wallet.writeContract({
     account: wallet.account!, chain: wallet.chain,
     address: crashGameAddress, abi: crashGameAbi, functionName: "resolveRound", args: [roundId, serverSeed],
   });
   const resolveReceipt = await publicClient.waitForTransactionReceipt({ hash: resolveTxHash });
+
+  // Ground truth for everything published/recorded from here on — the
+  // contract's own resolved value, never this function's own prediction.
+  // A future edit to either side's formula (or a mid-flight rtpBps change)
+  // can then only ever produce a pacing mismatch, never a wrong result.
+  const crashMultiplierX100 = decodeResolvedCrash(resolveReceipt.logs, roundId) ?? predictedCrashX100;
 
   await writeState({
     id: Number(roundId), status: "crashed", serverSeedHash, waitingSince, startedAt,
@@ -286,6 +276,27 @@ function decodeRoundId(logs: import("viem").TransactionReceipt["logs"]): bigint 
     } catch { /* not this event */ }
   }
   throw new Error("RoundStarted event not found");
+}
+
+/**
+ * Decodes the contract's own `RoundResolved` event from a resolveRound
+ * receipt — the authoritative crash value, independent of this worker's own
+ * (timing-only) prediction. Returns null only if the event is somehow
+ * missing (shouldn't happen — resolveRound always emits it on success), in
+ * which case the caller falls back to the prediction rather than crashing
+ * the round loop over a display value.
+ */
+function decodeResolvedCrash(logs: import("viem").TransactionReceipt["logs"], roundId: bigint): number | null {
+  for (const log of logs) {
+    try {
+      const decoded = decodeEventLog({ abi: crashGameAbi, data: log.data, topics: log.topics });
+      if (decoded.eventName === "RoundResolved" && decoded.args.roundId === roundId) {
+        return Number(decoded.args.crashMultiplierX100);
+      }
+    } catch { /* not this event */ }
+  }
+  logger.error("[crash] RoundResolved event not found in receipt — falling back to predicted value", { roundId: Number(roundId) });
+  return null;
 }
 
 /** Decodes every `PayoutCredited` event from a resolveRound receipt — the contract's authoritative per-player payout (covers both manual and auto-cashout wins). */

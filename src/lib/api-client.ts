@@ -368,20 +368,3 @@ export const AIAnalytics = {
     }>(`/api/ai-analytics${forceRefresh ? "?refresh=true" : ""}`),
 };
 
-export const CasinoPoolApi = {
-  getRound: () =>
-    api.get<{
-      roundId: number;
-      startedAt: string;
-      expiresAt: string;
-      secondsRemaining: number;
-      totalDeposits: number;
-      maxPayoutCap: number;
-      playersCount: number;
-      bets: { id: string; userId: string; username: string; game: string; amount: number; placedAt: string }[];
-      recentWinners: { userId: string; username: string; game: string; stake: number; payout: number }[];
-      lastResolvedRound?: { roundId: number; totalDeposits: number; totalPayouts: number; winnersCount: number };
-    }>(`/api/casino/round`),
-  joinRound: (game: string, amount: number) =>
-    api.post<{ bet: any; round: any }>(`/api/casino/round`, { game, amount }),
-};

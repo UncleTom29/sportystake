@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { casinoGames } from "@/lib/mockData";
 import GameTile from "@/components/casino/GameTile";
@@ -11,7 +11,6 @@ import {
   TrophyIcon,
   CasinoChipIcon,
   ShieldIcon,
-  ZapIcon,
   ArrowUpRight,
 } from "@/components/icons/UIIcons";
 
@@ -28,19 +27,6 @@ const cats: { id: Cat; label: string; Icon?: (p: { className?: string }) => Reac
 export default function CasinoPage() {
   const [cat, setCat] = useState<Cat>("All");
   const [q, setQ] = useState("");
-  const [vaultLabel, setVaultLabel] = useState<string>("Loading…");
-
-  // Read casino vault liquidity (real on-chain USDC balance of CasinoHouse + admin virtual liquidity)
-  useEffect(() => {
-    fetch("/api/casino/vault")
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.data?.formattedTotal) {
-          setVaultLabel(json.data.formattedTotal);
-        }
-      })
-      .catch(() => setVaultLabel("$25,000.00 USDC"));
-  }, []);
 
   const filtered = useMemo(() => {
     return casinoGames.filter((g) => {
@@ -57,24 +43,6 @@ export default function CasinoPage() {
       <h1 className="sr-only">
         Provably Fair On-Chain Crypto Casino — Crash, Dice, Slots, Table Games
       </h1>
-      {/* Total Casino Vault Liquidity Banner */}
-      <div className="mb-6 rounded-2xl border border-[var(--color-brand-500)]/30 bg-[var(--color-bg-2)] p-5 shadow-2xl flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-            <ZapIcon className="h-6 w-6" />
-          </div>
-          <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--color-ink-3)]">Total Casino Vault Liquidity</span>
-            <p className="mono text-2xl font-black text-white mt-0.5">{vaultLabel}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 rounded-xl bg-[var(--color-bg-1)] px-4 py-2 border border-[var(--color-line-1)]">
-          <span className="h-2 w-2 rounded-full bg-[var(--color-brand-500)] animate-pulse" />
-          <span className="mono text-xs font-bold text-white">Single-Bankroll Isolated Vaults · 100% Solvency</span>
-        </div>
-      </div>
-
       {/* Featured hero — Aviator */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
         <div

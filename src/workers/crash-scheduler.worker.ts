@@ -232,11 +232,20 @@ async function runRound(
 
   // Predicted locally, timing-only — never written to Redis until resolve,
   // and never trusted as the actual result below. `rtpBps` is read fresh
-  // per round since it's admin-adjustable (setRtp) between rounds.
-  const rtpBps = await publicClient.readContract({
-    address: crashGameAddress, abi: crashGameAbi, functionName: "rtpBps",
-  });
-  const predictedCrashX100 = onchainCrashMultiplierX100(serverSeed, roundId, rtpBps);
+  // per round since it's admin-adjustable (setRtp) between rounds. `noRisk`
+  // mirrors the contract's own check in resolveRound (entries.length == 0
+  // at resolve time, the same set locked here — nobody can join after
+  // lockRound) so the flight animation is paced toward the right ballpark
+  // even on an empty round, rather than a mismatch only cosmetic in effect
+  // (nobody's watching a round they didn't join) but still worth avoiding
+  // now that the formula has to be kept in sync anyway.
+  const [rtpBps, round] = await Promise.all([
+    publicClient.readContract({ address: crashGameAddress, abi: crashGameAbi, functionName: "rtpBps" }),
+    publicClient.readContract({ address: crashGameAddress, abi: crashGameAbi, functionName: "rounds", args: [roundId] }),
+  ]);
+  const totalStaked = round[6]; // Round struct field order: ...,startedAt,resolvedAt,crashMultiplierX100,totalStaked,...
+  const noRisk = totalStaked === 0n;
+  const predictedCrashX100 = onchainCrashMultiplierX100(serverSeed, roundId, rtpBps, noRisk);
   await sleep(flightDurationMs(predictedCrashX100));
 
   const resolveTxHash = await wallet.writeContract({

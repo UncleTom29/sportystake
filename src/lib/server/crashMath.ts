@@ -10,6 +10,8 @@ import { keccak256, encodePacked } from "viem";
 export const BPS_DENOM = 10_000n;
 /** Mirrors CrashGame.sol's MAX_AUTOCASHOUT_X100 constant exactly. */
 export const MAX_AUTOCASHOUT_X100 = 100_000n;
+/** Mirrors CrashGame.sol's NO_RISK_FLOOR_X100 constant exactly. */
+export const NO_RISK_FLOOR_X100 = 1_000n;
 
 /**
  * Mirrors CrashGame.sol's `_crashFromSeed` exactly — keccak256-based, NOT
@@ -36,10 +38,22 @@ export const MAX_AUTOCASHOUT_X100 = 100_000n;
  * used only to time the flight animation, so any future divergence between
  * this and the Solidity source can only cause a pacing mismatch, not a
  * wrong displayed outcome.
+ *
+ * `noRisk` mirrors the contract's own branch in `_crashFromSeed`: true only
+ * when nobody joined the round, in which case it draws uniformly from
+ * [NO_RISK_FLOOR_X100, MAX_AUTOCASHOUT_X100] (10x-1000x) instead of the
+ * normal curve, so the public round history stays visually rich through a
+ * lull with no players. Kept in lockstep with the Solidity side deliberately
+ * — this exact kind of two-copies-of-one-formula drift is what caused the
+ * bug documented above in the first place.
  */
-export function onchainCrashMultiplierX100(seed: `0x${string}`, roundId: bigint, rtpBps: bigint): number {
+export function onchainCrashMultiplierX100(seed: `0x${string}`, roundId: bigint, rtpBps: bigint, noRisk: boolean): number {
   const mix = keccak256(encodePacked(["bytes32", "uint256"], [seed, roundId]));
   const r = BigInt(mix);
+  if (noRisk) {
+    const span = MAX_AUTOCASHOUT_X100 - NO_RISK_FLOOR_X100 + 1n;
+    return Number(NO_RISK_FLOOR_X100 + (r % span));
+  }
   if (r % BPS_DENOM < (BPS_DENOM - rtpBps)) return 100;
   const e = r % 1_000_000n;
   let crashX100 = (rtpBps * 1_000_000n) / (100n * (1_000_000n - e));

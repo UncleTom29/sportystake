@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { onchainCrashMultiplierX100, flightDurationMs, BPS_DENOM, MAX_AUTOCASHOUT_X100 } from "./crashMath";
+import {
+  onchainCrashMultiplierX100,
+  flightDurationMs,
+  BPS_DENOM,
+  MAX_AUTOCASHOUT_X100,
+  NO_RISK_FLOOR_X100,
+} from "./crashMath";
 
 describe("onchainCrashMultiplierX100", () => {
   // Real production data: CrashGame round 578, rtpBps=9000. The contract
@@ -12,7 +18,7 @@ describe("onchainCrashMultiplierX100", () => {
   // correctly resolved at 1.02x — had already ended. This test pins the fix.
   it("reproduces the real on-chain result for round 578 (rtpBps=9000)", () => {
     const seed = "0xbdb4cac935ce5e99542ffb0097d17bb04c75d6d05b736fb39fcd181526cfb03b" as `0x${string}`;
-    const result = onchainCrashMultiplierX100(seed, 578n, 9000n);
+    const result = onchainCrashMultiplierX100(seed, 578n, 9000n, false);
     expect(result).toBe(102); // 1.02x — matches CrashGame.rounds(578).crashMultiplierX100 exactly
   });
 
@@ -23,29 +29,29 @@ describe("onchainCrashMultiplierX100", () => {
     // if someone "fixes" this test's expected value instead of the code.
     const seed = "0xbdb4cac935ce5e99542ffb0097d17bb04c75d6d05b736fb39fcd181526cfb03b" as `0x${string}`;
     const buggyRtpBps = 9900n; // the old implicit hardcoded assumption
-    const result = onchainCrashMultiplierX100(seed, 578n, buggyRtpBps);
+    const result = onchainCrashMultiplierX100(seed, 578n, buggyRtpBps, false);
     expect(result).toBe(113);
     expect(result).not.toBe(102);
   });
 
-  it("is a pure function of (seed, roundId, rtpBps) — same inputs, same output", () => {
+  it("is a pure function of (seed, roundId, rtpBps, noRisk) — same inputs, same output", () => {
     const seed = "0x" + "ab".repeat(32) as `0x${string}`;
-    const a = onchainCrashMultiplierX100(seed, 42n, 9000n);
-    const b = onchainCrashMultiplierX100(seed, 42n, 9000n);
+    const a = onchainCrashMultiplierX100(seed, 42n, 9000n, false);
+    const b = onchainCrashMultiplierX100(seed, 42n, 9000n, false);
     expect(a).toBe(b);
   });
 
   it("changing rtpBps changes the result for a fixed seed/round", () => {
     const seed = "0x" + "cd".repeat(32) as `0x${string}`;
-    const at9000 = onchainCrashMultiplierX100(seed, 1n, 9000n);
-    const at9900 = onchainCrashMultiplierX100(seed, 1n, 9900n);
+    const at9000 = onchainCrashMultiplierX100(seed, 1n, 9000n, false);
+    const at9900 = onchainCrashMultiplierX100(seed, 1n, 9900n, false);
     expect(at9000).not.toBe(at9900);
   });
 
   it("never returns below the 101 floor except the exact 100 instant-bust value", () => {
     for (let roundId = 0n; roundId < 500n; roundId++) {
       const seed = ("0x" + roundId.toString(16).padStart(64, "0")) as `0x${string}`;
-      const result = onchainCrashMultiplierX100(seed, roundId, 9000n);
+      const result = onchainCrashMultiplierX100(seed, roundId, 9000n, false);
       expect(result === 100 || result >= 101).toBe(true);
     }
   });
@@ -53,13 +59,42 @@ describe("onchainCrashMultiplierX100", () => {
   it("never exceeds MAX_AUTOCASHOUT_X100", () => {
     for (let roundId = 0n; roundId < 500n; roundId++) {
       const seed = ("0x" + roundId.toString(16).padStart(64, "0")) as `0x${string}`;
-      const result = onchainCrashMultiplierX100(seed, roundId, 9000n);
+      const result = onchainCrashMultiplierX100(seed, roundId, 9000n, false);
       expect(result).toBeLessThanOrEqual(Number(MAX_AUTOCASHOUT_X100));
     }
   });
 
   it("BPS_DENOM matches CrashGame.sol's constant", () => {
     expect(BPS_DENOM).toBe(10_000n);
+  });
+
+  describe("noRisk (empty round — mirrors CrashGame.sol's dedicated branch)", () => {
+    it("draws from [NO_RISK_FLOOR_X100, MAX_AUTOCASHOUT_X100] instead of the normal curve", () => {
+      // Same seed/round the round-578 regression test above uses — under
+      // the normal formula this resolves to 102 (1.02x). noRisk=true must
+      // ignore that entirely.
+      const seed = "0xbdb4cac935ce5e99542ffb0097d17bb04c75d6d05b736fb39fcd181526cfb03b" as `0x${string}`;
+      const result = onchainCrashMultiplierX100(seed, 578n, 9000n, true);
+      expect(result).toBeGreaterThanOrEqual(Number(NO_RISK_FLOOR_X100));
+      expect(result).toBeLessThanOrEqual(Number(MAX_AUTOCASHOUT_X100));
+      expect(result).not.toBe(102);
+    });
+
+    it("is unaffected by rtpBps — the no-risk range doesn't depend on house edge", () => {
+      const seed = "0x" + "ef".repeat(32) as `0x${string}`;
+      const at9000 = onchainCrashMultiplierX100(seed, 7n, 9000n, true);
+      const at5000 = onchainCrashMultiplierX100(seed, 7n, 5000n, true);
+      expect(at9000).toBe(at5000);
+    });
+
+    it("varies across different seeds — not a constant floor value", () => {
+      const results = new Set<number>();
+      for (let roundId = 0n; roundId < 20n; roundId++) {
+        const seed = ("0x" + (roundId + 1000n).toString(16).padStart(64, "0")) as `0x${string}`;
+        results.add(onchainCrashMultiplierX100(seed, roundId, 9000n, true));
+      }
+      expect(results.size).toBeGreaterThan(1);
+    });
   });
 });
 

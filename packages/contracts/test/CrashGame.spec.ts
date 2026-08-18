@@ -223,10 +223,17 @@ describe("CrashGame", () => {
       // rtpBps for fixed e, so 5000/9000 bps should scale the crash point by
       // the same ratio (verified offline: this seed lands both sides on the
       // smooth-formula branch, not the instant-bust branch, at 240 vs 133).
+      //
+      // A player must join — an empty round now deliberately draws from the
+      // separate no-risk [10x,1000x] range instead (see the "no-risk" describe
+      // block below), which would ignore rtpBps entirely and break this
+      // formula-isolation test.
       const seed = ethers.keccak256(ethers.toUtf8Bytes("rtp-dir-4"));
 
       const envHigh = await loadFixture(deploy); // rtpBps=9000 default
       await envHigh.crash.startRound(seedHashOf(seed));
+      await envHigh.usdc_.connect(envHigh.p1).approve(await envHigh.crash.getAddress(), usdc(10));
+      await envHigh.crash.connect(envHigh.p1).joinRound(1, usdc(10), 0);
       await envHigh.crash.lockRound(1);
       await envHigh.crash.resolveRound(1, seed);
       const crashAt9000 = (await envHigh.crash.rounds(1)).crashMultiplierX100;
@@ -235,10 +242,72 @@ describe("CrashGame", () => {
       const envLow = await loadFixture(deploy);
       await envLow.crash.connect(envLow.admin).setRtp(5000n);
       await envLow.crash.startRound(seedHashOf(seed));
+      await envLow.usdc_.connect(envLow.p1).approve(await envLow.crash.getAddress(), usdc(10));
+      await envLow.crash.connect(envLow.p1).joinRound(1, usdc(10), 0);
       await envLow.crash.lockRound(1);
       await envLow.crash.resolveRound(1, seed);
       const crashAt5000 = (await envLow.crash.rounds(1)).crashMultiplierX100;
       expect(crashAt5000).to.equal(133n);
+    });
+  });
+
+  describe("no-risk crash range (empty rounds draw a rich, upper-scaled result)", () => {
+    it("a round with zero players draws from [10x, 1000x] instead of the normal curve", async () => {
+      const env = await loadFixture(deploy);
+      // Known: this exact seed resolves to 240n (2.40x) via the normal
+      // formula at rtpBps=9000 (see the rtpBps direct-proportion test) —
+      // reused here so a value >= 1000 proves the branch actually changed,
+      // not a coincidental landing.
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("rtp-dir-4"));
+      await env.crash.startRound(seedHashOf(seed));
+      // No joinRound call — zero players.
+      await env.crash.lockRound(1);
+      await env.crash.resolveRound(1, seed);
+      const crash = (await env.crash.rounds(1)).crashMultiplierX100;
+      expect(crash).to.be.gte(1000n);
+      expect(crash).to.be.lte(100_000n);
+      expect(crash).to.not.equal(240n);
+    });
+
+    it("the exact same seed resolves to the normal (low) value once a player joins", async () => {
+      const env = await loadFixture(deploy);
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("rtp-dir-4"));
+      await env.crash.startRound(seedHashOf(seed));
+      await env.usdc_.connect(env.p1).approve(await env.crash.getAddress(), usdc(10));
+      await env.crash.connect(env.p1).joinRound(1, usdc(10), 0);
+      await env.crash.lockRound(1);
+      await env.crash.resolveRound(1, seed);
+      const crash = (await env.crash.rounds(1)).crashMultiplierX100;
+      expect(crash).to.equal(240n);
+    });
+
+    it("no-risk draws vary across different seeds — not a constant floor value", async () => {
+      const env = await loadFixture(deploy);
+      const results = new Set<bigint>();
+      for (let i = 0; i < 5; i++) {
+        const seed = ethers.keccak256(ethers.toUtf8Bytes(`no-risk-variety-${i}`));
+        const roundId = i + 1;
+        await env.crash.startRound(seedHashOf(seed));
+        await env.crash.lockRound(roundId);
+        await env.crash.resolveRound(roundId, seed);
+        const crash = (await env.crash.rounds(roundId)).crashMultiplierX100;
+        expect(crash).to.be.gte(1000n);
+        expect(crash).to.be.lte(100_000n);
+        results.add(crash);
+      }
+      expect(results.size).to.be.greaterThan(1);
+    });
+
+    it("a round that already has a maxSustainableCrashX100 cap from lockRound is unaffected — zero players means the cap is already the full ceiling", async () => {
+      const env = await loadFixture(deploy);
+      const seed = ethers.keccak256(ethers.toUtf8Bytes("no-risk-cap-check"));
+      await env.crash.startRound(seedHashOf(seed));
+      await env.crash.lockRound(1);
+      const cap = (await env.crash.rounds(1)).maxSustainableCrashX100;
+      expect(cap).to.equal(100_000n); // MAX_AUTOCASHOUT_X100 — never constrains the no-risk draw
+      await env.crash.resolveRound(1, seed);
+      const crash = (await env.crash.rounds(1)).crashMultiplierX100;
+      expect(crash).to.be.gte(1000n);
     });
   });
 

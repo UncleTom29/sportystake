@@ -345,7 +345,8 @@ contract CrashGame is
         // added it) — fall back to fully uncapped, relying on the
         // pre-existing post-hoc fill-ratio scaling below exactly as before,
         // rather than wrongly clamping a legitimate round to zero.
-        uint256 crashX100 = _crashFromSeed(serverSeed, roundId);
+        PlayerEntry[] storage entries = roundPlayers[roundId];
+        uint256 crashX100 = _crashFromSeed(serverSeed, roundId, entries.length == 0);
         if (r.maxSustainableCrashX100 != 0 && crashX100 > r.maxSustainableCrashX100) {
             crashX100 = r.maxSustainableCrashX100;
         }
@@ -355,7 +356,6 @@ contract CrashGame is
         r.crashMultiplierX100 = crashX100;
         r.serverSeed = serverSeed;
 
-        PlayerEntry[] storage entries = roundPlayers[roundId];
         (uint256 sumStakes, uint256 sumQuoted) = _sumWinningPayouts(entries, crashX100);
 
         uint256 L = _freeCapacity();
@@ -663,6 +663,12 @@ contract CrashGame is
         return bal > totalPendingPayouts ? bal - totalPendingPayouts : 0;
     }
 
+    /// @notice Lowest crash value a no-risk (zero-player) round can draw —
+    ///         10.00x. Below this, the round's public history would mostly
+    ///         show the low crashes the normal curve produces most of the
+    ///         time, defeating the point of the wider range below.
+    uint256 public constant NO_RISK_FLOOR_X100 = 1000;
+
     /// @notice Crash point derived deterministically from the (revealed) seed.
     /// @dev Returns multiplier x100. Floor of 100 (= 1.00x). House edge is
     ///      `(BPS_DENOM - rtpBps) / BPS_DENOM` (was a hardcoded 1% before
@@ -672,9 +678,24 @@ contract CrashGame is
     ///      `rtpBps/100 / (1 - U)` where U is uniform in [0,1). A fraction
     ///      of rounds equal to the house edge insta-bust at 1.00x.
     ///      `view` not `pure` now that it reads `rtpBps`.
-    function _crashFromSeed(bytes32 seed, uint256 roundId) internal view returns (uint256) {
+    ///
+    ///      `noRisk` (true only when nobody joined this round — no stake,
+    ///      no payout, nothing to protect any bettor's fairness against)
+    ///      draws from a different, deliberately right-shifted range
+    ///      instead: uniform over [NO_RISK_FLOOR_X100, MAX_AUTOCASHOUT_X100]
+    ///      (10x-1000x), so the public round history stays visually rich
+    ///      through a lull with no players, rather than mostly showing the
+    ///      low crashes the normal curve produces most of the time. Still
+    ///      fully determined by the same committed seed — not manipulable,
+    ///      just a different mapping applied only when there is no one to
+    ///      be unfair to.
+    function _crashFromSeed(bytes32 seed, uint256 roundId, bool noRisk) internal view returns (uint256) {
         bytes32 mix = keccak256(abi.encodePacked(seed, roundId));
         uint256 r = uint256(mix);
+        if (noRisk) {
+            uint256 span = MAX_AUTOCASHOUT_X100 - NO_RISK_FLOOR_X100 + 1;
+            return NO_RISK_FLOOR_X100 + (r % span);
+        }
         // Instant-bust probability = house edge fraction.
         if (r % BPS_DENOM < (BPS_DENOM - rtpBps)) return 100;
         // Map the remaining fraction into 1.01x → ~1000x.

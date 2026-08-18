@@ -114,6 +114,12 @@ contract BettingCore is
         BetStatus status;
         uint256 oddsX1000;
         uint64 placedAt;
+        /// @notice Actual amount locked in the LiquidityPool for this bet at
+        ///         placement time (see _probabilityWeightedLock) — stored
+        ///         rather than recomputed so voidBet's unlock always matches
+        ///         the lock exactly, even if probabilitySafetyMultiplierBps
+        ///         changes in between.
+        uint256 lockedAmount;
     }
 
     struct Market {
@@ -166,7 +172,23 @@ contract BettingCore is
     ///      dynamic `marketIds`/`outcomes` array members. Use `getParlay`.
     mapping(bytes32 => Parlay) private _parlays;
 
-    uint256[50] private __gap;
+    /// @notice Multiplier (bps, 10000 = 1.0x) applied when reserving pool
+    ///         capacity for a still-pending bet/parlay at placement time
+    ///         (see `_probabilityWeightedLock`): lockNeeded = deficit ×
+    ///         impliedWinProbability × this, instead of the full worst-case
+    ///         deficit — a long-shot no longer reserves as much capacity as
+    ///         a near-even-money bet paying the same amount. 10000 is the
+    ///         floor (pure expected value, no safety buffer); default 15000
+    ///         (1.5x) leaves headroom for odds mispricing and correlated
+    ///         outcomes. `_probabilityWeightedLock` falls back to 10000 if
+    ///         this is left at its zero default, so a missed setup step
+    ///         after an upgrade degrades to "no safety buffer" rather than
+    ///         "no reservation at all". Independent of `houseEdgeBps`, which
+    ///         only affects claim-time payouts (what a WON bet is actually
+    ///         paid), not how much a still-PENDING bet reserves.
+    uint256 public probabilitySafetyMultiplierBps;
+
+    uint256[49] private __gap;
 
     // -----------------------------------------------------------------------
     // Errors
@@ -189,6 +211,7 @@ contract BettingCore is
     error NotBetOwner();
     error InvalidTreasury();
     error InvalidHouseEdge();
+    error InvalidProbabilitySafetyMultiplier();
     error InvalidBetLimits();
     error InvalidClosesAt();
     error PayoutSumMismatch();
@@ -240,6 +263,7 @@ contract BettingCore is
     event RefundClaimed(bytes32 indexed betId, address indexed bettor, uint256 amount);
 
     event HouseEdgeUpdated(uint256 oldBps, uint256 newBps);
+    event ProbabilitySafetyMultiplierUpdated(uint256 oldBps, uint256 newBps);
     event BetLimitsUpdated(uint256 minBet, uint256 maxBet);
     event TreasuryUpdated(address indexed treasury);
     event LiquidityPoolUpdated(address indexed liquidityPool);
@@ -416,10 +440,16 @@ contract BettingCore is
         if (oddsX1000 < minOddsX1000) revert OddsBelowSlippage();
 
         uint256 potentialPayout = (amount * oddsX1000) / ODDS_DENOM;
-        uint256 lockNeeded = potentialPayout - amount;
+        uint256 lockNeeded = _probabilityWeightedLock(potentialPayout - amount, oddsX1000);
 
-        // Lock shared-pool collateral covering the payout-on-loss.
-        liquidityPool.lockLiquidity(marketId, lockNeeded);
+        // Lock shared-pool collateral sized to expected loss (deficit ×
+        // implied win probability × probabilitySafetyMultiplierBps), not
+        // the full worst-case deficit. Skipped entirely if it rounds to
+        // zero — mirrors the same ">0" guard voidBet already applies on
+        // the unlock side.
+        if (lockNeeded > 0) {
+            liquidityPool.lockLiquidity(marketId, lockNeeded);
+        }
 
         // Build bet ID from (market, bettor, nonce).
         uint256 nonce = nextBetNonce[msg.sender]++;
@@ -433,7 +463,8 @@ contract BettingCore is
             potentialPayout: potentialPayout,
             status: BetStatus.Pending,
             oddsX1000: oddsX1000,
-            placedAt: uint64(block.timestamp)
+            placedAt: uint64(block.timestamp),
+            lockedAmount: lockNeeded
         });
 
         m.totalBetAmount += amount;
@@ -442,6 +473,18 @@ contract BettingCore is
         usdc.safeTransferFrom(msg.sender, address(this), amount);
 
         emit BetPlaced(betId, marketId, msg.sender, outcome, amount, potentialPayout, oddsX1000);
+    }
+
+    /// @dev Reservation sized to expected loss rather than worst-case
+    ///      deficit: rawDeficit × impliedWinProbability × safety multiplier,
+    ///      where impliedWinProbability = ODDS_DENOM / oddsX1000. Folded
+    ///      into a single division (rather than computing impliedWinProbability
+    ///      as its own intermediate value) so long-shot odds don't truncate
+    ///      it to zero before it ever multiplies rawDeficit — e.g. at 1000x
+    ///      odds, ODDS_DENOM/oddsX1000 alone would floor to 0.
+    function _probabilityWeightedLock(uint256 rawDeficit, uint256 oddsX1000) internal view returns (uint256) {
+        uint256 multiplier = probabilitySafetyMultiplierBps == 0 ? BPS_DENOM : probabilitySafetyMultiplierBps;
+        return (rawDeficit * ODDS_DENOM * multiplier) / (oddsX1000 * BPS_DENOM);
     }
 
     // -----------------------------------------------------------------------
@@ -618,7 +661,12 @@ contract BettingCore is
         b.status = BetStatus.Cancelled;
         m.totalBetAmount -= b.amount;
 
-        uint256 lockedForBet = b.potentialPayout - b.amount;
+        // Use the amount actually locked at placement time, not a fresh
+        // recompute — probabilitySafetyMultiplierBps may have changed since
+        // then, and recomputing here could try to unlock more (or less)
+        // than this specific bet actually holds in the market's shared lock
+        // bucket, corrupting other bets' reservations on the same market.
+        uint256 lockedForBet = b.lockedAmount;
         if (lockedForBet > 0) {
             liquidityPool.unlockLiquidity(b.marketId, lockedForBet);
         }
@@ -738,9 +786,18 @@ contract BettingCore is
         uint256 nonce = nextParlayNonce[msg.sender]++;
         parlayId = keccak256(abi.encodePacked("PARLAY", msg.sender, nonce));
 
-        // Lock shared-pool collateral covering the payout-on-loss, keyed by
-        // the parlay's own id.
-        liquidityPool.lockLiquidity(parlayId, potentialPayout - stake);
+        // Lock shared-pool collateral sized to expected loss, exactly like a
+        // single bet (see _probabilityWeightedLock) — keyed by the parlay's
+        // own id. No per-parlay lockedAmount bookkeeping needed the way
+        // single bets need it for voidBet: every unlock path for a parlay
+        // (claimParlayWinnings/claimParlayRefund/reportParlayLoss) reports
+        // through LiquidityPool.reportMarketResult, which releases whatever
+        // is actually in this parlay's own bucket rather than trusting a
+        // BettingCore-supplied amount.
+        uint256 lockNeeded = _probabilityWeightedLock(potentialPayout - stake, combinedOddsX1000);
+        if (lockNeeded > 0) {
+            liquidityPool.lockLiquidity(parlayId, lockNeeded);
+        }
 
         _storeParlay(parlayId, marketIds, outcomes, stake, potentialPayout, combinedOddsX1000);
 
@@ -948,6 +1005,18 @@ contract BettingCore is
         uint256 old = houseEdgeBps;
         houseEdgeBps = newBps;
         emit HouseEdgeUpdated(old, newBps);
+    }
+
+    /// @notice Update the placement-time reservation safety multiplier.
+    ///         Floor 10000 (1.0x, pure expected value — never reserve less
+    ///         than the actuarially fair amount); cap 100000 (10x) to catch
+    ///         fat-finger input while still allowing a very conservative
+    ///         posture if desired.
+    function setProbabilitySafetyMultiplier(uint256 newBps) external onlyRole(ADMIN_ROLE) {
+        if (newBps < BPS_DENOM || newBps > 100_000) revert InvalidProbabilitySafetyMultiplier();
+        uint256 old = probabilitySafetyMultiplierBps;
+        probabilitySafetyMultiplierBps = newBps;
+        emit ProbabilitySafetyMultiplierUpdated(old, newBps);
     }
 
     /// @notice Update per-bet bounds.

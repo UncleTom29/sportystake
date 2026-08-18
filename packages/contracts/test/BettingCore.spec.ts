@@ -8,8 +8,19 @@ const ONE_USDC = 10n ** USDC_DECIMALS;
 const ODDS_DENOM = 1000n;
 const BPS = 10_000n;
 
+// Matches BettingCore's own default, set explicitly in the `deploy()`
+// fixture below (probabilitySafetyMultiplierBps has no default of its own
+// — it falls back to BPS (1.0x) if left unset, see _probabilityWeightedLock).
+const DEFAULT_MULTIPLIER_BPS = 15_000n; // 1.5x
+
 function usdc(n: bigint | number): bigint {
   return BigInt(n) * ONE_USDC;
+}
+
+// Mirrors BettingCore._probabilityWeightedLock exactly (same operation
+// order) so expected values never drift from floating-point rounding.
+function probWeightedLock(rawDeficit: bigint, oddsX1000: bigint, multiplierBps = DEFAULT_MULTIPLIER_BPS): bigint {
+  return (rawDeficit * ODDS_DENOM * multiplierBps) / (oddsX1000 * BPS);
 }
 
 function marketId(label: string): string {
@@ -17,7 +28,11 @@ function marketId(label: string): string {
 }
 
 describe("BettingCore", () => {
-  async function deploy() {
+  /// Everything up through role/pool wiring, but WITHOUT setting
+  /// probabilitySafetyMultiplierBps — used only by the couple of tests that
+  /// specifically exercise the unset/zero-default fallback. Every other
+  /// test should use `deploy()` below.
+  async function deployRaw() {
     const [admin, treasury, lp1, lp2, bettor1, bettor2] = await ethers.getSigners();
 
     const MockUSDC = await ethers.getContractFactory("MockUSDC");
@@ -59,6 +74,14 @@ describe("BettingCore", () => {
     }
 
     return { usdc_, pool, core, admin, treasury, lp1, lp2, bettor1, bettor2 };
+  }
+
+  async function deploy() {
+    const env = await deployRaw();
+    // Plain admin setter, not an initializer — safe to call any time,
+    // independent of initializeV2's own (separate) versioning.
+    await env.core.connect(env.admin).setProbabilitySafetyMultiplier(DEFAULT_MULTIPLIER_BPS);
+    return env;
   }
 
   async function createOpenMarket(label = "fx-1") {
@@ -125,7 +148,12 @@ describe("BettingCore", () => {
       const m = await env.core.markets(env.marketIdHex);
       expect(m.totalBetAmount).to.equal(amount);
 
-      const expectedLock = (amount * oddsX1000) / ODDS_DENOM - amount;
+      // Locked collateral is now sized to expected loss, not the full
+      // deficit: rawDeficit=150, implied win prob=40% (1/2.5), 1.5x safety
+      // multiplier -> 150 * 0.4 * 1.5 = 90 USDC (vs. 150 pre-this-change).
+      const rawDeficit = (amount * oddsX1000) / ODDS_DENOM - amount;
+      const expectedLock = probWeightedLock(rawDeficit, oddsX1000);
+      expect(expectedLock).to.equal(usdc(90));
       expect(await env.pool.marketLocked(env.marketIdHex)).to.equal(expectedLock);
       expect(await env.pool.lockedForPayouts()).to.equal(expectedLock);
     });
@@ -227,16 +255,20 @@ describe("BettingCore", () => {
       await env.usdc_.connect(env.bettor2).approve(await env.core.getAddress(), stake);
       await env.core.connect(env.bettor2).placeBet(marketB, 0, stake, odds, odds);
 
-      // Both markets have locked collateral in the same shared pool.
-      expect(await env.pool.lockedForPayouts()).to.equal(usdc(200));
+      // Both markets have locked collateral in the same shared pool. Each
+      // bet's rawDeficit is 100 (stake 100 @ 2x); probability-weighted at
+      // 50% implied win chance * 1.5x safety multiplier -> 75 USDC each.
+      const lockEach = probWeightedLock(usdc(100), odds);
+      expect(lockEach).to.equal(usdc(75));
+      expect(await env.pool.lockedForPayouts()).to.equal(lockEach * 2n);
 
       // Settle only market A (bettor1 wins). Market B's lock must be untouched.
       const payoutA = (stake * odds) / ODDS_DENOM;
       await env.core.settleMarket(env.marketIdHex, 0, [betIdA], payoutA);
 
       expect(await env.pool.marketLocked(env.marketIdHex)).to.equal(0n);
-      expect(await env.pool.marketLocked(marketB)).to.equal(usdc(100));
-      expect(await env.pool.lockedForPayouts()).to.equal(usdc(100));
+      expect(await env.pool.marketLocked(marketB)).to.equal(lockEach);
+      expect(await env.pool.lockedForPayouts()).to.equal(lockEach);
 
       // Bettor1 can still claim; market B remains open and bettable.
       await env.core.connect(env.bettor1).claimWinnings(betIdA);
@@ -432,10 +464,10 @@ describe("BettingCore", () => {
       const env = await loadFixture(createOpenMarket);
       await seedPool(env, env.lp1, usdc(10_000));
       const stake = usdc(100);
-      const odds = 2_000n; // 2x -> lockNeeded = 100
+      const odds = 2_000n; // 2x -> rawDeficit=100, probability-weighted lockNeeded=75
       const betId = await placeBetGetId(env, env.bettor1, 0, stake, odds);
 
-      expect(await env.pool.marketLocked(env.marketIdHex)).to.equal(usdc(100));
+      expect(await env.pool.marketLocked(env.marketIdHex)).to.equal(probWeightedLock(usdc(100), odds));
       const before = await env.usdc_.balanceOf(env.bettor1.address);
 
       await expect(env.core.voidBet(betId))
@@ -503,6 +535,75 @@ describe("BettingCore", () => {
       await env.core.cancelMarket(env.marketIdHex);
       await expect(env.core.voidBet(betId)).to.be.revertedWithCustomError(env.core, "MarketAlreadyCancelled");
     });
+
+    it("unlocks exactly what was locked at placement, even if the safety multiplier changes afterward", async () => {
+      const env = await loadFixture(createOpenMarket);
+      await seedPool(env, env.lp1, usdc(10_000));
+      const stake = usdc(100);
+      const odds = 2_000n; // 2x, placed under the default 1.5x multiplier
+      const betId = await placeBetGetId(env, env.bettor1, 0, stake, odds);
+
+      const lockedAtPlacement = await env.pool.marketLocked(env.marketIdHex);
+      expect(lockedAtPlacement).to.equal(probWeightedLock(usdc(100), odds, DEFAULT_MULTIPLIER_BPS));
+
+      // If voidBet recomputed the lock instead of using the bet's own stored
+      // lockedAmount, this would try to unlock more than the market's bucket
+      // actually holds (4x > 1.5x) and revert with UnlockExceedsLocked.
+      await env.core.connect(env.admin).setProbabilitySafetyMultiplier(40_000n); // 4x
+
+      await env.core.voidBet(betId);
+      expect(await env.pool.marketLocked(env.marketIdHex)).to.equal(0n);
+      expect(await env.pool.lockedForPayouts()).to.equal(0n);
+    });
+  });
+
+  describe("probabilitySafetyMultiplierBps", () => {
+    it("setProbabilitySafetyMultiplier updates the value and emits an event", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.core.connect(env.admin).setProbabilitySafetyMultiplier(20_000n))
+        .to.emit(env.core, "ProbabilitySafetyMultiplierUpdated")
+        .withArgs(DEFAULT_MULTIPLIER_BPS, 20_000n);
+      expect(await env.core.probabilitySafetyMultiplierBps()).to.equal(20_000n);
+    });
+
+    it("reverts below the 1.0x floor", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.core.connect(env.admin).setProbabilitySafetyMultiplier(BPS - 1n))
+        .to.be.revertedWithCustomError(env.core, "InvalidProbabilitySafetyMultiplier");
+    });
+
+    it("reverts above the 10x cap", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.core.connect(env.admin).setProbabilitySafetyMultiplier(100_001n))
+        .to.be.revertedWithCustomError(env.core, "InvalidProbabilitySafetyMultiplier");
+    });
+
+    it("reverts for a non-ADMIN_ROLE caller", async () => {
+      const env = await loadFixture(deploy);
+      await expect(env.core.connect(env.bettor1).setProbabilitySafetyMultiplier(20_000n)).to.be.reverted;
+    });
+
+    it("falls back to a 1.0x multiplier (pure expected value) if never configured, instead of locking $0", async () => {
+      const base = await deployRaw(); // multiplier never set — reads its zero default
+      const id = marketId("fallback-1");
+      const closesAt = (await time.latest()) + 3600;
+      await base.core.createMarket(id, closesAt);
+      const env = { ...base, marketIdHex: id, closesAt };
+
+      await seedPool(env, env.lp1, usdc(10_000));
+      const amount = usdc(100);
+      const oddsX1000 = 2_500n; // 2.5x
+      await env.usdc_.connect(env.bettor1).approve(await env.core.getAddress(), amount);
+      await env.core.connect(env.bettor1).placeBet(env.marketIdHex, 0, amount, oddsX1000, oddsX1000);
+
+      // rawDeficit=150, implied win prob 40%, fallback multiplier 1.0x (BPS)
+      // -> 150 * 0.4 * 1.0 = 60 USDC — nonzero, unlike a naive "multiply by
+      // an unset zero" would give.
+      const rawDeficit = (amount * oddsX1000) / ODDS_DENOM - amount;
+      const expectedLock = probWeightedLock(rawDeficit, oddsX1000, BPS);
+      expect(expectedLock).to.equal(usdc(60));
+      expect(await env.pool.marketLocked(env.marketIdHex)).to.equal(expectedLock);
+    });
   });
 
   describe("pause", () => {
@@ -550,7 +651,7 @@ describe("BettingCore", () => {
       return env.core.interface.parseLog(log!)!.args[0] as string;
     }
 
-    it("locks shared-pool collateral for potentialPayout - stake, keyed by parlayId", async () => {
+    it("locks shared-pool collateral sized to expected loss, keyed by parlayId", async () => {
       const env = await loadFixture(createTwoOpenMarkets);
       await seedPool(env, env.lp1, usdc(10_000));
 
@@ -558,7 +659,11 @@ describe("BettingCore", () => {
       const odds = 4_000n; // 4x combined
       const parlayId = await placeTwoLegParlay(env, env.bettor1, stake, odds);
 
-      const expectedLock = (stake * odds) / ODDS_DENOM - stake;
+      // rawDeficit=150 (200 quoted - 50 stake), implied win prob 25% (1/4),
+      // 1.5x safety multiplier -> 150 * 0.25 * 1.5 = 56.25 USDC.
+      const rawDeficit = (stake * odds) / ODDS_DENOM - stake;
+      const expectedLock = probWeightedLock(rawDeficit, odds);
+      expect(expectedLock).to.equal(56_250_000n); // 56.25 USDC
       expect(await env.pool.marketLocked(parlayId)).to.equal(expectedLock);
       expect(await env.pool.lockedForPayouts()).to.equal(expectedLock);
 
@@ -716,6 +821,78 @@ describe("BettingCore", () => {
       await expect(
         env.core.connect(env.bettor1).placeParlayBet(marketIds, outcomes, stake, 4_000n, 4_000n),
       ).to.be.revertedWithCustomError(env.core, "TooManyLegs");
+    });
+  });
+
+  describe("probability-weighted lock reservation", () => {
+    it("a pending long-shot parlay reserves close to expected loss, not the full worst-case deficit — leaving room for a concurrent winner to claim in full", async () => {
+      const base = await deploy();
+      const closesAt = (await time.latest()) + 3600;
+      const marketA = marketId("pw-a");
+      const marketB = marketId("pw-b");
+      // Deliberately never settled — keeps the long-shot parlay Pending (and
+      // its pool lock live) for the entire test.
+      const marketC = marketId("pw-c");
+      await base.core.createMarket(marketA, closesAt);
+      await base.core.createMarket(marketB, closesAt);
+      await base.core.createMarket(marketC, closesAt);
+      const env = { ...base, marketA, marketB, marketC, closesAt };
+
+      // A thin pool — small enough that a full-deficit lock from the
+      // long shot alone would exceed it several times over.
+      await seedPool(env, env.lp1, usdc(300));
+
+      // Long shot: 10 USDC @ 100x combined odds, legs [A, C]. Quoted payout
+      // 1000, rawDeficit 990 — under the old (pre-this-change) formula this
+      // single pending ticket would lock more than the entire 300 USDC pool.
+      await env.usdc_.connect(env.bettor1).approve(await env.core.getAddress(), usdc(10));
+      const longShotTx = await env.core
+        .connect(env.bettor1)
+        .placeParlayBet([marketA, marketC], [0, 0], usdc(10), 100_000n, 100_000n);
+      const longShotReceipt = await longShotTx.wait();
+      const longShotLog = longShotReceipt!.logs.find((l) => {
+        try { return env.core.interface.parseLog(l)?.name === "ParlayPlaced"; } catch { return false; }
+      });
+      const longShotId = env.core.interface.parseLog(longShotLog!)!.args[0] as string;
+
+      // A normal ticket: 20 USDC @ 5x combined odds, legs [A, B]. Quoted 100,
+      // deficit 80 — the same numbers used when this mechanism was designed.
+      await env.usdc_.connect(env.bettor2).approve(await env.core.getAddress(), usdc(20));
+      const claimTx = await env.core
+        .connect(env.bettor2)
+        .placeParlayBet([marketA, marketB], [0, 0], usdc(20), 5_000n, 5_000n);
+      const claimReceipt = await claimTx.wait();
+      const claimLog = claimReceipt!.logs.find((l) => {
+        try { return env.core.interface.parseLog(l)?.name === "ParlayPlaced"; } catch { return false; }
+      });
+      const claimingId = env.core.interface.parseLog(claimLog!)!.args[0] as string;
+
+      // Long shot's probability-weighted lock: implied win chance 1%
+      // (1/100x), 1.5x safety multiplier -> 990 * 0.01 * 1.5 = 14.85 USDC.
+      const longShotLock = probWeightedLock(usdc(990), 100_000n);
+      expect(longShotLock).to.equal(14_850_000n); // 14.85 USDC
+      expect(await env.pool.marketLocked(longShotId)).to.equal(longShotLock);
+
+      await env.core.settleMarket(marketA, 0, [], 0);
+      await env.core.settleMarket(marketB, 0, [], 0);
+      // marketC intentionally left open.
+
+      expect(await env.core.getParlayVerdict(claimingId)).to.equal(1); // Won
+      expect(await env.core.getParlayVerdict(longShotId)).to.equal(0); // still Pending
+
+      // getFreeLiquidity(claimingId) = poolBalance - (lockedForPayouts -
+      // marketLocked[claimingId]) = 300 - longShotLock = 285.15, comfortably
+      // more than the 80 USDC deficit even after the 2% default house edge
+      // — so this claims in full. Under the old full-deficit formula the
+      // long shot's lock (990) alone would exceed the whole 300 USDC pool,
+      // flooring this claim down to its 20 USDC stake.
+      const before = await env.usdc_.balanceOf(env.bettor2.address);
+      await env.core.connect(env.bettor2).claimParlayWinnings(claimingId);
+      const after = await env.usdc_.balanceOf(env.bettor2.address);
+      expect(after - before).to.equal(usdc(100));
+
+      // The long shot's own lock is untouched by the other ticket's claim.
+      expect(await env.pool.marketLocked(longShotId)).to.equal(longShotLock);
     });
   });
 

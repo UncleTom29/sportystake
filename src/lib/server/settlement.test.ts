@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { resolveScoreBasedOutcome, resolveAsianHandicapBet } from "./settlement";
+import { resolveScoreBasedOutcome, resolveAsianHandicapBet, resolveDoubleChanceBet } from "./settlement";
 
 describe("resolveScoreBasedOutcome", () => {
   it("1X2: home win, draw, away win", () => {
@@ -67,5 +67,44 @@ describe("resolveAsianHandicapBet", () => {
     expect(resolveAsianHandicapBet("Yes", 1, 0)).toBe("unsupported");
     expect(resolveAsianHandicapBet("", 1, 0)).toBe("unsupported");
     expect(resolveAsianHandicapBet("Home (abc)", 1, 0)).toBe("unsupported");
+  });
+});
+
+describe("resolveDoubleChanceBet", () => {
+  it("1X wins on a home win or a draw, loses on an away win", () => {
+    expect(resolveDoubleChanceBet("1X", 2, 1)).toBe("win");  // home win
+    expect(resolveDoubleChanceBet("1X", 1, 1)).toBe("win");  // draw
+    expect(resolveDoubleChanceBet("1X", 0, 2)).toBe("lose"); // away win
+  });
+
+  it("12 wins on a home or away win, loses on a draw", () => {
+    expect(resolveDoubleChanceBet("12", 2, 1)).toBe("win");
+    expect(resolveDoubleChanceBet("12", 0, 2)).toBe("win");
+    expect(resolveDoubleChanceBet("12", 1, 1)).toBe("lose");
+  });
+
+  it("X2 wins on a draw or an away win, loses on a home win", () => {
+    expect(resolveDoubleChanceBet("X2", 1, 1)).toBe("win");
+    expect(resolveDoubleChanceBet("X2", 0, 2)).toBe("win");
+    expect(resolveDoubleChanceBet("X2", 2, 1)).toBe("lose");
+  });
+
+  it("exactly one of the three combos loses for any given result — never zero, never two", () => {
+    for (const [h, a] of [[2, 1], [1, 1], [0, 2]] as const) {
+      const verdicts = (["1X", "12", "X2"] as const).map((l) => resolveDoubleChanceBet(l, h, a));
+      expect(verdicts.filter((v) => v === "lose").length).toBe(1);
+      expect(verdicts.filter((v) => v === "win").length).toBe(2);
+    }
+  });
+
+  it("is case-insensitive and trims whitespace", () => {
+    expect(resolveDoubleChanceBet(" 1x ", 2, 1)).toBe("win");
+    expect(resolveDoubleChanceBet("x2", 1, 1)).toBe("win");
+  });
+
+  it("malformed or unrecognized labels are unsupported, not a thrown error", () => {
+    expect(resolveDoubleChanceBet("Home (-1.5)", 1, 0)).toBe("unsupported");
+    expect(resolveDoubleChanceBet("", 1, 0)).toBe("unsupported");
+    expect(resolveDoubleChanceBet("1X2", 1, 0)).toBe("unsupported");
   });
 });

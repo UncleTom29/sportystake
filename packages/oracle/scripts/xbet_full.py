@@ -5,8 +5,10 @@ xbet_full.py
 Single-provider scraper for 1xbet.ng. Discovers every sport ID 1xbet exposes,
 pulls the full prematch event list per sport, then fetches per-event market
 detail via GetGameZip so we capture every available line/odds for every
-mappable market group (1X2, totals at every offered line, BTTS, DNB, double-
-chance, half-time markets, individual team totals, asian handicaps).
+mappable market group (1X2, totals at every offered line, BTTS, DNB, double
+chance, individual team totals, asian handicaps). No genuine half-time-scoped
+market has been identified in this response shape — see _build_double_chance's
+docstring for how that gap was previously misfilled by a mislabeled group.
 
 Output: JSON array on stdout. Each row carries:
 
@@ -95,7 +97,7 @@ ENRICH_BUDGET_S = 190
 
 _G_1X2       = 1     # T=1 Home, T=2 Draw, T=3 Away
 _G_AH        = 2     # T=7 home line (P=h), T=8 away line (P=-h)
-_G_H1_1X2    = 8     # T=4 H1-Home, T=5 H1-Draw, T=6 H1-Away
+_G_DC        = 8     # T=4 1X, T=5 12, T=6 X2 (double chance — see _build_double_chance)
 _G_DNB       = 14    # T=182 Home, T=183 Away
 _G_TEAM_TOT  = 15    # T=11 over (P=line), T=12 under
 _G_TOTAL     = 17    # T=9 over (P=line), T=10 under
@@ -355,20 +357,33 @@ def _build_dnb(by_g: dict, home_name: str, away_name: str) -> list[dict]:
     }]
 
 
-def _build_h1_1x2(by_g: dict, home_name: str, away_name: str) -> list[dict]:
-    h = d = a = None
-    for e in by_g.get(_G_H1_1X2, []):
+def _build_double_chance(by_g: dict) -> list[dict]:
+    """T=4/5/6 under this group are 1X/12/X2 respectively — verified against
+    GetGameZip live data across several real fixtures by cross-checking each
+    value against the vig-free combination of the corresponding 1X2 odds
+    (e.g. 1X should sit close to 1/(1/oddsHome + 1/oddsDraw)); every sample
+    matched within a normal single-bookmaker margin, including a heavy
+    favorite case where the combined X2 price correctly clamped just above
+    1.00. This group was previously (incorrectly) treated as a half-time
+    1X2 market — no group carrying genuine half-time-scoped 1X2 odds was
+    found in this response shape, so that label was never backed by real
+    half-time data; this fixes the mislabeling rather than removing it."""
+    one_x = one_two = x_two = None
+    for e in by_g.get(_G_DC, []):
         t, c = e.get("T"), e.get("C")
-        if t == 4: h = c
-        elif t == 5: d = c
-        elif t == 6: a = c
-    if h is None or a is None:
+        if t == 4: one_x = c
+        elif t == 5: one_two = c
+        elif t == 6: x_two = c
+    outs = []
+    if one_x and float(one_x) > 1:
+        outs.append({"key": "1X", "label": "1X", "odds": float(one_x)})
+    if one_two and float(one_two) > 1:
+        outs.append({"key": "12", "label": "12", "odds": float(one_two)})
+    if x_two and float(x_two) > 1:
+        outs.append({"key": "X2", "label": "X2", "odds": float(x_two)})
+    if len(outs) < 2:
         return []
-    outs = [{"key": "1", "label": home_name, "odds": float(h)}]
-    if d is not None and float(d) > 1:
-        outs.append({"key": "X", "label": "Draw", "odds": float(d)})
-    outs.append({"key": "2", "label": away_name, "odds": float(a)})
-    return [{"key": "half_time_result", "label": "Half-Time Result", "outcomes": outs}]
+    return [{"key": "double_chance", "label": "Double Chance", "outcomes": outs}]
 
 
 def _build_asian_handicap(by_g: dict, home_name: str, away_name: str) -> list[dict]:
@@ -459,7 +474,7 @@ def _augment(row: dict) -> None:
     markets.extend(_build_totals(by_g, _G_TOTAL, "over_under", "Total"))
     markets.extend(_build_btts(by_g))
     markets.extend(_build_dnb(by_g, home_name, away_name))
-    markets.extend(_build_h1_1x2(by_g, home_name, away_name))
+    markets.extend(_build_double_chance(by_g))
     markets.extend(_build_asian_handicap(by_g, home_name, away_name))
     markets.extend(_build_team_totals(by_g))
 

@@ -386,7 +386,7 @@ function MatchStatsPanel({ market }: { market: MarketDTO }) {
 
   const marketLabel = (mt: string): string => {
     const fixed: Record<string, string> = {
-      "1X2": "1X2", btts: "BTTS", draw_no_bet: "DNB", half_time_result: "HT Result", binary: "Binary",
+      "1X2": "1X2", btts: "BTTS", draw_no_bet: "DNB", double_chance: "DC", binary: "Binary",
     };
     if (fixed[mt]) return fixed[mt];
     const ou = mt.match(/^over_under_(\d+)$/);

@@ -100,6 +100,28 @@ export function resolveAsianHandicapBet(selectionLabel: string, homeScore: numbe
   return homeCovers ? "lose" : "win";
 }
 
+export type DoubleChanceVerdict = "win" | "lose" | "unsupported";
+
+/**
+ * Double chance needs per-bet resolution like asian_handicap, but for a
+ * different reason: a single winningOutcome index can't express it, because
+ * TWO of the three combos ("1X", "12", "X2") win on every match — only one
+ * ever loses. Resolved from the selection label itself ("1X"/"12"/"X2",
+ * exactly as xbet_full.py's _build_double_chance labels each outcome and
+ * odds.normalizer.ts/scrape.normalizer.ts pass through unchanged), not the
+ * bet's numeric `outcome` index — that index is the array position among
+ * whichever combos survived a >1.0 odds filter at capture time, which isn't
+ * guaranteed to stay at a fixed 0/1/2 the way this label always does.
+ */
+export function resolveDoubleChanceBet(selectionLabel: string, homeScore: number, awayScore: number): DoubleChanceVerdict {
+  const label = selectionLabel.trim().toUpperCase();
+  const result = homeScore > awayScore ? "1" : homeScore < awayScore ? "2" : "X";
+  if (label === "1X") return result === "1" || result === "X" ? "win" : "lose";
+  if (label === "12") return result === "1" || result === "2" ? "win" : "lose";
+  if (label === "X2") return result === "X" || result === "2" ? "win" : "lose";
+  return "unsupported";
+}
+
 // ─── Aggregating a full market's settlement ────────────────────────────────
 
 export interface MarketSettlementPlan {
@@ -144,6 +166,20 @@ export async function planScoreBasedSettlement(
         }
         // "lose" needs no action here — reconcileSettlement marks anything
         // left PENDING on this market as LOST by omission.
+      }
+      continue;
+    }
+
+    if (marketType === "double_chance") {
+      for (const b of bets) {
+        const verdict = resolveDoubleChanceBet(b.selectionLabel, homeScore, awayScore);
+        if (verdict === "win") {
+          winningBetIds.push(b.id);
+          totalPayout += b.potentialPayout;
+        } else if (verdict === "unsupported") {
+          unresolved.add(`double_chance:${b.id}`);
+        }
+        // "lose" needs no action here — same as asian_handicap above.
       }
       continue;
     }

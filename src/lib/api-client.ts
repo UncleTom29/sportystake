@@ -41,7 +41,47 @@ export class ApiClientError extends Error {
 
 type Method = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
-async function call<T>(method: Method, path: string, body?: unknown, init?: RequestInit): Promise<T> {
+/**
+ * The access token (`ss_access`) is a 15-minute JWT — it routinely expires
+ * mid-session, and nothing proactively rotates it before that happens.
+ * `WalletSync` only runs its own refresh-and-retry dance once, on the root
+ * provider's mount (i.e. on a hard page load) — every other page's own data
+ * fetch went through this `call()` with no equivalent, so once the token
+ * expired, every such fetch just 401'd. Several pages swallow that silently
+ * (`.catch(() => {})`), so the page just sits there showing stale/empty
+ * data with no visible error — indistinguishable from "genuinely has no
+ * data" — until a hard reload re-runs WalletSync and gets a fresh token.
+ * That's the exact "so many pages refuse to load until I refresh" report.
+ *
+ * Fixed once, here, rather than in each page: on a 401 (excluding the auth
+ * endpoints themselves, to avoid recursing into the refresh flow), try
+ * exactly one silent refresh-and-replay before surfacing an error.
+ *
+ * The refresh token is single-use and rotating server-side (see
+ * /api/auth/refresh's own doc comment — presenting an already-rotated jti
+ * is treated as a leak) — so this must never let two callers refresh
+ * concurrently, or the loser's retry would itself fail. All 401s share one
+ * in-flight refresh promise instead of each starting their own.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
+function refreshAccessToken(): Promise<boolean> {
+  if (!refreshInFlight) {
+    refreshInFlight = fetch("/api/auth/refresh", {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+    })
+      .then((res) => res.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
+}
+
+async function call<T>(method: Method, path: string, body?: unknown, init?: RequestInit, isRetry = false): Promise<T> {
   const url = path.startsWith("http") ? path : path;
   const res = await fetch(url, {
     method,
@@ -51,6 +91,14 @@ async function call<T>(method: Method, path: string, body?: unknown, init?: Requ
     cache: "no-store",
     ...init,
   });
+
+  if (res.status === 401 && !isRetry && !path.startsWith("/api/auth/")) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      return call<T>(method, path, body, init, true);
+    }
+  }
+
   let json: unknown;
   try {
     json = await res.json();

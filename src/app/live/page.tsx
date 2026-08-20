@@ -94,6 +94,16 @@ function statusColor(status: string): string {
   return "text-[var(--color-live)]";
 }
 
+/** One shared rule for both a side's team name and its score digit, so they
+ *  never visually disagree — previously the score used a different (and
+ *  wrong) fallback than the name, leaving a live, trailing team's score
+ *  rendered fully bright/white while its own name sat dimmed right next to
+ *  it. Leading while live is the only case that stands out; a tie or a
+ *  trailing side (live or finished) reads as the same even weight. */
+function sideColor(isAhead: boolean, isFinished: boolean): string {
+  return isAhead && !isFinished ? "text-white" : "text-[var(--color-ink-2)]";
+}
+
 const MAJOR_SPORTS_ORDER = [
   "football",
   "basketball",
@@ -247,20 +257,20 @@ function FoldableLeagueCard({ lg, onSelectEvent }: { lg: LeagueGroup; onSelectEv
                 {/* Teams + score */}
                 <div className="flex min-w-0 flex-1 items-center gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className={`truncate font-semibold ${home > away && !isFt ? "text-white" : "text-[var(--color-ink-2)]"}`}>
+                    <p className={`truncate font-semibold ${sideColor(home > away, isFt)}`}>
                       {homeName?.trim()}
                     </p>
-                    <p className={`truncate font-semibold ${away > home && !isFt ? "text-white" : "text-[var(--color-ink-2)]"}`}>
+                    <p className={`truncate font-semibold ${sideColor(away > home, isFt)}`}>
                       {awayName?.trim()}
                     </p>
                   </div>
 
                   {/* Score */}
                   <div className="mono shrink-0 text-right">
-                    <p className={`text-[15px] font-black ${home > away && !isFt ? "text-white" : isFt ? "text-[var(--color-ink-2)]" : "text-white"}`}>
+                    <p className={`text-[15px] font-black ${sideColor(home > away, isFt)}`}>
                       {home}
                     </p>
-                    <p className={`text-[15px] font-black ${away > home && !isFt ? "text-white" : isFt ? "text-[var(--color-ink-2)]" : "text-white"}`}>
+                    <p className={`text-[15px] font-black ${sideColor(away > home, isFt)}`}>
                       {away}
                     </p>
                   </div>
@@ -404,12 +414,6 @@ export default function LivePage() {
           </div>
         ))}
       </div>
-
-      {!loading && events.length > 0 && (
-        <p className="mt-6 text-center text-[10px] text-[var(--color-ink-3)]">
-          Source: 1xbet LiveFeed · Scores refresh automatically every 30 s
-        </p>
-      )}
 
       {selectedEvent && (
         <LiveMatchModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />

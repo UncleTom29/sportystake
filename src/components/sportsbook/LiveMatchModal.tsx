@@ -83,6 +83,13 @@ export default function LiveMatchModal({ event, onClose }: Props) {
     event.minute !== null && event.minute > 0 && event.minute <= 300
       ? `${event.minute}'`
       : event.period || "LIVE";
+  // Period and minute are two different facts (which stage, how far into
+  // it) worth showing together when both exist, not two separate rows
+  // each showing half of the same picture.
+  const statusLine = [
+    event.period,
+    event.minute !== null && event.minute > 0 && event.minute <= 300 ? `${event.minute}'` : null,
+  ].filter(Boolean).join(" · ") || (isFinished ? "Finished" : "In Play");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md animate-fade-in">
@@ -154,24 +161,12 @@ export default function LiveMatchModal({ event, onClose }: Props) {
           </div>
         </div>
 
-        {/* Period Breakdown / Stats Table */}
+        {/* Status — the score itself is already the hero above; this adds
+            only what that doesn't show (which stage, how far into it). */}
         <div className="px-6 py-4">
-          <h4 className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
-            Match Status & Breakdown
-          </h4>
-          <div className="overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]/50 p-3.5 space-y-2 text-[12px]">
-            <div className="flex justify-between border-b border-[var(--color-line-1)] pb-2 text-[var(--color-ink-2)]">
-              <span>Current Status</span>
-              <span className="mono font-bold text-white">{event.period || (isFinished ? "Finished" : "In Play")}</span>
-            </div>
-            <div className="flex justify-between border-b border-[var(--color-line-1)] pb-2 text-[var(--color-ink-2)]">
-              <span>Match Time</span>
-              <span className="mono font-bold text-white">{minuteText}</span>
-            </div>
-            <div className="flex justify-between text-[var(--color-ink-2)]">
-              <span>Aggregated Score</span>
-              <span className="mono font-bold text-[var(--color-brand-500)]">{event.score.home} : {event.score.away}</span>
-            </div>
+          <div className="flex items-center justify-between rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]/50 px-3.5 py-2.5 text-[12px]">
+            <span className="text-[var(--color-ink-2)]">Status</span>
+            <span className="mono font-bold text-white">{statusLine}</span>
           </div>
         </div>
 

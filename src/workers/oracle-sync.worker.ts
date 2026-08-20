@@ -30,6 +30,11 @@ const C_FINISHED = "market:finished";
 const C_ODDS = "odds:update";
 const POLYMARKET_SYNC_MS = 5 * 60_000;
 const PRUNE_CLOSED_MS = 30 * 60_000;
+// A bit faster than the oracle's own ~2m live-scrape cadence, so this never
+// waits longer than one oracle tick to pick up a change — worst case it
+// re-reads the same still-cached snapshot once in between, which is a cheap,
+// harmless no-op update.
+const LIVE_RECONCILE_MS = 90 * 1000;
 
 interface NormalizedFixture {
   fixtureId: number;
@@ -249,6 +254,71 @@ async function seedFromCache(): Promise<void> {
   console.log(`[oracle-sync] seeded ${total} fixtures from ${keys.length} cached date(s)`);
 }
 
+interface CachedLiveRow {
+  match_id: string;
+  score: { home: number; away: number };
+  minute: number | null;
+  finished: boolean;
+}
+
+/**
+ * Backstop for a real gap: `market:live` is a Redis pub/sub publish, which
+ * has no persistence or replay — if this worker isn't actively subscribed
+ * at the exact instant a tick fires (a deploy mid-restart, a brief Redis
+ * reconnect, any other momentary gap), that tick's score update is gone
+ * forever as far as pub/sub is concerned, and Postgres's Market row is
+ * stuck showing whatever it last had — 0-0 for a match that hasn't been
+ * ticked since before kickoff, potentially for its entire duration if nothing
+ * ever nudges it again. Meanwhile `/api/livescores` reads `oracle:live:events`
+ * directly — a plain overwrite-on-write cache key, not a stream — so it always
+ * reflects the oracle's latest scrape with no possibility of a missed
+ * message, which is exactly why the live page can show a correct score for
+ * a match whose bet-history/match-detail pages (Postgres-backed) still show
+ * 0-0. This reads that exact same authoritative key on an interval and
+ * patches Postgres to match, so any pub/sub gap self-heals within one cycle
+ * instead of persisting for a match's entire duration.
+ *
+ * Deliberately narrow: only patches the live-state fields (score, minute,
+ * status) on a market that's still OPEN/LIVE/SUSPENDED — never touches one
+ * already SETTLED or CANCELLED, so a momentarily-stale cache read can never
+ * revive/overwrite a result that's already been finalized through the real
+ * finished-detection path.
+ */
+async function reconcileLiveScoresFromCache(): Promise<void> {
+  try {
+    const { redis } = await import("@/lib/server/redis");
+    const r = redis();
+    const raw = await r.get("oracle:live:events");
+    if (!raw) return;
+    const rows = JSON.parse(raw) as CachedLiveRow[];
+    if (!Array.isArray(rows) || rows.length === 0) return;
+
+    let updated = 0;
+    for (const row of rows) {
+      const fixtureId = Number.parseInt(row.match_id, 10);
+      if (!Number.isFinite(fixtureId)) continue;
+      const result = await prisma.market.updateMany({
+        where: {
+          fixtureId: BigInt(fixtureId),
+          status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
+        },
+        data: {
+          status: "LIVE",
+          homeScore: row.score.home,
+          awayScore: row.score.away,
+          ...(row.minute !== null ? { liveMinute: row.minute } : {}),
+        },
+      });
+      updated += result.count;
+    }
+    if (updated > 0) {
+      console.log(`[oracle-sync] live-cache reconciler: refreshed ${updated} market(s) directly from oracle:live:events`);
+    }
+  } catch (error) {
+    console.error("[oracle-sync] live-cache reconciler error", error);
+  }
+}
+
 // syncPolymarketMarkets now paginates through Polymarket's full sports
 // catalog (see its own doc comment) instead of a single fast page, so a run
 // can take a couple of minutes when their API is slow. Guards against a run
@@ -378,12 +448,16 @@ async function bootstrap(): Promise<void> {
   await refreshPredictionMarkets();
   await pruneClosedSportsMarkets();
   await recoverStuckSportsMarkets();
+  await reconcileLiveScoresFromCache();
   setInterval(() => {
     void refreshPredictionMarkets();
   }, POLYMARKET_SYNC_MS);
   setInterval(() => {
     void pruneClosedSportsMarkets();
   }, PRUNE_CLOSED_MS);
+  setInterval(() => {
+    void reconcileLiveScoresFromCache();
+  }, LIVE_RECONCILE_MS);
   setInterval(() => {
     void recoverStuckSportsMarkets();
   }, STUCK_MARKET_CHECK_MS);

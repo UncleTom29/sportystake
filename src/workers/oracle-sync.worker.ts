@@ -368,17 +368,22 @@ async function pruneClosedSportsMarkets(): Promise<void> {
 }
 
 // A market can end up with no possible path to a live/finished signal —
-// e.g. one sourced only from a provider the live-poller doesn't cover (see
-// XbetLiveJob: it watches exactly one provider's feed, keyed by that
-// provider's own fixture-id space, with no cross-provider id mapping) — and
-// just sit OPEN forever. First real case: a bettor's football bet stuck
-// PENDING for 3 real days because its market (betika-sourced) never once
-// received a live tick. Every football match is long over well within this
-// window regardless of provider/coverage/scraper-outage cause, so rather
-// than chase each individual gap, this is a provider-agnostic backstop:
-// cancel (refund) anything that's this stale, whatever broke.
-const STUCK_MARKET_CUTOFF_MS = 4 * 60 * 60 * 1000;
-const STUCK_MARKET_CHECK_MS = 30 * 60_000;
+// e.g. a fixture the live feed never once picks up (a genuine coverage gap),
+// or a fast individual-sport match (table tennis, a short tennis set) that
+// starts and finishes between two ~2-minute scrapes, too quick to ever be
+// seen live twice — and just sit OPEN forever. This is a provider-agnostic
+// backstop for exactly that: cancel (refund) anything this stale, whatever
+// broke.
+//
+// Gated on BOTH closesAt age AND updatedAt age (not closesAt alone) — a
+// market still being actively ticked (a long tennis match, extra time, a
+// rain delay) has a fresh updatedAt regardless of how long ago it started,
+// so it's excluded no matter the cutoff; only a market truly untouched for
+// this long — no live tick, no reconciler patch, nothing — ever matches.
+// That guard is what makes a short cutoff safe: without it, shortening this
+// risked sweeping a genuinely still-live match purely for running long.
+const STUCK_MARKET_CUTOFF_MS = 90 * 60 * 1000;
+const STUCK_MARKET_CHECK_MS = 15 * 60_000;
 // Real per-tick ceiling on ON-CHAIN calls only (each is a signed tx + a
 // wait for its receipt). The no-bet branch below is a single bulk UPDATE
 // regardless of how many thousands it touches, so this cap doesn't limit
@@ -394,6 +399,10 @@ async function recoverStuckSportsMarkets(): Promise<void> {
         sport: { not: "prediction-markets" },
         status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
         closesAt: { lt: cutoff },
+        // Excludes anything still being actively ticked (by handleLive or
+        // the cache reconciler) — see the constants' doc comment above for
+        // why this guard is what makes a short cutoff safe.
+        updatedAt: { lt: cutoff },
       },
       select: {
         id: true, homeTeam: true, awayTeam: true, closesAt: true, externalId: true,
@@ -414,7 +423,7 @@ async function recoverStuckSportsMarkets(): Promise<void> {
     const empty = stuck.filter((m) => m._count.bets === 0 && m._count.parlayLegs === 0);
 
     console.warn(
-      `[oracle-sync] recovering ${stuck.length} market(s) stuck open >${STUCK_MARKET_CUTOFF_MS / 3_600_000}h past closesAt with no live/finished signal ever received ` +
+      `[oracle-sync] recovering ${stuck.length} market(s) stuck open >${STUCK_MARKET_CUTOFF_MS / 3_600_000}h past closesAt with no live/finished signal in that window ` +
       `(${withMoney.length} with real bets — on-chain cancel, capped at ${STUCK_MARKET_ONCHAIN_BATCH}/tick; ${empty.length} with none — DB-only)`,
     );
 

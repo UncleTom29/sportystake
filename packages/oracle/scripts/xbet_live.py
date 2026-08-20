@@ -45,7 +45,15 @@ COUNTRY = 132
 
 LIVE_URL = (
     f"https://{HOST}/service-api/LiveFeed/Get1x2_VZip"
-    f"?sports={{sid}}&count=200&lng=en&gr=70&mode=4&country={COUNTRY}&partner={PARTNER}"
+    # No `gr=` param — xbet_full.py's prematch LINE_URL doesn't set one
+    # either, and testing found `gr=70` is a strict, undocumented narrowing:
+    # every match it drops (sampled across football, tennis, and others)
+    # still carries real live scores in the response when the param is
+    # left off, so 1xbet does have live data for them — this scraper was
+    # just discarding it before ever reaching the disappearance-detection
+    # logic in live-tracking.ts, leaving those matches with no path to a
+    # real finished score at all except the 4h stuck-market safety net.
+    f"?sports={{sid}}&count=200&lng=en&mode=4&country={COUNTRY}&partner={PARTNER}"
 )
 
 HEADERS = {

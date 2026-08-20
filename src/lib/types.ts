@@ -5,7 +5,7 @@
 export type Address = `0x${string}`;
 export type Hex = `0x${string}`;
 
-export type BetStatus = "PENDING" | "WON" | "LOST" | "CANCELLED" | "CLAIMED";
+export type BetStatus = "PENDING" | "WON" | "LOST" | "CANCELLED" | "CLAIMED" | "REFUNDED";
 export type MarketStatus = "OPEN" | "SUSPENDED" | "LIVE" | "SETTLED" | "CANCELLED";
 export type LPStatus = "ACTIVE" | "WITHDRAW_REQUESTED" | "WITHDRAWN";
 export type QuotaMode = "normal" | "conservation" | "emergency";

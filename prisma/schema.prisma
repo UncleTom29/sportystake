@@ -182,6 +182,11 @@ enum BetStatus {
   LOST
   CANCELLED
   CLAIMED
+  /// A cancelled bet/parlay whose stake has actually been refunded on-chain
+  /// (claimRefund/claimParlayRefund succeeded) — distinct from CLAIMED,
+  /// which means a WIN was claimed. Mirrors CasinoStatus.REFUNDED, which
+  /// already made this same distinction on the casino side.
+  REFUNDED
 }
 
 model Parlay {

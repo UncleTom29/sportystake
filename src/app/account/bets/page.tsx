@@ -10,7 +10,7 @@ import { useNotifications } from "@/lib/notificationStore";
 import { explorerTxUrl } from "@/lib/wagmi";
 
 type Filter = "ALL" | BetStatus;
-const FILTERS: Filter[] = ["ALL", "PENDING", "WON", "LOST", "CANCELLED", "CLAIMED"];
+const FILTERS: Filter[] = ["ALL", "PENDING", "WON", "LOST", "CANCELLED", "CLAIMED", "REFUNDED"];
 
 const STATUS_STYLE: Record<BetStatus, { label: string; color: string; bg: string }> = {
   WON:       { label: "Won",       color: "var(--color-brand-500)", bg: "rgba(0,231,1,0.08)" },
@@ -18,6 +18,7 @@ const STATUS_STYLE: Record<BetStatus, { label: string; color: string; bg: string
   PENDING:   { label: "Pending",   color: "var(--color-warn)",      bg: "rgba(255,176,32,0.08)" },
   CANCELLED: { label: "Cancelled", color: "var(--color-ink-3)",     bg: "rgba(255,255,255,0.04)" },
   CLAIMED:   { label: "Claimed",   color: "var(--color-brand-500)", bg: "rgba(0,231,1,0.08)" },
+  REFUNDED:  { label: "Refunded",  color: "var(--color-ink-3)",     bg: "rgba(255,255,255,0.04)" },
 };
 
 const LEG_RESULT_STYLE: Record<"PENDING" | "WON" | "LOST" | "VOID", { label: string; color: string; bg: string }> = {
@@ -77,7 +78,7 @@ export default function MyBetsPage() {
         : await Bets.refund(bet.id, receipt.transactionHash);
       const refundedAmount = parseFloat(res.refundUsdc || "0");
       const formattedRefund = refundedAmount > 0 ? refundedAmount.toFixed(2) : "0.00";
-      setBets((cur) => cur.map((b) => b.id === bet.id ? { ...b, status: "CLAIMED" } : b));
+      setBets((cur) => cur.map((b) => b.id === bet.id ? { ...b, status: "REFUNDED", potentialPayout: String(refundedAmount || b.potentialPayout) } : b));
       pushToast({ kind: "success", title: "Refund claimed", body: `$${formattedRefund} USDC sent to wallet` });
     } catch (e) {
       pushToast({ kind: "error", title: "Refund failed", body: (e as Error).message });
@@ -233,7 +234,7 @@ export default function MyBetsPage() {
                   <div className="mt-3 flex flex-wrap items-center gap-3 text-[12px]">
                     <span className="text-[var(--color-ink-3)]">Stake: <span className="mono font-bold text-white">${parseFloat(bet.amount).toFixed(2)}</span></span>
                     <span className="text-[var(--color-ink-3)]">
-                      {bet.status === "WON" || bet.status === "CLAIMED" ? "Won" : "Potential"}:
+                      {bet.status === "WON" || bet.status === "CLAIMED" ? "Won" : bet.status === "REFUNDED" ? "Refunded" : "Potential"}:
                       <span className="mono font-bold ml-1" style={{ color: style.color }}>
                         ${parseFloat(bet.potentialPayout).toFixed(2)}
                       </span>

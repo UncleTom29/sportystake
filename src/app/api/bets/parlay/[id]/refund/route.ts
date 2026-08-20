@@ -17,6 +17,14 @@ const Body = z.object({ txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/) });
  * separate "cancelled" precondition to check here since Parlay.status
  * only flips once claimParlayRefund itself has already succeeded on-chain
  * (unlike Bet, which BettingCore.cancelMarket marks CANCELLED up front).
+ *
+ * Marks the parlay REFUNDED, not CLAIMED — that status means a WIN was
+ * claimed, and every `status === "WON" || status === "CLAIMED"` check
+ * across the app (leaderboard, account stats, admin analytics) relies on
+ * CLAIMED never meaning "refunded" to stay correct. Also persists the real
+ * on-chain refunded amount into potentialPayout — previously left at its
+ * original pre-refund quoted value, so a refunded parlay displayed as
+ * "Won $<quoted odds payout>" instead of "Refunded $<actual stake back>".
  */
 export const POST = withRequestId(
   async (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
@@ -27,7 +35,9 @@ export const POST = withRequestId(
     const parlay = await prisma.parlay.findUnique({ where: { id } });
     if (!parlay) throw new ApiError("NotFound", "Parlay not found", 404);
     if (parlay.userId !== auth.sub) throw new ApiError("Forbidden", "Not your parlay", 403);
-    if (parlay.status === "CLAIMED") throw new ApiError("Conflict", "Parlay refund already claimed", 409);
+    if (parlay.status === "CLAIMED" || parlay.status === "REFUNDED") {
+      throw new ApiError("Conflict", "Parlay refund already claimed", 409);
+    }
 
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
@@ -41,7 +51,7 @@ export const POST = withRequestId(
 
     const updated = await prisma.parlay.update({
       where: { id },
-      data: { status: "CLAIMED", txHash: parsed.data.txHash },
+      data: { status: "REFUNDED", txHash: parsed.data.txHash, potentialPayout: claim.amount },
     });
 
     return ok({

@@ -13,10 +13,14 @@ const Body = z.object({ txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/) });
 /**
  * The client already signed and confirmed `claimRefund(betId)` via Circle
  * before calling this — verifies the receipt's `RefundClaimed` event
- * (id + owner) and marks the bet CLAIMED. Mirrors the WON path in
- * ./claim/route.ts; only reachable once BettingCore.cancelMarket has run
- * (bet.status === "CANCELLED"), since claimRefund itself reverts with
- * MarketNotCancelled otherwise.
+ * (id + owner) and marks the bet REFUNDED (not CLAIMED — that status means
+ * a WIN was claimed; every `status === "WON" || status === "CLAIMED"` check
+ * across the app, including the leaderboard, relies on CLAIMED never
+ * meaning "refunded" to stay correct). Mirrors the WON path in
+ * ./claim/route.ts, including persisting the real on-chain amount — only
+ * reachable once BettingCore.cancelMarket has run (bet.status ===
+ * "CANCELLED"), since claimRefund itself reverts with MarketNotCancelled
+ * otherwise.
  */
 export const POST = withRequestId(
   async (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
@@ -42,9 +46,10 @@ export const POST = withRequestId(
     await prisma.bet.update({
       where: { id },
       data: {
-        status: "CLAIMED",
+        status: "REFUNDED",
         claimedAt: new Date(),
         txHash: parsed.data.txHash,
+        potentialPayout: claim.amount,
       },
     });
     const updated = await BetsRepo.byId(id);

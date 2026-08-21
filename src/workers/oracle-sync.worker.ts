@@ -377,71 +377,67 @@ async function pruneClosedSportsMarkets(): Promise<void> {
 //
 // Gated on BOTH closesAt age AND updatedAt age (not closesAt alone) — a
 // market still being actively ticked (a long tennis match, extra time, a
-// Only a market truly untouched for 4+ hours past closesAt (well after any
-// 90-120 minute football match + halftime + extra time) is ever treated as stuck.
-const STUCK_MARKET_CUTOFF_MS = 4 * 60 * 60 * 1000;
+const STUCK_EMPTY_MARKET_CUTOFF_MS = 4 * 60 * 60 * 1000;  // 4h for markets with zero bets
+const STUCK_BET_MARKET_CUTOFF_MS = 24 * 60 * 60 * 1000;    // 24h for markets with active bets (prevents premature refunds)
 const STUCK_MARKET_CHECK_MS = 15 * 60_000;
-// Real per-tick ceiling on ON-CHAIN calls only (each is a signed tx + a
-// wait for its receipt). The no-bet branch below is a single bulk UPDATE
-// regardless of how many thousands it touches, so this cap doesn't limit
-// how fast the (usually enormous, zero-bet) backlog drains — only how many
-// individual chain transactions one tick is willing to send.
 const STUCK_MARKET_ONCHAIN_BATCH = 20;
 
 async function recoverStuckSportsMarkets(): Promise<void> {
   try {
-    const cutoff = new Date(Date.now() - STUCK_MARKET_CUTOFF_MS);
-    const stuck = await prisma.market.findMany({
+    const emptyCutoff = new Date(Date.now() - STUCK_EMPTY_MARKET_CUTOFF_MS);
+    const betCutoff = new Date(Date.now() - STUCK_BET_MARKET_CUTOFF_MS);
+
+    // 1. Bulk-cancel stale markets that had NO bets placed
+    const emptyStuck = await prisma.market.findMany({
       where: {
         sport: { not: "prediction-markets" },
         status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
-        closesAt: { lt: cutoff },
-        // Excludes anything still being actively ticked (by handleLive or
-        // the cache reconciler) — see the constants' doc comment above for
-        // why this guard is what makes a short cutoff safe.
-        updatedAt: { lt: cutoff },
+        closesAt: { lt: emptyCutoff },
+        updatedAt: { lt: emptyCutoff },
+        bets: { none: {} },
+        parlayLegs: { none: {} },
       },
-      select: {
-        id: true, homeTeam: true, awayTeam: true, closesAt: true, externalId: true,
-        _count: { select: { bets: true, parlayLegs: true } },
-      },
+      select: { id: true },
     });
-    if (stuck.length === 0) return;
 
-    // Registration on BettingCore is lazy (first real bet's attestation) —
-    // a market nobody ever bet on was never created there, so there is
-    // nothing on-chain to cancel and no refund to issue. That's the
-    // overwhelming majority whenever a backlog has built up (e.g. this
-    // safety net's first-ever run, against months of a settlement pipeline
-    // that turned out to be broken end to end — discovered the same day
-    // this function was written). Skip the chain entirely for those; one
-    // bulk UPDATE handles any number of them.
-    const withMoney = stuck.filter((m) => m._count.bets > 0 || m._count.parlayLegs > 0);
-    const empty = stuck.filter((m) => m._count.bets === 0 && m._count.parlayLegs === 0);
-
-    console.warn(
-      `[oracle-sync] recovering ${stuck.length} market(s) stuck open >${STUCK_MARKET_CUTOFF_MS / 3_600_000}h past closesAt with no live/finished signal in that window ` +
-      `(${withMoney.length} with real bets — on-chain cancel, capped at ${STUCK_MARKET_ONCHAIN_BATCH}/tick; ${empty.length} with none — DB-only)`,
-    );
-
-    if (empty.length > 0) {
+    if (emptyStuck.length > 0) {
       const result = await prisma.market.updateMany({
-        where: { id: { in: empty.map((m) => m.id) } },
+        where: { id: { in: emptyStuck.map((m) => m.id) } },
         data: { status: "CANCELLED" },
       });
       console.log(`[oracle-sync] bulk-cancelled ${result.count} bet-free stuck market(s), no chain calls needed`);
     }
 
-    for (const market of withMoney.slice(0, STUCK_MARKET_ONCHAIN_BATCH)) {
-      try {
-        await cancelMarketOnchain(market.id);
-        console.log(`[oracle-sync] recovered stuck market ${market.id} (${market.homeTeam} vs ${market.awayTeam}) — refunded any pending bets`);
-      } catch (error) {
-        console.error(`[oracle-sync] failed to recover stuck market ${market.id}`, error);
+    // 2. Only refund markets WITH real bets after a 24h safety period
+    const withMoney = await prisma.market.findMany({
+      where: {
+        sport: { not: "prediction-markets" },
+        status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
+        closesAt: { lt: betCutoff },
+        updatedAt: { lt: betCutoff },
+        OR: [
+          { bets: { some: {} } },
+          { parlayLegs: { some: {} } },
+        ],
+      },
+      select: {
+        id: true, homeTeam: true, awayTeam: true, closesAt: true, externalId: true,
+      },
+      take: STUCK_MARKET_ONCHAIN_BATCH,
+    });
+
+    if (withMoney.length > 0) {
+      console.warn(
+        `[oracle-sync] refunding ${withMoney.length} market(s) stuck open >24h with active bets:`,
+      );
+      for (const market of withMoney) {
+        try {
+          await cancelMarketOnchain(market.id);
+          console.log(`[oracle-sync] refunded stuck market ${market.id} (${market.homeTeam} vs ${market.awayTeam})`);
+        } catch (error) {
+          console.error(`[oracle-sync] failed to recover stuck market ${market.id}`, error);
+        }
       }
-    }
-    if (withMoney.length > STUCK_MARKET_ONCHAIN_BATCH) {
-      console.log(`[oracle-sync] ${withMoney.length - STUCK_MARKET_ONCHAIN_BATCH} more bet-bearing stuck market(s) queued for next tick`);
     }
   } catch (error) {
     console.error("[oracle-sync] recover stuck markets error", error);

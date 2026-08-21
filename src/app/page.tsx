@@ -63,37 +63,37 @@ export default async function Home() {
       <h1 className="sr-only">
         SportyStake — Non-Custodial Decentralized Crypto Sportsbook &amp; On-Chain Casino
       </h1>
-      {/* 1. Hero Carousel + Real On-Chain Side Metric Cards */}
+      {/* 1. Hero Carousel + Core Protocol Highlights */}
       <div className="grid gap-4 md:grid-cols-[1.6fr_1fr]">
         <PromoCarousel />
         <div className="grid grid-cols-2 gap-3">
           <StatCard
-            label="Open Markets"
-            value={`${openMarketsTotal}`}
-            sub={`${todayMarketsTotal} starting today`}
-            accent="var(--color-info)"
-            Icon={TrophyIcon}
-          />
-          <StatCard
-            label="AI Model Edge"
-            value="64.6%"
-            sub="+3.8% CLV Beat"
-            accent="var(--color-brand-500)"
-            Icon={ZapIcon}
-          />
-          <StatCard
-            label="Total Wagered"
-            value={totalWageredFormatted}
-            sub="On-chain settled"
-            accent="#a78bfa"
-            Icon={TrophyIcon}
-          />
-          <StatCard
             label="Welcome Bonus"
             value="$2,000"
             sub="100% First-Wager Match"
-            accent="var(--color-warn)"
+            accent="var(--color-brand-500)"
             Icon={GiftIcon}
+          />
+          <StatCard
+            label="Non-Custodial"
+            value="100%"
+            sub="Smart Contract Escrow"
+            accent="var(--color-info)"
+            Icon={ShieldIcon}
+          />
+          <StatCard
+            label="Payout Speed"
+            value="18ms"
+            sub="Sub-Second Latency"
+            accent="#a78bfa"
+            Icon={ZapIcon}
+          />
+          <StatCard
+            label="Predictions"
+            value="Live"
+            sub="Real-World Market Outcomes"
+            accent="var(--color-warn)"
+            Icon={FlameIcon}
           />
         </div>
       </div>
@@ -101,10 +101,6 @@ export default async function Home() {
       {/* Marquee ticker */}
       <div className="mt-4 -mx-3 md:-mx-5">
         <StatsMarquee
-          totalWagered={totalWageredFormatted}
-          openMarkets={openMarketsTotal}
-          todayMarkets={todayMarketsTotal}
-          activeWallets={activeWalletsFormatted}
           maxWin={maxWinFormatted}
         />
       </div>
@@ -221,27 +217,33 @@ export default async function Home() {
               </div>
             </div>
 
-            {/* Live Commit-Reveal Verifier Preview Box */}
-            <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 font-mono">
-              <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-2 mb-3">
-                <span className="text-[11px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <BadgeCheck className="h-4 w-4 text-[var(--color-brand-500)]" />
-                  Live Hash Verifier
-                </span>
-                <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[9px] font-bold text-emerald-400">VERIFIED</span>
+            {/* Cryptographic Fairness Architecture */}
+            <div className="space-y-3">
+              <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-400 ring-1 ring-violet-500/30">
+                  <ShieldIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-[13px] font-bold text-white">Pre-Committed Server Seed</h4>
+                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">SHA-256 hash committed before player wagers are accepted, locking the outcome immutably.</p>
+                </div>
               </div>
-              <div className="space-y-2 text-[11px]">
-                <div>
-                  <span className="text-[var(--color-ink-4)] block text-[10px] uppercase">Server Seed Hash (Pre-committed)</span>
-                  <p className="truncate text-violet-300">0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069</p>
+              <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
+                  <ZapIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <span className="text-[var(--color-ink-4)] block text-[10px] uppercase">Client Seed</span>
-                  <p className="truncate text-white">4f8a-92bc-11ef-8b23-0800200c9a66</p>
+                  <h4 className="text-[13px] font-bold text-white">Client-Supplied Entropy</h4>
+                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Player wallet client seed blends into the HMAC hash to prevent any house predictability.</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/30">
+                  <BadgeCheck className="h-5 w-5" />
                 </div>
                 <div>
-                  <span className="text-[var(--color-ink-4)] block text-[10px] uppercase">HMAC-SHA256 Output</span>
-                  <p className="truncate text-[var(--color-brand-500)]">0xa8d93e1b7c2f5a4e... → Roll Result: 88.42 (WIN)</p>
+                  <h4 className="text-[13px] font-bold text-white">Automated On-Chain Payouts</h4>
+                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Smart contracts credit winning bets directly without custodial intervention.</p>
                 </div>
               </div>
             </div>
@@ -452,8 +454,8 @@ export default async function Home() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <PoolStatCard name="30-Day Win Rate" value="64.6%" sub="Verified Model Record" highlight />
-              <PoolStatCard name="Average CLV Beat" value="+3.8%" sub="Closing Line Value" />
+              <PoolStatCard name="Model Status" value="24/7" sub="Autonomous Quantitative Engine" highlight />
+              <PoolStatCard name="Analysis Engine" value="Live" sub="xG & Market Dislocation Scans" />
               <PoolStatCard name="Settlement Latency" value="18ms" sub="Arc Chain Finality" />
               <PoolStatCard name="KYC Requirement" value="Zero" sub="1-Click Web3 Auth" />
             </div>

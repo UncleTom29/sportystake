@@ -1,9 +1,9 @@
-import { ZapIcon, TrophyIcon, FlameIcon, LiveIcon, ShieldIcon } from "@/components/icons/UIIcons";
+import { ZapIcon, TrophyIcon, FlameIcon, LiveIcon, ShieldIcon, BadgeCheck, GiftIcon } from "@/components/icons/UIIcons";
 
 export interface StatsMarqueeProps {
-  totalWagered: string;
-  openMarkets: string | number;
-  todayMarkets: string | number;
+  totalWagered?: string;
+  openMarkets?: string | number;
+  todayMarkets?: string | number;
   activeWallets?: string | number;
   maxWin?: string;
 }
@@ -16,12 +16,13 @@ export default function StatsMarquee({
   maxWin = "—",
 }: StatsMarqueeProps) {
   const items = [
-    { Icon: ZapIcon, label: totalWagered, sub: "total wagered" },
-    { Icon: LiveIcon, label: String(openMarkets), sub: "open markets" },
-    { Icon: FlameIcon, label: String(todayMarkets), sub: "starting today" },
-    { Icon: ZapIcon, label: "64.6%", sub: "AI model win rate" },
-    { Icon: ShieldIcon, label: "100%", sub: "on-chain smart contract escrow" },
-    ...(activeWallets && activeWallets !== "—" ? [{ Icon: ShieldIcon, label: String(activeWallets), sub: "active wallets" }] : []),
+    { Icon: ShieldIcon, label: "100% Non-Custodial", sub: "smart contract escrow" },
+    { Icon: ZapIcon, label: "Zero KYC", sub: "1-click instant web3 auth" },
+    { Icon: ZapIcon, label: "Sub-Second", sub: "automated on-chain payouts" },
+    { Icon: BadgeCheck, label: "Provably Fair", sub: "SHA-256 commit-reveal hashing" },
+    { Icon: GiftIcon, label: "$2,000 Bonus", sub: "100% first-wager match" },
+    { Icon: FlameIcon, label: "Prediction Markets", sub: "global real-world events" },
+    { Icon: BadgeCheck, label: "Arc EVM Chain", sub: "18ms transaction finality" },
     ...(maxWin && maxWin !== "—" ? [{ Icon: TrophyIcon, label: maxWin, sub: "biggest win this week" }] : []),
   ];
 

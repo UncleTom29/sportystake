@@ -120,59 +120,7 @@ const MAJOR_SPORTS_ORDER = [
   "cricket",
 ];
 
-function getSportPriority(slug: string): number {
-  let norm = slug.toLowerCase();
-  if (norm === "martial-arts") norm = "mma";
-  const idx = MAJOR_SPORTS_ORDER.indexOf(norm);
-  return idx !== -1 ? idx : 99;
-}
-
-const LEAGUE_PRIORITY: { pattern: RegExp; tier: number }[] = [
-  // Top UEFA / Global club competitions
-  { pattern: /^(?:uefa\s+)?champions league$/i, tier: 1 },
-  { pattern: /^(?:uefa\s+)?europa league$/i, tier: 2 },
-  { pattern: /^(?:uefa\s+)?(?:europa )?conference league$/i, tier: 3 },
-  { pattern: /nba/i, tier: 4 },
-  { pattern: /nfl/i, tier: 5 },
-  { pattern: /mlb/i, tier: 6 },
-  { pattern: /nhl/i, tier: 7 },
-
-  // Top-5 European Soccer
-  { pattern: /^premier league$/i, tier: 10 },
-  { pattern: /^la liga$/i, tier: 11 },
-  { pattern: /^bundesliga$/i, tier: 12 },
-  { pattern: /^serie a$/i, tier: 13 },
-  { pattern: /^ligue 1/i, tier: 14 },
-
-  // Other major European / Global Soccer
-  { pattern: /primeira liga|liga nos/i, tier: 20 },
-  { pattern: /eredivisie/i, tier: 21 },
-  { pattern: /pro league|jupiler/i, tier: 22 },
-  { pattern: /scottish.*premiership|premiership.*scotland/i, tier: 23 },
-  { pattern: /s[üu]per lig/i, tier: 24 },
-
-  // US & Latin American Soccer / Major Tennis & Basketball
-  { pattern: /^mls$|major league soccer/i, tier: 30 },
-  { pattern: /brasileir[aã]o/i, tier: 31 },
-  { pattern: /liga profesional|primera.*arg/i, tier: 32 },
-  { pattern: /liga mx/i, tier: 33 },
-  { pattern: /euroleague/i, tier: 34 },
-  { pattern: /atp|wta|wimbledon|us open|french open|australian open/i, tier: 35 },
-
-  // Second divisions
-  { pattern: /^championship$/i, tier: 40 },
-  { pattern: /la liga 2|segunda/i, tier: 41 },
-  { pattern: /2\. bundesliga/i, tier: 42 },
-  { pattern: /^serie b$/i, tier: 43 },
-  { pattern: /^ligue 2/i, tier: 44 },
-];
-
-function getLeaguePriority(name: string): number {
-  for (const entry of LEAGUE_PRIORITY) {
-    if (entry.pattern.test(name)) return entry.tier;
-  }
-  return 999;
-}
+import { compareLeagues, getSportPriority } from "@/lib/leaguePriority";
 
 function groupEvents(events: LiveEvent[]): SportGroup[] {
   const bySport = new Map<string, Map<string, LiveEvent[]>>();
@@ -193,9 +141,8 @@ function groupEvents(events: LiveEvent[]): SportGroup[] {
       leagues.push({ league, country: evs[0].country ?? "", events: evs });
     }
     leagues.sort((a, b) => {
-      const pa = getLeaguePriority(a.league);
-      const pb = getLeaguePriority(b.league);
-      if (pa !== pb) return pa - pb;
+      const cmp = compareLeagues({ name: a.league, sport }, { name: b.league, sport });
+      if (cmp !== 0) return cmp;
       return b.events.length - a.events.length;
     });
     groups.push({ sport, label: sportLabel(sport), count: [...byLeague.values()].flat().length, leagues });

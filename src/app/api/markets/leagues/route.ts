@@ -5,34 +5,7 @@ import { prisma } from "@/lib/server/db";
 
 export const runtime = "nodejs";
 
-// Leagues whose names contain these fragments are promoted to the top.
-const TOP_LEAGUE_FRAGMENTS = [
-  "premier league",
-  "champions league",
-  "la liga",
-  "serie a",
-  "bundesliga",
-  "ligue 1",
-  "europa league",
-  "world cup",
-  "fa cup",
-  "nba",
-  "nfl",
-  "mlb",
-  "nhl",
-  "atp",
-  "wta",
-  "grand slam",
-  "wimbledon",
-  "french open",
-  "us open",
-  "australian open",
-];
-
-function leaguePriority(name: string): number {
-  const lower = name.toLowerCase();
-  return TOP_LEAGUE_FRAGMENTS.some((f) => lower.includes(f)) ? 0 : 1;
-}
+import { compareLeagues } from "@/lib/leaguePriority";
 
 /**
  * Aggregated per-league counts. Uses a single SQL groupBy + a second cheap
@@ -79,12 +52,7 @@ export const GET = withRequestId(async (_req: NextRequest) => {
       live: 0,
       total: r._count._all,
     }))
-    .sort((a, b) => {
-      const pa = leaguePriority(a.name);
-      const pb = leaguePriority(b.name);
-      if (pa !== pb) return pa - pb;
-      return b.total - a.total; // then by total count desc
-    });
+    .sort(compareLeagues);
 
   return ok({ items });
 });

@@ -63,39 +63,9 @@ export default async function Home() {
       <h1 className="sr-only">
         SportyStake — Non-Custodial Decentralized Crypto Sportsbook &amp; On-Chain Casino
       </h1>
-      {/* 1. Hero Carousel + Core Protocol Highlights */}
-      <div className="grid gap-4 md:grid-cols-[1.6fr_1fr]">
+      {/* 1. Hero Carousel */}
+      <div>
         <PromoCarousel />
-        <div className="grid grid-cols-2 gap-3">
-          <StatCard
-            label="Welcome Bonus"
-            value="$2,000"
-            sub="100% First-Wager Match"
-            accent="var(--color-brand-500)"
-            Icon={GiftIcon}
-          />
-          <StatCard
-            label="Non-Custodial"
-            value="100%"
-            sub="Smart Contract Escrow"
-            accent="var(--color-info)"
-            Icon={ShieldIcon}
-          />
-          <StatCard
-            label="Payout Speed"
-            value="18ms"
-            sub="Sub-Second Latency"
-            accent="#a78bfa"
-            Icon={ZapIcon}
-          />
-          <StatCard
-            label="Predictions"
-            value="Live"
-            sub="Real-World Market Outcomes"
-            accent="var(--color-warn)"
-            Icon={FlameIcon}
-          />
-        </div>
       </div>
 
       {/* Marquee ticker */}
@@ -453,11 +423,25 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <PoolStatCard name="Model Status" value="24/7" sub="Autonomous Quantitative Engine" highlight />
-              <PoolStatCard name="Analysis Engine" value="Live" sub="xG & Market Dislocation Scans" />
-              <PoolStatCard name="Settlement Latency" value="18ms" sub="Arc Chain Finality" />
-              <PoolStatCard name="KYC Requirement" value="Zero" sub="1-Click Web3 Auth" />
+            <div className="space-y-3">
+              <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
+                  <ZapIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-[13px] font-bold text-white">Autonomous Quantitative Engine</h4>
+                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Scans Europe&apos;s top domestic football leagues 24/7 for positive expected value (+EV).</p>
+                </div>
+              </div>
+              <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400 ring-1 ring-cyan-500/30">
+                  <ShieldIcon className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-[13px] font-bold text-white">Non-Custodial Escrow</h4>
+                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Automated 1-click tailing with payouts settled directly by smart contracts on Arc EVM.</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -479,36 +463,6 @@ function EmptyHint({ children }: { children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-dashed border-[var(--color-line-1)] bg-[var(--color-bg-2)]/40 p-6 text-center text-[12px] text-[var(--color-ink-3)]">
       {children}
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  sub,
-  accent,
-  Icon,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  accent: string;
-  Icon: (p: { className?: string }) => React.ReactElement;
-}) {
-  return (
-    <div className="relative overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4 shadow-sm hover:border-[var(--color-line-2)] transition-colors">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</span>
-        <div
-          className="flex h-7 w-7 items-center justify-center rounded-md"
-          style={{ background: `${accent}1f`, color: accent }}
-        >
-          <Icon className="h-3.5 w-3.5" />
-        </div>
-      </div>
-      <p className="mono text-2xl font-black text-white">{value}</p>
-      <p className="mt-0.5 text-[11px] text-[var(--color-ink-3)]">{sub}</p>
     </div>
   );
 }
@@ -561,32 +515,6 @@ function PromoFeatureCard({
         </Link>
         <p className="mt-2 text-[10px] text-center text-[var(--color-ink-4)] font-medium">{tnc}</p>
       </div>
-    </div>
-  );
-}
-
-function PoolStatCard({
-  name,
-  value,
-  sub,
-  highlight,
-}: {
-  name: string;
-  value: string;
-  sub: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-xl p-3.5 ${
-        highlight
-          ? "border border-[var(--color-brand-500)]/40 bg-[var(--color-brand-500)]/10"
-          : "border border-[var(--color-line-1)] bg-[var(--color-bg-1)]"
-      }`}
-    >
-      <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">{name}</p>
-      <p className="mono mt-1 text-xl font-black text-[var(--color-brand-500)]">{value}</p>
-      <p className="mt-0.5 text-[10px] text-[var(--color-ink-3)]">{sub}</p>
     </div>
   );
 }

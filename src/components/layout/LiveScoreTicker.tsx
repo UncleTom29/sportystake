@@ -21,46 +21,7 @@ const MAJOR_SPORTS_ORDER = [
   "cricket",
 ];
 
-function getSportPriority(slug: string): number {
-  let norm = slug.toLowerCase();
-  if (norm === "martial-arts") norm = "mma";
-  const idx = MAJOR_SPORTS_ORDER.indexOf(norm);
-  return idx !== -1 ? idx : 99;
-}
-
-const LEAGUE_PRIORITY: { pattern: RegExp; tier: number }[] = [
-  { pattern: /^(?:uefa\s+)?champions league$/i, tier: 1 },
-  { pattern: /^(?:uefa\s+)?europa league$/i, tier: 2 },
-  { pattern: /^(?:uefa\s+)?(?:europa )?conference league$/i, tier: 3 },
-  { pattern: /nba/i, tier: 4 },
-  { pattern: /nfl/i, tier: 5 },
-  { pattern: /mlb/i, tier: 6 },
-  { pattern: /nhl/i, tier: 7 },
-  { pattern: /^premier league$/i, tier: 10 },
-  { pattern: /^la liga$/i, tier: 11 },
-  { pattern: /^bundesliga$/i, tier: 12 },
-  { pattern: /^serie a$/i, tier: 13 },
-  { pattern: /^ligue 1/i, tier: 14 },
-  { pattern: /primeira liga|liga nos/i, tier: 20 },
-  { pattern: /eredivisie/i, tier: 21 },
-  { pattern: /pro league|jupiler/i, tier: 22 },
-  { pattern: /scottish.*premiership|premiership.*scotland/i, tier: 23 },
-  { pattern: /s[üu]per lig/i, tier: 24 },
-  { pattern: /^mls$|major league soccer/i, tier: 30 },
-  { pattern: /brasileir[aã]o/i, tier: 31 },
-  { pattern: /liga profesional|primera.*arg/i, tier: 32 },
-  { pattern: /liga mx/i, tier: 33 },
-  { pattern: /euroleague/i, tier: 34 },
-  { pattern: /atp|wta|wimbledon|us open|french open|australian open/i, tier: 35 },
-];
-
-function getLeaguePriority(name: string): number {
-  for (const entry of LEAGUE_PRIORITY) {
-    if (entry.pattern.test(name)) return entry.tier;
-  }
-  return 999;
-}
-
+import { compareLeagues, getSportPriority } from "@/lib/leaguePriority";
 import LiveMatchModal, { type LiveEventDetails } from "@/components/sportsbook/LiveMatchModal";
 
 export default function LiveScoreTicker() {
@@ -78,14 +39,11 @@ export default function LiveScoreTicker() {
           const majorLive = res.items
             .filter((m) => getSportPriority(m.sport) !== 99)
             .sort((a, b) => {
-              const pa = getSportPriority(a.sport);
-              const pb = getSportPriority(b.sport);
-              if (pa !== pb) return pa - pb;
-
-              const la = getLeaguePriority(a.leagueName);
-              const lb = getLeaguePriority(b.leagueName);
-              if (la !== lb) return la - lb;
-
+              const cmp = compareLeagues(
+                { id: a.leagueId, name: a.leagueName, sport: a.sport },
+                { id: b.leagueId, name: b.leagueName, sport: b.sport }
+              );
+              if (cmp !== 0) return cmp;
               return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
             });
 

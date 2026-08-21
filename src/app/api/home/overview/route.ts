@@ -7,6 +7,7 @@ import { getOnchainPoolStats } from "@/lib/server/chain";
 import { getVirtualLiquidityConfig } from "@/lib/server/virtualLiquidityStore";
 import { formatUsd } from "@/lib/format";
 import type { SportSlug } from "@/components/icons/SportIcons";
+import { compareLeagues } from "@/lib/leaguePriority";
 
 export const runtime = "nodejs";
 
@@ -97,6 +98,7 @@ export const GET = withRequestId(async () => {
       live: 0,
       today: todayMap.get(r.leagueId) ?? 0,
     }))
+    .sort(compareLeagues)
     .slice(0, 20);
 
   const virtConfig = getVirtualLiquidityConfig();

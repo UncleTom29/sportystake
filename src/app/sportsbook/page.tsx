@@ -47,63 +47,7 @@ const MAJOR_SPORTS_ORDER = [
   "cricket",
 ];
 
-function getSportPriority(slug: string): number {
-  const norm = slug.toLowerCase();
-  const idx = MAJOR_SPORTS_ORDER.indexOf(norm);
-  return idx !== -1 ? idx : 99;
-}
-
-// Tiered league priority. Lower tier number = displayed first.
-// Each entry matches by API-Football id OR by name pattern (whichever fires first).
-const LEAGUE_PRIORITY: { id?: number; pattern: RegExp; tier: number }[] = [
-  // UEFA club competitions
-  { id: 2,   pattern: /^(?:uefa\s+)?champions league$/i,              tier: 1 },
-  { id: 3,   pattern: /^(?:uefa\s+)?europa league$/i,                 tier: 2 },
-  { id: 848, pattern: /^(?:uefa\s+)?(?:europa )?conference league$/i, tier: 3 },
-  // Top-5 European domestic leagues
-  { id: 39,  pattern: /^premier league$/i,              tier: 10 },
-  { id: 140, pattern: /^la liga$/i,                     tier: 11 },
-  { id: 78,  pattern: /^bundesliga$/i,                  tier: 12 },
-  { id: 135, pattern: /^serie a$/i,                     tier: 13 },
-  { id: 61,  pattern: /^ligue 1/i,                      tier: 14 },
-  // Other major European domestic leagues
-  { id: 94,  pattern: /primeira liga|liga nos/i,        tier: 20 },
-  { id: 88,  pattern: /eredivisie/i,                    tier: 21 },
-  { id: 144, pattern: /pro league|jupiler/i,            tier: 22 },
-  { id: 179, pattern: /scottish.*premiership|premiership.*scotland/i, tier: 23 },
-  { id: 203, pattern: /s[üu]per lig/i,                  tier: 24 },
-  { id: 235, pattern: /russian.*premier|premier.*russia/i, tier: 25 },
-  { id: 199, pattern: /ukrainian.*premier|ukr.*premier/i,  tier: 26 },
-  { id: 207, pattern: /super league.*switz|swiss.*super/i, tier: 27 },
-  { id: 210, pattern: /super league.*greece|greek.*super/i, tier: 28 },
-  // Second divisions of top-5
-  { id: 40,  pattern: /^championship$/i,                tier: 30 },
-  { id: 141, pattern: /la liga 2|segunda/i,             tier: 31 },
-  { id: 79,  pattern: /2\. bundesliga/i,                tier: 32 },
-  { id: 136, pattern: /^serie b$/i,                     tier: 33 },
-  { id: 62,  pattern: /^ligue 2/i,                      tier: 34 },
-  { id: 95,  pattern: /liga portugal 2/i,               tier: 35 },
-  // Lower English divisions
-  { id: 41,  pattern: /^league one$/i,                  tier: 36 },
-  { id: 42,  pattern: /^league two$/i,                  tier: 37 },
-  // Rest-of-world majors
-  { id: 253, pattern: /^mls$|major league soccer/i,     tier: 40 },
-  { id: 71,  pattern: /brasileir[aã]o/i,                tier: 41 },
-  { id: 128, pattern: /liga profesional|primera.*arg/i, tier: 42 },
-  { id: 262, pattern: /liga mx/i,                       tier: 43 },
-  { id: 188, pattern: /a-league/i,                      tier: 44 },
-  { id: 98,  pattern: /j1 league/i,                     tier: 45 },
-  { id: 169, pattern: /k league 1/i,                    tier: 46 },
-];
-
-function getLeaguePriority(id: number, name: string): number {
-  for (const entry of LEAGUE_PRIORITY) {
-    if ((entry.id !== undefined && entry.id === id) || entry.pattern.test(name)) {
-      return entry.tier;
-    }
-  }
-  return 999;
-}
+import { compareLeagues, getLeaguePriority, getSportPriority } from "@/lib/leaguePriority";
 
 export default function SportsbookPage() {
   return (
@@ -389,16 +333,7 @@ function SportsbookPageInner() {
             .values(),
         );
 
-        const sortedLeagues = dedupedLeagues.sort((a, b) => {
-          const spa = getSportPriority(a.sport);
-          const spb = getSportPriority(b.sport);
-          if (spa !== spb) return spa - spb;
-
-          const ap = getLeaguePriority(a.id, a.name);
-          const bp = getLeaguePriority(b.id, b.name);
-          if (ap !== bp) return ap - bp;
-          return a.name.localeCompare(b.name);
-        });
+        const sortedLeagues = dedupedLeagues.sort(compareLeagues);
         setSidebarLeagues(sortedLeagues);
         setFavouriteMarketIds(favRes.marketIds);
         setFavouriteLeagueIds(favRes.leagueIds);
@@ -453,18 +388,18 @@ function SportsbookPageInner() {
 
     const leagueOrder = new Map(sidebarLeagues.map((l, idx) => [l.name, idx]));
     return Array.from(map.entries()).sort(([nameA, msA], [nameB, msB]) => {
-      const sportA = msA[0]?.sportSlug ?? "football";
-      const sportB = msB[0]?.sportSlug ?? "football";
-      const spa = getSportPriority(sportA);
-      const spb = getSportPriority(sportB);
-      if (spa !== spb) return spa - spb;
-
       const ao = leagueOrder.get(nameA);
       const bo = leagueOrder.get(nameB);
       if (ao !== undefined && bo !== undefined) return ao - bo;
       if (ao !== undefined) return -1;
       if (bo !== undefined) return 1;
-      return nameA.localeCompare(nameB);
+
+      const sportA = msA[0]?.sportSlug ?? "football";
+      const sportB = msB[0]?.sportSlug ?? "football";
+      return compareLeagues(
+        { name: nameA, sport: sportA },
+        { name: nameB, sport: sportB }
+      );
     });
   }, [matches, sidebarLeagues, activePopular]);
 

@@ -39,22 +39,39 @@ import urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
-HOST    = "1xbet.ng"
+HOST_CANDIDATES = [
+    "1xbet.co.ke",
+    "1xbet.ug",
+    "1xbet.cm",
+    "22bet.ng",
+    "betwinner.ng",
+    "1x-bet.mobi",
+    "1xbet.ng",
+]
+_active_host_idx = 0
+_host_lock = threading.Lock()
+
+def get_active_host() -> str:
+    with _host_lock:
+        return HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)]
+
+def rotate_host(failed_host: str) -> str:
+    global _active_host_idx
+    with _host_lock:
+        if HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)] == failed_host:
+            _active_host_idx += 1
+            print(f"[INFO] Rotated 1xbet mirror to: {HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)]}", file=sys.stderr)
+        return HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)]
+
 PARTNER = 3
 COUNTRY = 132
 
-LIVE_URL = (
-    f"https://{HOST}/service-api/LiveFeed/Get1x2_VZip"
-    # No `gr=` param — xbet_full.py's prematch LINE_URL doesn't set one
-    # either, and testing found `gr=70` is a strict, undocumented narrowing:
-    # every match it drops (sampled across football, tennis, and others)
-    # still carries real live scores in the response when the param is
-    # left off, so 1xbet does have live data for them — this scraper was
-    # just discarding it before ever reaching the disappearance-detection
-    # logic in live-tracking.ts, leaving those matches with no path to a
-    # real finished score at all except the 4h stuck-market safety net.
-    f"?sports={{sid}}&count=200&lng=en&mode=4&country={COUNTRY}&partner={PARTNER}"
-)
+def make_live_url(sid: int) -> str:
+    host = get_active_host()
+    return (
+        f"https://{host}/service-api/LiveFeed/Get1x2_VZip"
+        f"?sports={sid}&count=200&lng=en&mode=4&country={COUNTRY}&partner={PARTNER}"
+    )
 
 HEADERS = {
     "User-Agent": (
@@ -123,9 +140,10 @@ def _retry_wait(attempt: int, err: urllib.error.HTTPError | None) -> float:
     return min(8.0, 0.5 * (2 ** attempt) + random.uniform(0, 0.25))
 
 
-def _fetch_json(url: str, timeout: int = 12, max_retries: int = 2) -> dict | None:
-    req = urllib.request.Request(url, headers=HEADERS)
+def _fetch_json(url_maker, timeout: int = 12, max_retries: int = 3) -> dict | None:
     for attempt in range(max_retries + 1):
+        url = url_maker() if callable(url_maker) else url_maker
+        req = urllib.request.Request(url, headers=HEADERS)
         _limiter.wait_turn()
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -135,6 +153,12 @@ def _fetch_json(url: str, timeout: int = 12, max_retries: int = 2) -> dict | Non
             _limiter.report(e.code)
             if e.code in (406, 404):
                 return None
+            if e.code == 403:
+                # Cloudflare challenge on current host — rotate mirror immediately and retry
+                current_host = get_active_host()
+                rotate_host(current_host)
+                time.sleep(0.2)
+                continue
             if (e.code == 429 or e.code >= 500) and attempt < max_retries:
                 time.sleep(_retry_wait(attempt, e))
                 continue
@@ -178,23 +202,26 @@ def _row_from_event(ev: dict, sport_default: str) -> dict | None:
             away_s = int(fs.get("S2") or 0)
         except (TypeError, ValueError):
             pass
+    elif ps:
+        # Before FS populates, sum the per-period scores that have posted.
+        for period in ps:
+            val = period.get("Value") or {}
+            try:
+                home_s += int(val.get("S1") or 0)
+                away_s += int(val.get("S2") or 0)
+            except (TypeError, ValueError):
+                pass
 
     period_name = None
-    if ps and cp is not None:
+    if cp and ps:
         for p in ps:
             if p.get("Key") == cp:
                 period_name = (p.get("Value") or {}).get("NF")
                 break
 
-    # "Finished" heuristics — 1xbet doesn't expose a clean flag.
-    # SC.CPS values: empty/'live'/'half-time'/… 'finished' is rare but seen.
-    cps = (sc.get("CPS") or "").lower()
-    sls = (sc.get("SLS") or "").lower()
-    finished = (
-        cps in ("finished", "ended") or
-        "finished" in sls or
-        "ended" in sls
-    )
+    # 1xbet sets I="Ended" / "Finished" / SLS="Finished" on finished rows
+    status_label = str(sc.get("I") or ev.get("SLS") or "").lower()
+    finished = any(w in status_label for w in ("finish", "ended", "complete", "full time", "ft"))
 
     return {
         "match_id":   mid,
@@ -211,7 +238,7 @@ def _row_from_event(ev: dict, sport_default: str) -> dict | None:
 
 
 def _scrape_sport(sid: int) -> list[dict]:
-    d = _fetch_json(LIVE_URL.format(sid=sid))
+    d = _fetch_json(lambda: make_live_url(sid))
     if not d or not d.get("Success"):
         return []
     events = d.get("Value") or []
@@ -229,7 +256,7 @@ def _scrape_sport(sid: int) -> list[dict]:
 def main() -> int:
     t0 = time.time()
     try:
-        socket.getaddrinfo(HOST, 443, type=socket.SOCK_STREAM)
+        socket.getaddrinfo(get_active_host(), 443, type=socket.SOCK_STREAM)
     except Exception:
         pass
 

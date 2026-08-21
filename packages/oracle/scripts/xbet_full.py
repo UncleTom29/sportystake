@@ -60,19 +60,47 @@ import urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from datetime import datetime, timezone
 
-HOST    = "1xbet.ng"
+HOST_CANDIDATES = [
+    "1xbet.co.ke",
+    "1xbet.ug",
+    "1xbet.cm",
+    "22bet.ng",
+    "betwinner.ng",
+    "1x-bet.mobi",
+    "1xbet.ng",
+]
+_active_host_idx = 0
+_host_lock = threading.Lock()
+
+def get_active_host() -> str:
+    with _host_lock:
+        return HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)]
+
+def rotate_host(failed_host: str) -> str:
+    global _active_host_idx
+    with _host_lock:
+        if HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)] == failed_host:
+            _active_host_idx += 1
+            print(f"[INFO] Rotated 1xbet mirror to: {HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)]}", file=sys.stderr)
+        return HOST_CANDIDATES[_active_host_idx % len(HOST_CANDIDATES)]
+
 PARTNER = 3
 COUNTRY = 132  # Nigeria — Africa-facing partition (widest sport coverage).
 
-LINE_URL = (
-    f"https://{HOST}/service-api/LineFeed/Get1x2_VZip"
-    f"?sports={{sid}}&count=200&lng=en&mode=4&country={COUNTRY}"
-    f"&partner={PARTNER}&getEmpty=true&virtualSports=true"
-)
-GAMZIP_URL = (
-    f"https://{HOST}/service-api/LineFeed/GetGameZip"
-    f"?id={{gid}}&lang=en&country={COUNTRY}&partner={PARTNER}&getEmpty=true"
-)
+def make_line_url(sid: int) -> str:
+    host = get_active_host()
+    return (
+        f"https://{host}/service-api/LineFeed/Get1x2_VZip"
+        f"?sports={sid}&count=200&lng=en&mode=4&country={COUNTRY}"
+        f"&partner={PARTNER}&getEmpty=true&virtualSports=true"
+    )
+
+def make_gamezip_url(gid: str | int) -> str:
+    host = get_active_host()
+    return (
+        f"https://{host}/service-api/LineFeed/GetGameZip"
+        f"?id={gid}&lang=en&country={COUNTRY}&partner={PARTNER}&getEmpty=true"
+    )
 
 HEADERS = {
     "User-Agent": (
@@ -162,9 +190,10 @@ def _retry_wait(attempt: int, err: urllib.error.HTTPError | None) -> float:
     return min(8.0, 0.5 * (2 ** attempt) + random.uniform(0, 0.25))
 
 
-def _fetch_json(url: str, timeout: int = 15, max_retries: int = 2) -> dict | None:
-    req = urllib.request.Request(url, headers=HEADERS)
+def _fetch_json(url_maker, timeout: int = 15, max_retries: int = 3) -> dict | None:
     for attempt in range(max_retries + 1):
+        url = url_maker() if callable(url_maker) else url_maker
+        req = urllib.request.Request(url, headers=HEADERS)
         _limiter.wait_turn()
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -174,6 +203,12 @@ def _fetch_json(url: str, timeout: int = 15, max_retries: int = 2) -> dict | Non
             _limiter.report(e.code)
             if e.code == 406:
                 return None
+            if e.code == 403:
+                # Cloudflare challenge on current host — rotate mirror immediately and retry
+                current_host = get_active_host()
+                rotate_host(current_host)
+                time.sleep(0.2)
+                continue
             if (e.code == 429 or e.code >= 500) and attempt < max_retries:
                 time.sleep(_retry_wait(attempt, e))
                 continue
@@ -208,12 +243,12 @@ def _line_suffix(line: float) -> str:
 def discover_sports() -> list[tuple[int, str]]:
     """Probe sport IDs 1..MAX_SPORT_ID. Keep IDs that return ≥ 1 event."""
     try:
-        socket.getaddrinfo(HOST, 443, type=socket.SOCK_STREAM)
+        socket.getaddrinfo(get_active_host(), 443, type=socket.SOCK_STREAM)
     except Exception:
         pass
 
     def probe(sid: int) -> tuple[int, str, int] | None:
-        d = _fetch_json(LINE_URL.format(sid=sid), timeout=12)
+        d = _fetch_json(lambda: make_line_url(sid), timeout=12)
         if not d or not d.get("Success"):
             return None
         events = d.get("Value") or []
@@ -235,7 +270,7 @@ def discover_sports() -> list[tuple[int, str]]:
 
 def fetch_sport_events(sid: int, sport_name: str) -> list[dict]:
     """Return a normalised list of prematch events for one sport (1X2 only)."""
-    d = _fetch_json(LINE_URL.format(sid=sid))
+    d = _fetch_json(lambda: make_line_url(sid))
     if not d or not d.get("Success"):
         return []
 
@@ -445,7 +480,7 @@ def _augment(row: dict) -> None:
     gid = row.get("match_id")
     if not gid:
         return
-    d = _fetch_json(GAMZIP_URL.format(gid=gid), timeout=12)
+    d = _fetch_json(lambda: make_gamezip_url(gid), timeout=12)
     if not d or not d.get("Success"):
         return
     val = d.get("Value") or {}

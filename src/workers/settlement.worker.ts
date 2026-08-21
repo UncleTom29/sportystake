@@ -68,6 +68,12 @@ async function bootstrap(): Promise<void> {
       }
       if (market.status === "SETTLED" || market.status === "CANCELLED") return;
 
+      // Persist the verified final score onto the market row
+      await prisma.market.update({
+        where: { id: market.id },
+        data: { homeScore: evt.homeScore, awayScore: evt.awayScore },
+      });
+
       // The Market row's own winningOutcome is 1X2-shaped (0/1/2) purely
       // for display/back-compat on markets that have a 1X2 book at all —
       // it's not what determines any bet's fate. That happens per market

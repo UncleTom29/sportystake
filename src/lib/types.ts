@@ -119,6 +119,11 @@ export interface BetDTO {
   createdAt: string;
   settledAt?: string;
   copyOfBetId?: string;
+  homeScore?: number;
+  awayScore?: number;
+  homeTeam?: string;
+  awayTeam?: string;
+  marketStatus?: string;
   /** True when this row is a CasinoBet (Aviator/Dice/Slots/…), not a
    *  BettingCore sports bet or parlay — no on-chain BettingCore betId
    *  exists for it, so the frontend must not offer a claimWinnings()

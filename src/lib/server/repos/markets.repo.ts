@@ -236,9 +236,9 @@ export const MarketsRepo = {
         status: input.status,
         isFeatured,
         metadata: input.metadata ?? undefined,
-        homeScore: input.homeScore ?? null,
-        awayScore: input.awayScore ?? null,
-        liveMinute: input.liveMinute ?? null,
+        ...(input.homeScore !== undefined ? { homeScore: input.homeScore } : {}),
+        ...(input.awayScore !== undefined ? { awayScore: input.awayScore } : {}),
+        ...(input.liveMinute !== undefined ? { liveMinute: input.liveMinute } : {}),
       },
       create: {
         id: input.id,

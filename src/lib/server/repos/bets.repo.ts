@@ -24,7 +24,14 @@ export function usdcToString(n: bigint): string {
 
 type BetRow = Awaited<ReturnType<typeof prisma.bet.findFirst>> & {
   user?: { walletAddress: string } | null;
-  market?: { homeTeam: string; awayTeam: string; metadata: Prisma.JsonValue | null } | null;
+  market?: {
+    homeTeam: string;
+    awayTeam: string;
+    homeScore?: number | null;
+    awayScore?: number | null;
+    status?: string | null;
+    metadata: Prisma.JsonValue | null;
+  } | null;
 };
 
 function toDto(b: NonNullable<BetRow>): BetDTO {
@@ -48,6 +55,11 @@ function toDto(b: NonNullable<BetRow>): BetDTO {
     txHash: b.txHash ?? undefined,
     createdAt: b.placedAt.toISOString(),
     settledAt: b.settledAt?.toISOString(),
+    homeScore: b.market?.homeScore !== null ? (b.market?.homeScore ?? undefined) : undefined,
+    awayScore: b.market?.awayScore !== null ? (b.market?.awayScore ?? undefined) : undefined,
+    homeTeam: b.market?.homeTeam ?? undefined,
+    awayTeam: b.market?.awayTeam ?? undefined,
+    marketStatus: b.market?.status ?? undefined,
   };
 }
 

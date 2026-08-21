@@ -211,7 +211,14 @@ export default function MyBetsPage() {
                         </>
                       ) : (
                         <>
-                          <p className="font-bold text-white">{bet.marketType}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-bold text-white">{bet.marketType}</p>
+                            {bet.homeScore !== undefined && bet.awayScore !== undefined && (
+                              <span className="mono shrink-0 rounded bg-[var(--color-bg-1)] px-2 py-0.5 text-[11px] font-bold text-white border border-[var(--color-line-1)]">
+                                {bet.homeScore} - {bet.awayScore}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[13px] text-[var(--color-ink-2)]">
                             <span className="font-semibold">{bet.selectionLabel}</span>
                             <span className="mx-1">@</span>

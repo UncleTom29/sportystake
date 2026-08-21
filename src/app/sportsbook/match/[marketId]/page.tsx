@@ -224,7 +224,7 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
                 </p>
               </div>
 
-              {/* Center VS / Live Score */}
+              {/* Center VS / Live Score / Final Score */}
               <div className="text-center shrink-0 px-1 sm:px-2">
                 {market.status === "LIVE" ? (
                   <>
@@ -234,6 +234,17 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
                     <div className="mt-1 flex items-center justify-center gap-1.5 text-[11px] sm:text-[12px] text-[var(--color-live)] font-bold">
                       <LiveIcon className="h-3.5 w-3.5" />
                       {market.liveMinute ? `${market.liveMinute}'` : "LIVE"}
+                    </div>
+                  </>
+                ) : market.status === "SETTLED" ? (
+                  <>
+                    <p className="mono text-3xl sm:text-5xl font-black text-emerald-400">
+                      {market.homeScore ?? 0}–{market.awayScore ?? 0}
+                    </p>
+                    <div className="mt-1 flex items-center justify-center gap-1 text-[11px] sm:text-[12px] text-emerald-400 font-bold">
+                      <span className="rounded bg-emerald-500/10 px-2 py-0.5 mono text-[10px] font-bold uppercase border border-emerald-500/20">
+                        Full Time (FT)
+                      </span>
                     </div>
                   </>
                 ) : (

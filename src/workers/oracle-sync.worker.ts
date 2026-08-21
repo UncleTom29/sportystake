@@ -377,12 +377,9 @@ async function pruneClosedSportsMarkets(): Promise<void> {
 //
 // Gated on BOTH closesAt age AND updatedAt age (not closesAt alone) — a
 // market still being actively ticked (a long tennis match, extra time, a
-// rain delay) has a fresh updatedAt regardless of how long ago it started,
-// so it's excluded no matter the cutoff; only a market truly untouched for
-// this long — no live tick, no reconciler patch, nothing — ever matches.
-// That guard is what makes a short cutoff safe: without it, shortening this
-// risked sweeping a genuinely still-live match purely for running long.
-const STUCK_MARKET_CUTOFF_MS = 90 * 60 * 1000;
+// Only a market truly untouched for 4+ hours past closesAt (well after any
+// 90-120 minute football match + halftime + extra time) is ever treated as stuck.
+const STUCK_MARKET_CUTOFF_MS = 4 * 60 * 60 * 1000;
 const STUCK_MARKET_CHECK_MS = 15 * 60_000;
 // Real per-tick ceiling on ON-CHAIN calls only (each is a signed tx + a
 // wait for its receipt). The no-bet branch below is a single bulk UPDATE

@@ -1,21 +1,29 @@
 /**
  * SportyStake Protocol On-Chain Liquidity Management CLI
  *
- * Check, fund, and manage liquidity for both the Core Sports Betting Pool (LiquidityPool.sol)
- * and Casino House Vault (CasinoHouse.sol) directly on-chain on Arc Network.
+ * Check, fund, and manage liquidity for:
+ * 1. Core Sports Betting Pool (LiquidityPool.sol)
+ * 2. Casino House Vault (CasinoHouse.sol)
+ * 3. Crash Game Vault (CrashGame.sol)
+ *
+ * Directly on-chain on Arc Network.
  *
  * Usage:
- *   # Check on-chain liquidity & maximum withdrawable figures
+ *   # Check all on-chain vaults, balances, max withdrawable figures, and timelocks
  *   npx tsx scripts/manage-liquidity.ts check
  *
- *   # Sports Pool Deposits & Withdrawals (LiquidityPool.sol)
+ *   # Sports Pool (LiquidityPool.sol)
  *   npx tsx scripts/manage-liquidity.ts add-core <amountUSDC>
  *   npx tsx scripts/manage-liquidity.ts request-withdraw-core
  *   npx tsx scripts/manage-liquidity.ts withdraw-core
  *
- *   # Casino House Bankroll Deposits & Withdrawals (CasinoHouse.sol)
+ *   # Casino House Bankroll (CasinoHouse.sol)
  *   npx tsx scripts/manage-liquidity.ts add-casino <amountUSDC>
  *   npx tsx scripts/manage-liquidity.ts withdraw-casino <amountUSDC> [recipientAddress]
+ *
+ *   # Crash Game Bankroll (CrashGame.sol)
+ *   npx tsx scripts/manage-liquidity.ts add-crash <amountUSDC>
+ *   npx tsx scripts/manage-liquidity.ts withdraw-crash <amountUSDC> [recipientAddress]
  *
  *   # Unified Funding & Virtual Controls
  *   npx tsx scripts/manage-liquidity.ts add-all <amountUSDC>
@@ -41,6 +49,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { erc20Abi } from "../packages/sdk/src/contracts/abis/ERC20";
 import { liquidityPoolAbi } from "../packages/sdk/src/contracts/abis/LiquidityPool";
 import { casinoHouseAbi } from "../packages/sdk/src/contracts/abis/CasinoHouse";
+import { crashGameAbi } from "../packages/sdk/src/contracts/abis/CrashGame";
 
 // Load configuration from environment
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || "https://arc-testnet.drpc.org";
@@ -58,6 +67,7 @@ const arcTestnet = defineChain({
 const USDC_ADDRESS = (process.env.NEXT_PUBLIC_USDC_ADDRESS || "0x3600000000000000000000000000000000000000") as Address;
 const LIQUIDITY_POOL_ADDRESS = (process.env.NEXT_PUBLIC_LIQUIDITY_POOL_ADDRESS || "0x574DF566b98E6f3Cb7459b39BFD9afeD8694A154") as Address;
 const CASINO_HOUSE_ADDRESS = (process.env.NEXT_PUBLIC_CASINO_HOUSE_ADDRESS || "0x615f95fa5ccCe9Cd79d7aBc0e37983aaDD9f9b9d") as Address;
+const CRASH_GAME_ADDRESS = (process.env.NEXT_PUBLIC_CRASH_GAME_ADDRESS || "0xa7FF5FB348FeEfEf4C092CD67AE62344A33Be8A0") as Address;
 
 const RAW_KEY =
   process.env.OPERATOR_PRIVATE_KEY ||
@@ -88,14 +98,14 @@ function getWallet() {
 }
 
 function formatUsdc(raw: bigint): string {
-  return Number(formatUnits(raw, 6)).toLocaleString("en-US", {
+  return (Number(raw) / 1_000_000).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 }
 
 function formatTimeRemaining(seconds: number): string {
-  if (seconds <= 0) return "Ready now!";
+  if (seconds <= 0) return "Ready to execute now";
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
@@ -103,7 +113,7 @@ function formatTimeRemaining(seconds: number): string {
 }
 
 /**
- * Check protocol on-chain liquidity & maximum withdrawable figures across Sports Pool & Casino House
+ * Check on-chain liquidity for Sports Pool, Casino House, and Crash Game
  */
 async function checkLiquidity() {
   console.log("\n===================================================================");
@@ -114,14 +124,15 @@ async function checkLiquidity() {
   console.log(`USDC Contract:  ${USDC_ADDRESS}`);
   console.log(`Sports Pool:    ${LIQUIDITY_POOL_ADDRESS}`);
   console.log(`Casino House:   ${CASINO_HOUSE_ADDRESS}`);
+  console.log(`Crash Game:     ${CRASH_GAME_ADDRESS}`);
   console.log("-------------------------------------------------------------------");
 
-  let operatorAddr = "N/A (No Private Key Loaded)";
-  let operatorUsdc = 0n;
+  let operatorAddr = "N/A";
   let operatorGas = 0n;
+  let operatorUsdc = 0n;
   let userShares = 0n;
   let userRequestTime = 0n;
-  let timelockSeconds = 172800n; // default 48 hours
+  let timelockSeconds = 172800n; // 48h default
 
   if (RAW_KEY) {
     try {
@@ -208,7 +219,7 @@ async function checkLiquidity() {
   timelockSeconds = onchainTimelock;
 
   // Casino House stats
-  const [casinoUsdcBalance, casinoPendingExposure, rtpBps] = await Promise.all([
+  const [casinoUsdcBalance, casinoPendingExposure, casinoRtpBps] = await Promise.all([
     publicClient.readContract({
       address: USDC_ADDRESS,
       abi: erc20Abi,
@@ -226,6 +237,51 @@ async function checkLiquidity() {
       functionName: "rtpBps",
     }).catch(() => 9700n),
   ]);
+
+  // Crash Game stats
+  const [crashUsdcBalance, crashPendingPayouts, crashCurrentRoundId, crashRtpBps] = await Promise.all([
+    publicClient.readContract({
+      address: USDC_ADDRESS,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [CRASH_GAME_ADDRESS],
+    }).catch(() => 0n),
+    publicClient.readContract({
+      address: CRASH_GAME_ADDRESS,
+      abi: crashGameAbi,
+      functionName: "totalPendingPayouts",
+    }).catch(() => 0n),
+    publicClient.readContract({
+      address: CRASH_GAME_ADDRESS,
+      abi: crashGameAbi,
+      functionName: "currentRoundId",
+    }).catch(() => 0n),
+    publicClient.readContract({
+      address: CRASH_GAME_ADDRESS,
+      abi: crashGameAbi,
+      functionName: "rtpBps",
+    }).catch(() => 9700n),
+  ]);
+
+  // Crash active round exposure
+  let crashRoundReserved = 0n;
+  if (crashCurrentRoundId > 0n) {
+    try {
+      const round = await publicClient.readContract({
+        address: CRASH_GAME_ADDRESS,
+        abi: crashGameAbi,
+        functionName: "rounds",
+        args: [crashCurrentRoundId],
+      });
+      // status 2 = Resolved
+      if (round[8] !== 2) {
+        crashRoundReserved = round[7]; // maxPotentialPayout
+      }
+    } catch {}
+  }
+
+  const crashTotalReserved = crashPendingPayouts + crashRoundReserved;
+  const crashMaxWithdrawable = crashUsdcBalance > crashTotalReserved ? crashUsdcBalance - crashTotalReserved : 0n;
 
   // Calculations for Sports Pool
   const poolUnlockedLiquidity = totalLiquidity > lockedForPayouts ? totalLiquidity - lockedForPayouts : 0n;
@@ -274,9 +330,16 @@ async function checkLiquidity() {
   console.log(`   Bankroll Vault USDC:    $${formatUsdc(casinoUsdcBalance)} USDC`);
   console.log(`   Pending Game Exposure:  $${formatUsdc(casinoPendingExposure)} USDC`);
   console.log(`   Max Withdrawable Admin: $${formatUsdc(casinoMaxWithdrawable)} USDC (Vault balance minus pending bets)`);
-  console.log(`   House RTP Setting:      ${(Number(rtpBps) / 100).toFixed(2)}% RTP (${(100 - Number(rtpBps) / 100).toFixed(2)}% House Edge)`);
+  console.log(`   House RTP Setting:      ${(Number(casinoRtpBps) / 100).toFixed(2)}% RTP (${(100 - Number(casinoRtpBps) / 100).toFixed(2)}% House Edge)`);
 
-  const combinedReal = sportsUsdcBalance + casinoUsdcBalance;
+  console.log(`\n🚀 CRASH GAME VAULT (${CRASH_GAME_ADDRESS}):`);
+  console.log(`   Bankroll Vault USDC:    $${formatUsdc(crashUsdcBalance)} USDC`);
+  console.log(`   Pending / Round Reserved: $${formatUsdc(crashTotalReserved)} USDC`);
+  console.log(`   Max Withdrawable Admin: $${formatUsdc(crashMaxWithdrawable)} USDC (Vault balance minus active rounds)`);
+  console.log(`   Current Round ID:       #${crashCurrentRoundId.toString()}`);
+  console.log(`   House RTP Setting:      ${(Number(crashRtpBps) / 100).toFixed(2)}% RTP (${(100 - Number(crashRtpBps) / 100).toFixed(2)}% House Edge)`);
+
+  const combinedReal = sportsUsdcBalance + casinoUsdcBalance + crashUsdcBalance;
   console.log("\n-------------------------------------------------------------------");
   console.log(`🏛️  TOTAL PROTOCOL ON-CHAIN USDC LIQUIDITY: $${formatUsdc(combinedReal)} USDC`);
   console.log("===================================================================\n");
@@ -296,20 +359,20 @@ async function ensureAllowance(spender: Address, amountRaw: bigint) {
 
   if (allowance < amountRaw) {
     console.log(`⏳ Approving USDC for ${spender}...`);
-    const approveTx = await walletClient.writeContract({
+    const txHash = await walletClient.writeContract({
       address: USDC_ADDRESS,
       abi: erc20Abi,
       functionName: "approve",
-      args: [spender, 2n ** 256n - 1n],
+      args: [spender, 115792089237316195423570985008687907853269984665640564039457584007913129639935n],
     });
-    console.log(`   Tx Submitted: ${approveTx}`);
-    await publicClient.waitForTransactionReceipt({ hash: approveTx });
+    console.log(`   Tx Submitted: ${txHash}`);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
     console.log(`✅ USDC Approved successfully.`);
   }
 }
 
 /**
- * Add liquidity to Core Sports Betting Pool
+ * Add liquidity to Core Sports Betting Pool (LiquidityPool.sol)
  */
 async function addCoreLiquidity(amountUsdc: number) {
   if (amountUsdc <= 0) throw new Error("Amount must be greater than 0");
@@ -339,12 +402,11 @@ async function addCoreLiquidity(amountUsdc: number) {
 }
 
 /**
- * Step 1: Request withdrawal from Core Sports Betting Pool (Starts 48h on-chain timelock)
+ * Request LP withdrawal from Sports Pool (Starts 48h timelock)
  */
 async function requestWithdrawCore() {
   const { account, walletClient } = getWallet();
-
-  const [userShares, existingRequestTime, timelock] = await Promise.all([
+  const [userShares, currentRequestTime, timelock] = await Promise.all([
     publicClient.readContract({
       address: LIQUIDITY_POOL_ADDRESS,
       abi: liquidityPoolAbi,
@@ -361,7 +423,7 @@ async function requestWithdrawCore() {
       address: LIQUIDITY_POOL_ADDRESS,
       abi: liquidityPoolAbi,
       functionName: "WITHDRAWAL_TIMELOCK",
-    }),
+    }).catch(() => 172800n),
   ]);
 
   if (userShares === 0n) {
@@ -369,17 +431,22 @@ async function requestWithdrawCore() {
   }
 
   const now = BigInt(Math.floor(Date.now() / 1000));
-  if (existingRequestTime > 0n && now < existingRequestTime + timelock) {
-    const remaining = Number(existingRequestTime + timelock - now);
-    console.log(`\n⚠️  A withdrawal request is ALREADY active for this wallet.`);
-    console.log(`   Time remaining: ${formatTimeRemaining(remaining)}`);
-    console.log(`   You can execute withdrawal once the cooldown expires.\n`);
-    return;
+
+  if (currentRequestTime > 0n) {
+    const unlockTime = currentRequestTime + timelock;
+    if (now < unlockTime) {
+      const remaining = Number(unlockTime - now);
+      console.log(`\n⏳ A withdrawal request is already pending for ${account.address}.`);
+      console.log(`   Time remaining until unlock: ${formatTimeRemaining(remaining)}`);
+      return;
+    } else {
+      console.log(`\n🟢 Timelock already expired! You can directly run: "npx tsx scripts/manage-liquidity.ts withdraw-core"`);
+      return;
+    }
   }
 
-  console.log(`\n⏳ Requesting LP Withdrawal from Sports Pool for ${account.address}...`);
-  console.log(`   Shares to withdraw: ${userShares.toString()}`);
-  console.log(`   Timelock duration:  ${Number(timelock) / 3600} hours`);
+  console.log(`\n⏳ Requesting LP withdrawal for ${account.address} (${userShares.toString()} shares)...`);
+  console.log(`   Note: This starts the on-chain ${Number(timelock) / 3600}h cooldown period.`);
 
   const txHash = await walletClient.writeContract({
     address: LIQUIDITY_POOL_ADDRESS,
@@ -390,18 +457,17 @@ async function requestWithdrawCore() {
   console.log(`   Tx Hash: ${txHash}`);
   console.log(`⏳ Waiting for block confirmation on Arc Network...`);
   const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
-  console.log(`✅ Withdrawal requested successfully in block ${receipt.blockNumber}!`);
-  console.log(`   48-hour timelock countdown has started. Run "withdraw-core" once it matures.\n`);
+  console.log(`✅ Withdrawal request confirmed in block ${receipt.blockNumber}!`);
+  console.log(`   Cooldown started. You can execute the withdrawal in ${Number(timelock) / 3600} hours.\n`);
 
   await checkLiquidity();
 }
 
 /**
- * Step 2: Execute withdrawal from Core Sports Betting Pool (Burn LP shares and receive USDC)
+ * Execute LP withdrawal from Sports Pool
  */
 async function executeWithdrawCore() {
   const { account, walletClient } = getWallet();
-
   const [userShares, requestTime, timelock, totalLiquidity, lockedForPayouts, shareValue] =
     await Promise.all([
       publicClient.readContract({
@@ -420,7 +486,7 @@ async function executeWithdrawCore() {
         address: LIQUIDITY_POOL_ADDRESS,
         abi: liquidityPoolAbi,
         functionName: "WITHDRAWAL_TIMELOCK",
-      }),
+      }).catch(() => 172800n),
       publicClient.readContract({
         address: LIQUIDITY_POOL_ADDRESS,
         abi: liquidityPoolAbi,
@@ -555,6 +621,8 @@ async function withdrawCasinoLiquidity(amountUsdc: number, recipient?: string) {
   if (amountUsdc <= 0) throw new Error("Amount must be greater than 0");
   const amountRaw = parseUnits(amountUsdc.toString(), 6);
   const { account, walletClient } = getWallet();
+  const toAddress = (recipient || account.address) as Address;
+
   // Pre-flight ADMIN_ROLE check
   const adminRole = await publicClient.readContract({
     address: CASINO_HOUSE_ADDRESS,
@@ -618,6 +686,171 @@ async function withdrawCasinoLiquidity(amountUsdc: number, recipient?: string) {
   const txHash = await walletClient.writeContract({
     address: CASINO_HOUSE_ADDRESS,
     abi: casinoHouseAbi,
+    functionName: "withdrawBankroll",
+    args: [amountRaw, toAddress],
+  });
+
+  console.log(`   Tx Hash: ${txHash}`);
+  console.log(`⏳ Waiting for block confirmation on Arc Network...`);
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  console.log(`✅ Withdrawn $${amountUsdc} USDC to ${toAddress} in block ${receipt.blockNumber}!\n`);
+
+  await checkLiquidity();
+}
+
+/**
+ * Add liquidity to Crash Game Bankroll
+ */
+async function addCrashLiquidity(amountUsdc: number) {
+  if (amountUsdc <= 0) throw new Error("Amount must be greater than 0");
+  const amountRaw = parseUnits(amountUsdc.toString(), 6);
+  const { account, walletClient } = getWallet();
+
+  console.log(`\n🚀 Adding $${amountUsdc} USDC to Crash Game Bankroll Vault...`);
+  console.log(`   Wallet:    ${account.address}`);
+  console.log(`   Crash:     ${CRASH_GAME_ADDRESS}`);
+
+  // Pre-flight ADMIN_ROLE check
+  const adminRole = await publicClient.readContract({
+    address: CRASH_GAME_ADDRESS,
+    abi: crashGameAbi,
+    functionName: "ADMIN_ROLE",
+  });
+  const hasAdmin = await publicClient.readContract({
+    address: CRASH_GAME_ADDRESS,
+    abi: [
+      {
+        type: "function",
+        name: "hasRole",
+        stateMutability: "view",
+        inputs: [
+          { name: "role", type: "bytes32" },
+          { name: "account", type: "address" },
+        ],
+        outputs: [{ name: "", type: "bool" }],
+      },
+    ],
+    functionName: "hasRole",
+    args: [adminRole, account.address],
+  });
+
+  if (!hasAdmin) {
+    throw new Error(
+      `Wallet ${account.address} does not hold ADMIN_ROLE on CrashGame contract (${CRASH_GAME_ADDRESS}). Only designated protocol admin accounts can deposit or withdraw crash bankroll.`
+    );
+  }
+
+  await ensureAllowance(CRASH_GAME_ADDRESS, amountRaw);
+
+  console.log(`⏳ Calling CrashGame.depositBankroll(${amountRaw})...`);
+  const txHash = await walletClient.writeContract({
+    address: CRASH_GAME_ADDRESS,
+    abi: crashGameAbi,
+    functionName: "depositBankroll",
+    args: [amountRaw],
+  });
+
+  console.log(`   Tx Hash: ${txHash}`);
+  console.log(`⏳ Waiting for block confirmation on Arc Network...`);
+  const receipt = await publicClient.waitForTransactionReceipt({ hash: txHash });
+  console.log(`✅ Bankroll added to Crash Game successfully in block ${receipt.blockNumber}!\n`);
+
+  await checkLiquidity();
+}
+
+/**
+ * Withdraw bankroll from Crash Game (Checks maximum withdrawable amount)
+ */
+async function withdrawCrashLiquidity(amountUsdc: number, recipient?: string) {
+  if (amountUsdc <= 0) throw new Error("Amount must be greater than 0");
+  const amountRaw = parseUnits(amountUsdc.toString(), 6);
+  const { account, walletClient } = getWallet();
+  const toAddress = (recipient || account.address) as Address;
+
+  // Pre-flight ADMIN_ROLE check
+  const adminRole = await publicClient.readContract({
+    address: CRASH_GAME_ADDRESS,
+    abi: crashGameAbi,
+    functionName: "ADMIN_ROLE",
+  });
+  const hasAdmin = await publicClient.readContract({
+    address: CRASH_GAME_ADDRESS,
+    abi: [
+      {
+        type: "function",
+        name: "hasRole",
+        stateMutability: "view",
+        inputs: [
+          { name: "role", type: "bytes32" },
+          { name: "account", type: "address" },
+        ],
+        outputs: [{ name: "", type: "bool" }],
+      },
+    ],
+    functionName: "hasRole",
+    args: [adminRole, account.address],
+  });
+
+  if (!hasAdmin) {
+    throw new Error(
+      `Wallet ${account.address} does not hold ADMIN_ROLE on CrashGame contract (${CRASH_GAME_ADDRESS}). Only designated protocol admin accounts can deposit or withdraw crash bankroll.`
+    );
+  }
+
+  // Check maximum withdrawable
+  const [crashBal, pendingPayouts, currentRoundId] = await Promise.all([
+    publicClient.readContract({
+      address: USDC_ADDRESS,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [CRASH_GAME_ADDRESS],
+    }),
+    publicClient.readContract({
+      address: CRASH_GAME_ADDRESS,
+      abi: crashGameAbi,
+      functionName: "totalPendingPayouts",
+    }),
+    publicClient.readContract({
+      address: CRASH_GAME_ADDRESS,
+      abi: crashGameAbi,
+      functionName: "currentRoundId",
+    }),
+  ]);
+
+  let roundReserved = 0n;
+  if (currentRoundId > 0n) {
+    try {
+      const round = await publicClient.readContract({
+        address: CRASH_GAME_ADDRESS,
+        abi: crashGameAbi,
+        functionName: "rounds",
+        args: [currentRoundId],
+      });
+      if (round[8] !== 2) {
+        roundReserved = round[7];
+      }
+    } catch {}
+  }
+
+  const totalReserved = pendingPayouts + roundReserved;
+  const maxWithdrawableRaw = crashBal > totalReserved ? crashBal - totalReserved : 0n;
+
+  console.log(`\n💸 Withdrawing $${amountUsdc} USDC from Crash Game Vault...`);
+  console.log(`   Recipient:             ${toAddress}`);
+  console.log(`   Vault Balance:         $${formatUsdc(crashBal)} USDC`);
+  console.log(`   Pending & Round Res.:  $${formatUsdc(totalReserved)} USDC`);
+  console.log(`   Max Withdrawable:      $${formatUsdc(maxWithdrawableRaw)} USDC`);
+
+  if (amountRaw > maxWithdrawableRaw) {
+    throw new Error(
+      `Requested withdrawal ($${amountUsdc} USDC) exceeds max withdrawable bankroll ($${formatUsdc(maxWithdrawableRaw)} USDC). $${formatUsdc(totalReserved)} USDC is reserved for active player payouts.`
+    );
+  }
+
+  console.log(`⏳ Calling CrashGame.withdrawBankroll(${amountRaw}, ${toAddress})...`);
+  const txHash = await walletClient.writeContract({
+    address: CRASH_GAME_ADDRESS,
+    abi: crashGameAbi,
     functionName: "withdrawBankroll",
     args: [amountRaw, toAddress],
   });
@@ -695,12 +928,27 @@ async function main() {
       break;
 
     case "withdraw-casino":
-    case "withdraw-bankroll":
       if (!amountArg) {
         console.error("❌ Error: Missing amount. Example: npx tsx scripts/manage-liquidity.ts withdraw-casino 200 [optionalRecipient]");
         process.exit(1);
       }
       await withdrawCasinoLiquidity(parseFloat(amountArg), recipientArg);
+      break;
+
+    case "add-crash":
+      if (!amountArg) {
+        console.error("❌ Error: Missing amount. Example: npx tsx scripts/manage-liquidity.ts add-crash 500");
+        process.exit(1);
+      }
+      await addCrashLiquidity(parseFloat(amountArg));
+      break;
+
+    case "withdraw-crash":
+      if (!amountArg) {
+        console.error("❌ Error: Missing amount. Example: npx tsx scripts/manage-liquidity.ts withdraw-crash 200 [optionalRecipient]");
+        process.exit(1);
+      }
+      await withdrawCrashLiquidity(parseFloat(amountArg), recipientArg);
       break;
 
     case "add-virtual":
@@ -717,9 +965,10 @@ async function main() {
         process.exit(1);
       }
       const amt = parseFloat(amountArg);
-      console.log(`\n📦 Adding $${amt} USDC to Sports Pool AND $${amt} USDC to Casino Vault...`);
+      console.log(`\n📦 Adding $${amt} USDC across Sports Pool, Casino Vault, AND Crash Game Vault...`);
       await addCoreLiquidity(amt);
       await addCasinoLiquidity(amt);
+      await addCrashLiquidity(amt);
       break;
 
     default:
@@ -727,21 +976,23 @@ async function main() {
 SportyStake Protocol Liquidity Manager
 
 Commands:
-  check                                        Display on-chain liquidity, max withdrawable figures, and timelock status
+  check                                        Display on-chain liquidity for Sports, Casino & Crash vaults
   add-core <amountUSDC>                        Deposit USDC into Core Sports Betting Pool (LiquidityPool.sol)
   request-withdraw-core                        Initiate LP withdrawal request from Sports Pool (starts 48h cooldown)
   withdraw-core                                Execute LP withdrawal from Sports Pool (burns shares & returns USDC)
   add-casino <amountUSDC>                      Deposit USDC bankroll into Casino House (CasinoHouse.sol)
-  withdraw-casino <amountUSDC> [recipient]     Withdraw USDC from Casino House to address (capped by max withdrawable)
+  withdraw-casino <amountUSDC> [recipient]     Withdraw USDC from Casino House (capped by active game exposure)
+  add-crash <amountUSDC>                       Deposit USDC bankroll into Crash Game (CrashGame.sol)
+  withdraw-crash <amountUSDC> [recipient]      Withdraw USDC from Crash Game (capped by round payouts)
   add-virtual <amountUSDC>                     Add virtual capacity credit to Sports Pool
-  add-all <amountUSDC>                         Fund both Sports Pool and Casino Vault with <amountUSDC>
+  add-all <amountUSDC>                         Fund Sports Pool, Casino Vault, and Crash Game with <amountUSDC> each
 
 Examples:
   npx tsx scripts/manage-liquidity.ts check
   npx tsx scripts/manage-liquidity.ts add-core 1000
-  npx tsx scripts/manage-liquidity.ts request-withdraw-core
-  npx tsx scripts/manage-liquidity.ts withdraw-core
-  npx tsx scripts/manage-liquidity.ts withdraw-casino 500
+  npx tsx scripts/manage-liquidity.ts add-casino 500
+  npx tsx scripts/manage-liquidity.ts add-crash 500
+  npx tsx scripts/manage-liquidity.ts withdraw-crash 100
 `);
   }
 }

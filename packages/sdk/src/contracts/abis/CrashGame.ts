@@ -150,6 +150,44 @@ export const crashGameAbi = [
   },
   {
     type: 'function',
+    name: 'depositBankroll',
+    stateMutability: 'nonpayable',
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'withdrawBankroll',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'amount', type: 'uint256' },
+      { name: 'to', type: 'address' },
+    ],
+    outputs: [],
+  },
+  {
+    type: 'function',
+    name: 'ADMIN_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'OPERATOR_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'PAUSER_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
     name: 'totalPendingPayouts',
     stateMutability: 'view',
     inputs: [],
@@ -303,11 +341,28 @@ export const crashGameAbi = [
   { type: 'error', name: 'InvalidRtp', inputs: [] },
   {
     type: 'event',
-    name: 'RtpUpdated',
+    name: 'BankrollDeposit',
     inputs: [
-      { name: 'oldBps', type: 'uint256', indexed: false },
-      { name: 'newBps', type: 'uint256', indexed: false },
+      { name: 'from', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
     ],
     anonymous: false,
+  },
+  {
+    type: 'event',
+    name: 'BankrollWithdraw',
+    inputs: [
+      { name: 'to', type: 'address', indexed: true },
+      { name: 'amount', type: 'uint256', indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: 'error',
+    name: 'AccessControlUnauthorizedAccount',
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'neededRole', type: 'bytes32' },
+    ],
   },
 ] as const;

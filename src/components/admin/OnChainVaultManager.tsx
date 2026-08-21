@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { parseUnits, formatUnits } from "viem";
 import {
   ShieldIcon,
   ZapIcon,
@@ -8,6 +9,18 @@ import {
   CloseIcon,
 } from "@/components/icons/UIIcons";
 import { useNotifications } from "@/lib/notificationStore";
+import { useWallet } from "@/lib/walletStore";
+import { getPublicClient } from "@/lib/publicClient";
+import {
+  privyApproveIfNeeded,
+  privyContractWrite,
+  getPrivyWalletClient,
+} from "@/lib/privyTx";
+import { CONTRACT_ADDRESSES, explorerTxUrl } from "@/lib/wagmi";
+import { erc20Abi } from "../../../packages/sdk/src/contracts/abis/ERC20";
+import { liquidityPoolAbi } from "../../../packages/sdk/src/contracts/abis/LiquidityPool";
+import { casinoHouseAbi } from "../../../packages/sdk/src/contracts/abis/CasinoHouse";
+import { crashGameAbi } from "../../../packages/sdk/src/contracts/abis/CrashGame";
 
 interface LiquidityData {
   operator: {
@@ -73,7 +86,13 @@ function formatTime(seconds: number): string {
 
 export default function OnChainVaultManager() {
   const pushToast = useNotifications((s) => s.pushToast);
+  const { address } = useWallet();
   const [data, setData] = useState<LiquidityData | null>(null);
+  const [userUsdcBalance, setUserUsdcBalance] = useState<number | null>(null);
+  const [userLpShares, setUserLpShares] = useState<number | null>(null);
+  const [userLpValue, setUserLpValue] = useState<number | null>(null);
+  const [userTimelockStatus, setUserTimelockStatus] = useState<"none" | "active" | "expired">("none");
+  const [userTimelockRemaining, setUserTimelockRemaining] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -99,7 +118,68 @@ export default function OnChainVaultManager() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+
+    // Read connected admin wallet on-chain stats
+    if (address) {
+      try {
+        const publicClient = getPublicClient();
+        const userAddr = address as `0x${string}`;
+
+        const [usdcBalRaw, sharesRaw, userPosRaw, reqTimeRaw] = await Promise.all([
+          publicClient.readContract({
+            address: CONTRACT_ADDRESSES.usdc as `0x${string}`,
+            abi: erc20Abi,
+            functionName: "balanceOf",
+            args: [userAddr],
+          }).catch(() => 0n),
+          publicClient.readContract({
+            address: CONTRACT_ADDRESSES.liquidityPool as `0x${string}`,
+            abi: liquidityPoolAbi,
+            functionName: "shares",
+            args: [userAddr],
+          }).catch(() => 0n),
+          publicClient.readContract({
+            address: CONTRACT_ADDRESSES.liquidityPool as `0x${string}`,
+            abi: liquidityPoolAbi,
+            functionName: "getUserPosition",
+            args: [userAddr],
+          }).catch(() => [0n, 0n] as const),
+          publicClient.readContract({
+            address: CONTRACT_ADDRESSES.liquidityPool as `0x${string}`,
+            abi: liquidityPoolAbi,
+            functionName: "withdrawalRequestTime",
+            args: [userAddr],
+          }).catch(() => 0n),
+        ]);
+
+        const usdcBal = Number(formatUnits(usdcBalRaw, 6));
+        setUserUsdcBalance(usdcBal);
+
+        const sharesNum = Number(formatUnits(sharesRaw as bigint, 6));
+        setUserLpShares(sharesNum);
+
+        const pos = userPosRaw as readonly [bigint, bigint];
+        const val = Number(formatUnits(pos[0], 6));
+        setUserLpValue(val);
+
+        const unlockTs = Number(reqTimeRaw as bigint);
+        const nowSec = Math.floor(Date.now() / 1000);
+
+        if (unlockTs === 0) {
+          setUserTimelockStatus("none");
+          setUserTimelockRemaining(0);
+        } else if (nowSec < unlockTs) {
+          setUserTimelockStatus("active");
+          setUserTimelockRemaining(unlockTs - nowSec);
+        } else {
+          setUserTimelockStatus("expired");
+          setUserTimelockRemaining(0);
+        }
+      } catch (err) {
+        console.warn("[OnChainVaultManager] Failed reading user on-chain balances:", err);
+      }
+    }
+  }, [address]);
 
   useEffect(() => {
     fetchLiquidity();
@@ -117,6 +197,81 @@ export default function OnChainVaultManager() {
     setSubmitting(true);
     setLastTxHash(null);
 
+    const amountRaw = parseUnits(amt.toString(), 6);
+    const targetAddress =
+      activeVault === "sports"
+        ? (CONTRACT_ADDRESSES.liquidityPool as `0x${string}`)
+        : activeVault === "casino"
+        ? (CONTRACT_ADDRESSES.casinoHouse as `0x${string}`)
+        : (CONTRACT_ADDRESSES.crashGame as `0x${string}`);
+
+    const walletClient = getPrivyWalletClient();
+    const userAddress = address || useWallet.getState().address;
+
+    // 1. Direct Connected Admin Wallet On-Chain Transaction
+    if (walletClient && userAddress) {
+      try {
+        pushToast({
+          kind: "info",
+          title: "Step 1: Checking USDC Approval",
+          body: `Ensuring allowance for ${activeVault.toUpperCase()} vault...`,
+        });
+
+        await privyApproveIfNeeded({
+          token: CONTRACT_ADDRESSES.usdc as `0x${string}`,
+          owner: userAddress as `0x${string}`,
+          spender: targetAddress,
+          amount: amountRaw,
+        });
+
+        pushToast({
+          kind: "info",
+          title: "Step 2: Confirming Deposit",
+          body: `Depositing $${amt.toLocaleString()} USDC directly from your wallet...`,
+        });
+
+        let receipt;
+        if (activeVault === "sports") {
+          receipt = await privyContractWrite({
+            contractAddress: targetAddress,
+            abiFunctionSignature: "deposit(uint256)",
+            abiParameters: [amountRaw],
+          });
+        } else {
+          receipt = await privyContractWrite({
+            contractAddress: targetAddress,
+            abiFunctionSignature: "depositBankroll(uint256)",
+            abiParameters: [amountRaw],
+          });
+        }
+
+        setLastTxHash(receipt.transactionHash);
+        pushToast({
+          kind: "success",
+          title: "On-Chain Deposit Confirmed! 🚀",
+          body: `$${amt.toLocaleString()} USDC deposited to ${activeVault.toUpperCase()} vault directly from your wallet in block ${receipt.blockNumber}`,
+        });
+        setAmountInput("");
+        setModalMode(null);
+        await fetchLiquidity();
+        setSubmitting(false);
+        return;
+      } catch (clientErr: any) {
+        console.warn("[OnChainVaultManager] Direct wallet deposit failed:", clientErr);
+        if (
+          clientErr.message?.includes("User rejected") ||
+          clientErr.message?.includes("denied") ||
+          clientErr.message?.includes("Cancelled")
+        ) {
+          pushToast({ kind: "error", title: "Transaction Rejected", body: "Deposit was cancelled in your wallet." });
+          setSubmitting(false);
+          return;
+        }
+        pushToast({ kind: "warn", title: "Direct Wallet Attempt Failed", body: "Trying operator key broadcast..." });
+      }
+    }
+
+    // 2. Fallback: Server Operator Key Execution
     try {
       const res = await fetch("/api/admin/liquidity/deposit", {
         method: "POST",
@@ -157,6 +312,88 @@ export default function OnChainVaultManager() {
     setSubmitting(true);
     setLastTxHash(null);
 
+    const walletClient = getPrivyWalletClient();
+    const userAddress = address || useWallet.getState().address;
+    const targetAddress =
+      activeVault === "sports"
+        ? (CONTRACT_ADDRESSES.liquidityPool as `0x${string}`)
+        : activeVault === "casino"
+        ? (CONTRACT_ADDRESSES.casinoHouse as `0x${string}`)
+        : (CONTRACT_ADDRESSES.crashGame as `0x${string}`);
+
+    const recipient = (recipientInput.trim() || userAddress || "0x0000000000000000000000000000000000000000") as `0x${string}`;
+
+    // 1. Direct Connected Admin Wallet On-Chain Withdrawal
+    if (walletClient && userAddress) {
+      try {
+        pushToast({
+          kind: "info",
+          title: "Signing On-Chain Withdrawal...",
+          body: `Submitting withdrawal transaction to ${activeVault.toUpperCase()}`,
+        });
+
+        let receipt;
+        if (activeVault === "sports") {
+          if (action === "request") {
+            const publicClient = getPublicClient();
+            const shares = await publicClient.readContract({
+              address: targetAddress,
+              abi: liquidityPoolAbi,
+              functionName: "shares",
+              args: [userAddress as `0x${string}`],
+            });
+            if ((shares as bigint) === 0n) {
+              throw new Error("No LP shares found in connected wallet to request withdrawal");
+            }
+            receipt = await privyContractWrite({
+              contractAddress: targetAddress,
+              abiFunctionSignature: "requestWithdrawal()",
+              abiParameters: [],
+            });
+          } else {
+            receipt = await privyContractWrite({
+              contractAddress: targetAddress,
+              abiFunctionSignature: "executeWithdrawal()",
+              abiParameters: [],
+            });
+          }
+        } else {
+          const amountRaw = parseUnits(amt!.toString(), 6);
+          receipt = await privyContractWrite({
+            contractAddress: targetAddress,
+            abiFunctionSignature: "withdrawBankroll(uint256,address)",
+            abiParameters: [amountRaw, recipient],
+          });
+        }
+
+        setLastTxHash(receipt.transactionHash);
+        pushToast({
+          kind: "success",
+          title: "On-Chain Withdrawal Success! 💸",
+          body: `Transaction confirmed in block ${receipt.blockNumber}`,
+        });
+        setAmountInput("");
+        setRecipientInput("");
+        setModalMode(null);
+        await fetchLiquidity();
+        setSubmitting(false);
+        return;
+      } catch (clientErr: any) {
+        console.warn("[OnChainVaultManager] Direct wallet withdrawal failed:", clientErr);
+        if (
+          clientErr.message?.includes("User rejected") ||
+          clientErr.message?.includes("denied") ||
+          clientErr.message?.includes("Cancelled")
+        ) {
+          pushToast({ kind: "error", title: "Transaction Rejected", body: "Withdrawal was cancelled in your wallet." });
+          setSubmitting(false);
+          return;
+        }
+        pushToast({ kind: "warn", title: "Direct Wallet Attempt Failed", body: "Trying operator key broadcast..." });
+      }
+    }
+
+    // 2. Fallback: Server Operator Key Execution
     try {
       const res = await fetch("/api/admin/liquidity/withdraw", {
         method: "POST",
@@ -203,7 +440,7 @@ export default function OnChainVaultManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner & Operator Wallet Pill */}
+      {/* Header Banner & Connected Admin Wallet Pill */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-[var(--color-line-2)] bg-gradient-to-r from-[var(--color-bg-2)] via-[var(--color-bg-2)] to-[var(--color-bg-3)] p-5 shadow-lg">
         <div>
           <div className="flex items-center gap-2">
@@ -213,29 +450,35 @@ export default function OnChainVaultManager() {
             </h2>
           </div>
           <p className="text-xs text-[var(--color-ink-3)] mt-0.5">
-            Direct Arc Network smart contract liquidity funding, reserves monitoring, and timelocked withdrawals.
+            Direct Arc Network smart contract liquidity funding, reserves monitoring, and timelocked withdrawals from your connected admin wallet.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-auto justify-between sm:justify-end">
-          {/* Operator Address & Balances */}
-          <div className="flex items-center gap-2 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] px-3 py-1.5 text-xs shadow-inner">
+          {/* Connected Admin Address & Live Balance */}
+          <div className="flex items-center gap-2 rounded-xl border border-[var(--color-brand-500)]/30 bg-[var(--color-bg-1)] px-3 py-1.5 text-xs shadow-inner">
             <div>
-              <p className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Operator Signer</p>
-              <p className="mono font-bold text-white text-[11px]">{shortAddr(data?.operator.address)}</p>
+              <p className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Your Admin Wallet</p>
+              <p className="mono font-bold text-white text-[11px]">{shortAddr(address)}</p>
             </div>
             <div className="h-6 w-px bg-[var(--color-line-1)] mx-1" />
             <div>
-              <p className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Gas (Arc)</p>
-              <p className="mono font-bold text-cyan-400 text-[11px]">{data?.operator.gasBalance.toFixed(2)} GAS</p>
-            </div>
-            <div className="h-6 w-px bg-[var(--color-line-1)] mx-1" />
-            <div>
-              <p className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">USDC</p>
+              <p className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Wallet USDC</p>
               <p className="mono font-bold text-[var(--color-brand-500)] text-[11px]">
-                ${data ? formatUsd(data.operator.usdcBalance) : "0.00"}
+                ${userUsdcBalance !== null ? formatUsd(userUsdcBalance) : "—"}
               </p>
             </div>
+            {userLpValue !== null && userLpValue > 0 && (
+              <>
+                <div className="h-6 w-px bg-[var(--color-line-1)] mx-1" />
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Your Sports LP</p>
+                  <p className="mono font-bold text-cyan-400 text-[11px]">
+                    ${formatUsd(userLpValue)}
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           <button
@@ -251,6 +494,26 @@ export default function OnChainVaultManager() {
           </button>
         </div>
       </div>
+
+      {/* Last Transaction Link */}
+      {lastTxHash && (
+        <div className="rounded-xl border border-[var(--color-brand-500)]/40 bg-[var(--color-brand-500)]/10 p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">⚡</span>
+            <p className="text-xs text-white">
+              Latest On-Chain Transaction: <span className="mono text-[var(--color-brand-500)] font-bold">{shortAddr(lastTxHash)}</span>
+            </p>
+          </div>
+          <a
+            href={explorerTxUrl(lastTxHash)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-bold text-[var(--color-brand-500)] underline hover:brightness-125"
+          >
+            View on Arcscan ↗
+          </a>
+        </div>
+      )}
 
       {/* 3 Main Protocol Vault Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -306,21 +569,21 @@ export default function OnChainVaultManager() {
                 </span>
               </div>
 
-              {/* Operator Position Box */}
+              {/* Your LP Position Box */}
               <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3 mt-3">
                 <div className="flex justify-between items-center mb-1">
-                  <span className="text-[11px] font-bold text-[var(--color-ink-2)]">Operator LP Position:</span>
+                  <span className="text-[11px] font-bold text-[var(--color-ink-2)]">Your Wallet LP Position:</span>
                   <span className="mono font-black text-white">
-                    ${data ? formatUsd(data.sportsPool.operatorPositionValue) : "0.00"}
+                    ${userLpValue !== null ? formatUsd(userLpValue) : "0.00"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-[var(--color-ink-3)]">
                   <span>Withdrawal Timelock:</span>
                   <span className="mono font-semibold text-amber-400">
-                    {data?.sportsPool.timelockStatus === "none"
+                    {userTimelockStatus === "none"
                       ? "48h Cooldown required"
-                      : data?.sportsPool.timelockStatus === "active"
-                      ? `⏳ ${formatTime(data.sportsPool.timelockRemainingSecs)} remaining`
+                      : userTimelockStatus === "active"
+                      ? `⏳ ${formatTime(userTimelockRemaining)} remaining`
                       : "🟢 Cooldown Expired (Ready)"}
                   </span>
                 </div>
@@ -340,7 +603,7 @@ export default function OnChainVaultManager() {
               + Deposit USDC
             </button>
 
-            {data?.sportsPool.timelockStatus === "expired" ? (
+            {userTimelockStatus === "expired" ? (
               <button
                 onClick={() => handleWithdraw("execute")}
                 disabled={submitting}
@@ -348,7 +611,7 @@ export default function OnChainVaultManager() {
               >
                 {submitting ? "Processing..." : "💸 Withdraw LP"}
               </button>
-            ) : data?.sportsPool.timelockStatus === "active" ? (
+            ) : userTimelockStatus === "active" ? (
               <button
                 disabled
                 className="flex-1 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2 text-xs font-bold text-amber-400 cursor-not-allowed opacity-80"
@@ -358,7 +621,7 @@ export default function OnChainVaultManager() {
             ) : (
               <button
                 onClick={() => handleWithdraw("request")}
-                disabled={submitting || (data?.sportsPool.operatorPositionValue || 0) <= 0}
+                disabled={submitting || (userLpValue || 0) <= 0}
                 className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40"
               >
                 {submitting ? "..." : "⏳ Request Exit"}
@@ -414,7 +677,7 @@ export default function OnChainVaultManager() {
               </div>
 
               <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3 mt-4 text-[11px] text-[var(--color-ink-2)]">
-                Backs dice, blackjack, roulette, slots, and baccarat wagers. Payouts are settled sub-second directly to winning players.
+                Backs dice, blackjack, roulette, slots, and baccarat wagers. Payouts are settled sub-second directly to winning players on Arc Network.
               </div>
             </div>
           </div>
@@ -490,7 +753,7 @@ export default function OnChainVaultManager() {
               </div>
 
               <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-3 mt-4 text-[11px] text-[var(--color-ink-2)]">
-                Backs synchronous multi-player rocket rounds with commit-reveal server seeds and auto-cashout caps.
+                Backs synchronous multi-player rocket rounds with commit-reveal server hashes and instant on-chain payouts.
               </div>
             </div>
           </div>
@@ -562,9 +825,16 @@ export default function OnChainVaultManager() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-[var(--color-ink-2)] mb-1">
-                  Amount (USDC)
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-[var(--color-ink-2)]">
+                    Amount (USDC)
+                  </label>
+                  {modalMode === "deposit" && userUsdcBalance !== null && (
+                    <span className="text-[10px] text-[var(--color-ink-3)] mono">
+                      Wallet: <strong className="text-white">${formatUsd(userUsdcBalance)}</strong>
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <input
                     type="number"
@@ -575,6 +845,14 @@ export default function OnChainVaultManager() {
                     placeholder="e.g. 500"
                     className="w-full rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 py-2.5 text-sm font-bold text-white focus:border-[var(--color-brand-500)] focus:outline-none mono"
                   />
+                  {modalMode === "deposit" && userUsdcBalance !== null && userUsdcBalance > 0 && (
+                    <button
+                      onClick={() => setAmountInput(userUsdcBalance.toString())}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded bg-[var(--color-bg-3)] px-2 py-1 text-[10px] font-black text-[var(--color-brand-500)] hover:bg-[var(--color-bg-2)]"
+                    >
+                      MAX
+                    </button>
+                  )}
                   {modalMode === "withdraw" && (
                     <button
                       onClick={() => {
@@ -610,13 +888,13 @@ export default function OnChainVaultManager() {
               {modalMode === "withdraw" && activeVault !== "sports" && (
                 <div>
                   <label className="block text-xs font-bold text-[var(--color-ink-2)] mb-1">
-                    Destination Address (Optional — Defaults to Operator)
+                    Destination Address (Optional — Defaults to Your Wallet)
                   </label>
                   <input
                     type="text"
                     value={recipientInput}
                     onChange={(e) => setRecipientInput(e.target.value)}
-                    placeholder={data?.operator.address || "0x..."}
+                    placeholder={address || "0x..."}
                     className="w-full rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 py-2 text-xs font-mono text-white focus:border-[var(--color-brand-500)] focus:outline-none"
                   />
                 </div>
@@ -624,7 +902,7 @@ export default function OnChainVaultManager() {
 
               <p className="text-[11px] text-[var(--color-ink-3)] bg-[var(--color-bg-1)] p-3 rounded-xl border border-[var(--color-line-1)]">
                 {modalMode === "deposit"
-                  ? `USDC will be transferred on-chain from the operator wallet (${shortAddr(data?.operator.address)}) into the ${activeVault.toUpperCase()} contract.`
+                  ? `USDC will be transferred directly on-chain from your connected wallet (${shortAddr(address)}) into the ${activeVault.toUpperCase()} contract.`
                   : `USDC will be withdrawn on-chain from the ${activeVault.toUpperCase()} vault back to the designated destination address.`}
               </p>
             </div>
@@ -643,7 +921,7 @@ export default function OnChainVaultManager() {
                 onClick={modalMode === "deposit" ? handleDeposit : () => handleWithdraw("execute")}
                 className="flex-1 rounded-xl bg-[var(--color-brand-500)] py-2.5 text-xs font-black text-[var(--color-bg-0)] hover:brightness-110 transition-all shadow-md active:scale-95 disabled:opacity-50"
               >
-                {submitting ? "Confirming on Arc..." : modalMode === "deposit" ? "Confirm Deposit" : "Confirm Withdrawal"}
+                {submitting ? "Signing on Arc..." : modalMode === "deposit" ? "Confirm On-Chain Deposit" : "Confirm On-Chain Withdrawal"}
               </button>
             </div>
           </div>

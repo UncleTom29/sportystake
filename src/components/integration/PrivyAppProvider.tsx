@@ -24,10 +24,8 @@ function SessionSyncer() {
   const activeFetchAttemptsRef = useRef(0);
   const [retryTick, setRetryTick] = useState(0);
 
-  // Only use the embedded (Privy-custodied) wallet — NEVER fall back to external wallets like
-  // MetaMask. If no embedded wallet is found, activeWallet stays undefined and on-chain signing
-  // will gracefully degrade (privyTx.ts throws "Wallet not ready yet" instead of popping MetaMask).
-  const activeWallet = wallets.find((w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2");
+  // Use embedded wallet if present, or fallback to connected external wallet (e.g. MetaMask/Rabby)
+  const activeWallet = wallets.find((w) => w.walletClientType === "privy" || w.walletClientType === "privy-v2") || wallets[0];
   const activeAddress = activeWallet?.address;
 
   useEffect(() => {

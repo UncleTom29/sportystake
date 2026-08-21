@@ -17,16 +17,13 @@ import {
 } from "@/components/icons/UIIcons";
 import OnChainVaultManager from "@/components/admin/OnChainVaultManager";
 
-type Tab = "analytics" | "risk" | "markets" | "casino" | "users" | "config" | "audit";
+type Tab = "analytics" | "risk" | "markets" | "users";
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: "analytics", label: "Analytics & Quota", icon: "📊" },
-  { id: "risk", label: "Risk & Liquidity", icon: "🛡️" },
-  { id: "markets", label: "Markets & Settle", icon: "⚽" },
-  { id: "casino", label: "Casino Results", icon: "🎲" },
+  { id: "risk", label: "Vaults & Liquidity", icon: "🛡️" },
+  { id: "markets", label: "Markets & Settlement", icon: "⚽" },
   { id: "users", label: "User Governance", icon: "👥" },
-  { id: "config", label: "Protocol & Security", icon: "⚙️" },
-  { id: "audit", label: "Audit Trail", icon: "📋" },
 ];
 
 export default function AdminPortalPage() {
@@ -155,10 +152,7 @@ export default function AdminPortalPage() {
         {tab === "analytics" && <AnalyticsSection />}
         {tab === "risk" && <RiskSection />}
         {tab === "markets" && <MarketsSection />}
-        {tab === "casino" && <CasinoSection />}
         {tab === "users" && <UsersSection isAdmin={isAdmin} />}
-        {tab === "config" && <ConfigSection isAdmin={isAdmin} />}
-        {tab === "audit" && <AuditSection />}
       </div>
     </div>
   );
@@ -239,6 +233,20 @@ function AnalyticsSection() {
             </>
           );
         })()}
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, trend, accent }: { label: string; value: string; trend?: string; accent?: string }) {
+  return (
+    <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
+      <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</p>
+      <div className="mt-1 flex items-baseline justify-between">
+        <span className="mono text-xl font-black" style={{ color: accent ?? "white" }}>
+          {value}
+        </span>
+        {trend && <span className="mono text-[11px] font-bold text-[var(--color-brand-500)]">{trend}</span>}
       </div>
     </div>
   );
@@ -811,385 +819,6 @@ function UsersSection({ isAdmin }: { isAdmin?: boolean }) {
           </table>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   5. Protocol & Security Module (Read-Only)
-   ─────────────────────────────────────────────────────────────────────────── */
-function ConfigSection({ isAdmin }: { isAdmin?: boolean }) {
-  const [config, setConfig] = useState<any>(null);
-
-  useEffect(() => {
-    Admin.getConfig().then((res) => setConfig(res.config)).catch(() => {});
-  }, []);
-
-  return (
-    <div className="space-y-6">
-      {/* Read-Only Governance Notice */}
-      <div className="rounded-xl border border-[var(--color-brand-500)]/40 bg-[var(--color-bg-2)] p-5 shadow-xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-              <ShieldIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white">
-                Protocol Security & Governance Status
-              </h3>
-              <p className="mt-0.5 text-[12px] text-[var(--color-ink-3)] max-w-2xl leading-relaxed">
-                All smart contract parameters, house edges, circuit breakers, and solvency scaling mechanics are locked on-chain for complete non-custodial trustlessness. <strong>Protocol & Security parameters are read-only and cannot be modified by admins.</strong>
-              </p>
-            </div>
-          </div>
-          <span className="mono rounded-lg bg-[var(--color-brand-500)]/15 px-3 py-1.5 text-[11px] font-bold text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-            🔒 READ-ONLY (GOVERNANCE LOCKED)
-          </span>
-        </div>
-      </div>
-
-      {/* Contract Parameters & Solvency Architecture */}
-      <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5 space-y-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-white">Smart Contract Parameters & Solvency Mode</h3>
-            <p className="text-[11px] text-[var(--color-ink-3)]">
-              Upfront capacity gating is disabled — all bets are accepted and scaled smoothly on settlement.
-            </p>
-          </div>
-          <span className="mono rounded bg-[var(--color-brand-500)]/15 px-2.5 py-1 text-[11px] font-bold text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-            SOLVENCY SCALING ACTIVE
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-          <div className="rounded-lg bg-[var(--color-bg-1)] p-3 border border-[var(--color-line-1)]">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">House Edge BPS</span>
-            <p className="mono text-lg font-bold text-white mt-0.5">{config?.houseEdgeBps ?? 200} BPS (2.00%)</p>
-          </div>
-          <div className="rounded-lg bg-[var(--color-bg-1)] p-3 border border-[var(--color-line-1)]">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Casino Winning Cap</span>
-            <p className="mono text-lg font-bold text-[var(--color-brand-500)] mt-0.5">40.00% (4000 BPS)</p>
-          </div>
-          <div className="rounded-lg bg-[var(--color-bg-1)] p-3 border border-[var(--color-line-1)]">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Upfront Capacity Gating</span>
-            <p className="mono text-lg font-bold text-[var(--color-brand-500)] mt-0.5">UNLIMITED (Scaled)</p>
-          </div>
-          <div className="rounded-lg bg-[var(--color-bg-1)] p-3 border border-[var(--color-line-1)]">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Single-Ticket Min / Max</span>
-            <p className="mono text-lg font-bold text-white mt-0.5">
-              {formatUsdcNum(config?.minBetUsdc ?? "1.00")} / {formatUsdcNum(config?.maxBetUsdc ?? "5000.00")}
-            </p>
-          </div>
-          <div className="rounded-lg bg-[var(--color-bg-1)] p-3 border border-[var(--color-line-1)]">
-            <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">Treasury Wallet</span>
-            <p className="mono text-xs font-bold text-[var(--color-brand-500)] truncate mt-1">
-              {config?.treasuryAddress ?? "0x7099…79C8"}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   6. Audit Logs Module
-   ─────────────────────────────────────────────────────────────────────────── */
-function AuditSection() {
-  const [logs, setLogs] = useState<any[]>([]);
-
-  useEffect(() => {
-    Admin.auditLogs().then((res) => setLogs(res.items)).catch(() => {});
-  }, []);
-
-  return (
-    <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-      <h3 className="mb-3 text-sm font-bold text-white">System Audit Trail Logs</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-[12px]">
-          <thead className="border-b border-[var(--color-line-1)] text-[10px] uppercase text-[var(--color-ink-3)]">
-            <tr>
-              <th className="py-2">Timestamp</th>
-              <th>Action</th>
-              <th>Actor</th>
-              <th>Target</th>
-              <th>IP Address</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-line-1)]">
-            {logs.map((l) => (
-              <tr key={l.id} className="hover:bg-[var(--color-bg-1)]">
-                <td className="mono py-2 text-[var(--color-ink-3)]">{new Date(l.createdAt).toLocaleString()}</td>
-                <td className="mono font-bold text-[var(--color-brand-500)]">{l.action}</td>
-                <td className="mono text-white">{l.actor?.username ?? l.actor?.walletAddress?.slice(0, 10) ?? "System"}</td>
-                <td className="mono text-[var(--color-ink-2)]">{l.target ?? "—"}</td>
-                <td className="mono text-[var(--color-ink-4)]">{l.ip ?? "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function MetricCard({ label, value, trend, accent }: { label: string; value: string; trend?: string; accent?: string }) {
-  return (
-    <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-      <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</p>
-      <div className="mt-1 flex items-baseline justify-between">
-        <span className="mono text-xl font-black" style={{ color: accent ?? "white" }}>
-          {value}
-        </span>
-        {trend && <span className="mono text-[11px] font-bold text-[var(--color-brand-500)]">{trend}</span>}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   Casino Results & Override Module
-   ─────────────────────────────────────────────────────────────────────────── */
-function CasinoSection() {
-  const [bets, setBets] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [gameFilter, setGameFilter] = useState("ALL");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [selectedBet, setSelectedBet] = useState<any | null>(null);
-  const pushToast = useNotifications((s) => s.pushToast);
-
-  const fetchBets = useCallback(() => {
-    setLoading(true);
-    Admin.casinoBets({
-      game: gameFilter === "ALL" ? undefined : gameFilter,
-      status: statusFilter === "ALL" ? undefined : statusFilter,
-    })
-      .then((res) => setBets(res.items))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [gameFilter, statusFilter]);
-
-  useEffect(() => {
-    fetchBets();
-  }, [fetchBets]);
-
-  return (
-    <div className="space-y-4">
-      {/* Filter Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3">
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] uppercase font-bold text-[var(--color-ink-3)]">Game:</span>
-          <div className="flex gap-1 overflow-x-auto">
-            {["ALL", "CRASH", "DICE", "SLOTS", "BLACKJACK", "ROULETTE", "BACCARAT"].map((g) => (
-              <button
-                key={g}
-                onClick={() => setGameFilter(g)}
-                className={`rounded-md px-2.5 py-1 text-[11px] font-bold ${
-                  gameFilter === g
-                    ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)]"
-                    : "bg-[var(--color-bg-1)] text-[var(--color-ink-3)] hover:text-white"
-                }`}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] uppercase font-bold text-[var(--color-ink-3)]">Status:</span>
-          <div className="flex gap-1">
-            {["ALL", "PENDING", "WON", "LOST", "REFUNDED"].map((s) => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`rounded-md px-2 py-1 text-[11px] font-bold ${
-                  statusFilter === s
-                    ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)]"
-                    : "bg-[var(--color-bg-1)] text-[var(--color-ink-3)] hover:text-white"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Bets Directory Table */}
-      <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-        <h3 className="mb-3 text-sm font-bold text-white">Casino Bets Directory & Outcome Override</h3>
-
-        {loading ? (
-          <div className="h-48 animate-pulse rounded-lg bg-[var(--color-bg-1)]" />
-        ) : bets.length === 0 ? (
-          <div className="p-8 text-center text-[13px] text-[var(--color-ink-3)]">No casino bets match selected filters</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-[12px]">
-              <thead className="border-b border-[var(--color-line-1)] text-[10px] uppercase text-[var(--color-ink-3)]">
-                <tr>
-                  <th className="py-2">Game</th>
-                  <th>User</th>
-                  <th>Stake</th>
-                  <th>Status</th>
-                  <th>Payout</th>
-                  <th>Request ID / Tx</th>
-                  <th>Placed At</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--color-line-1)]">
-                {bets.map((b) => (
-                  <tr key={b.id} className="hover:bg-[var(--color-bg-1)]">
-                    <td className="py-2.5 font-bold text-white">{b.game}</td>
-                    <td className="mono text-white">{b.user?.username ?? `${b.user?.walletAddress?.slice(0, 6)}…`}</td>
-                    <td className="mono font-semibold">{formatUsdcNum(b.amount)}</td>
-                    <td>
-                      <span
-                        className={`mono rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
-                          b.status === "WON"
-                            ? "bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)]"
-                            : b.status === "LOST"
-                            ? "bg-[var(--color-live)]/20 text-[var(--color-live)]"
-                            : "bg-[var(--color-warn)]/20 text-[var(--color-warn)]"
-                        }`}
-                      >
-                        {b.status}
-                      </span>
-                    </td>
-                    <td className="mono font-bold text-[var(--color-brand-500)]">{formatUsdcNum(b.payout)}</td>
-                    <td className="mono text-[10px] text-[var(--color-ink-3)]">{b.requestId ? `${b.requestId.slice(0, 10)}…` : "—"}</td>
-                    <td className="mono text-[var(--color-ink-4)]">{new Date(b.placedAt).toLocaleString()}</td>
-                    <td>
-                      <button
-                        onClick={() => setSelectedBet(b)}
-                        className="rounded bg-[var(--color-brand-500)] px-2.5 py-1 text-[11px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]"
-                      >
-                        Set Result
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Set Result Modal */}
-      {selectedBet && (
-        <SetCasinoResultModal
-          bet={selectedBet}
-          onClose={() => setSelectedBet(null)}
-          onSettled={fetchBets}
-        />
-      )}
-    </div>
-  );
-}
-
-function SetCasinoResultModal({
-  bet,
-  onClose,
-  onSettled,
-}: {
-  bet: any;
-  onClose: () => void;
-  onSettled: () => void;
-}) {
-  const [status, setStatus] = useState<"WON" | "LOST" | "REFUNDED">("WON");
-  const [payoutUsdc, setPayoutUsdc] = useState(bet.payout || bet.amount || "0.00");
-  const [submitting, setSubmitting] = useState(false);
-  const pushToast = useNotifications((s) => s.pushToast);
-
-  const handleOverride = async () => {
-    setSubmitting(true);
-    try {
-      await Admin.settleCasinoBet(bet.id, {
-        status,
-        payoutUsdc: status === "WON" ? payoutUsdc : "0.00",
-      });
-      pushToast({
-        kind: "success",
-        title: "Casino Bet Result Updated",
-        body: `Bet set to ${status}${status === "WON" ? ` ($${payoutUsdc})` : ""}`,
-      });
-      onSettled();
-      onClose();
-    } catch (e) {
-      pushToast({ kind: "error", title: "Override failed", body: (e as Error).message });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-      <div className="relative w-full max-w-md rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-6 shadow-2xl">
-        <h3 className="text-lg font-bold text-white">Set / Override Casino Result</h3>
-        <p className="mt-1 text-[12px] text-[var(--color-ink-3)]">
-          {bet.game} bet by <span className="mono text-white">{bet.user?.walletAddress?.slice(0, 8)}…</span> (${bet.amount} USDC stake)
-        </p>
-
-        <div className="my-4 space-y-3">
-          <div>
-            <label className="text-[11px] font-bold uppercase text-[var(--color-ink-3)]">Select Outcome Status</label>
-            <div className="grid grid-cols-3 gap-2 mt-1.5">
-              {(["WON", "LOST", "REFUNDED"] as const).map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setStatus(s)}
-                  className={`rounded-lg py-2 text-[12px] font-bold ${
-                    status === s
-                      ? s === "WON"
-                        ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)]"
-                        : s === "LOST"
-                        ? "bg-[var(--color-live)] text-white"
-                        : "bg-[var(--color-warn)] text-[var(--color-bg-0)]"
-                      : "bg-[var(--color-bg-2)] text-[var(--color-ink-3)] hover:text-white"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {status === "WON" && (
-            <div>
-              <label className="text-[11px] font-bold uppercase text-[var(--color-ink-3)]">Payout Amount (USDC)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={payoutUsdc}
-                onChange={(e) => setPayoutUsdc(e.target.value)}
-                className="mono mt-1.5 w-full rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-3 py-2 text-[14px] font-bold text-white outline-none focus:border-[var(--color-brand-500)]"
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2 pt-2">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg bg-[var(--color-bg-2)] py-2 text-[12px] font-bold text-white hover:bg-[var(--color-bg-3)]"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleOverride}
-            disabled={submitting}
-            className="flex-2 rounded-lg bg-[var(--color-brand-500)] py-2 text-[12px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]"
-          >
-            {submitting ? "Updating…" : "Confirm Outcome"}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

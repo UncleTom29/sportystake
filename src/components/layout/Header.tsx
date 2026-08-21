@@ -23,7 +23,13 @@ export default function Header() {
         if (data?.data?.user) {
           const u = data.data.user;
           if (u.username) setUsername(u.username);
-          if (u.roles?.includes("ADMIN") || u.roles?.includes("OPERATOR")) {
+          if (
+            u.roles?.includes("ADMIN") ||
+            u.roles?.includes("OPERATOR") ||
+            u.walletAddress?.toLowerCase() === "0x518923383f1184bfeb990b640d75dabb224e7f5b".toLowerCase() ||
+            u.walletAddress?.toLowerCase() === "0xaa789e29a8ed011b57d7c3fe8a878d217ebebc22".toLowerCase() ||
+            u.walletAddress?.toLowerCase() === "0x99b5208466bb6b359f4f4f4e735e5d3fa9612f37".toLowerCase()
+          ) {
             setIsAdminOrOperator(true);
           }
         }

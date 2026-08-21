@@ -5,9 +5,10 @@ import type { LinkedAccount } from "@privy-io/node";
 import { ok, fail, withRequestId, ApiError } from "@/lib/server/api-response";
 import { rateLimit } from "@/lib/server/rate-limit";
 import { storeRefreshToken } from "@/lib/server/auth-store";
-import { signAccessToken, signRefreshToken, setAuthCookies } from "@/lib/server/auth";
+import { signAccessToken, signRefreshToken, setAuthCookies, isKnownAdminAddress } from "@/lib/server/auth";
 import { getPrivyClient } from "@/lib/server/privy";
 import { prisma } from "@/lib/server/db";
+import { Role } from "@prisma/client";
 import { referralCode } from "@/lib/uid";
 import type { Address } from "@/lib/types";
 
@@ -95,6 +96,9 @@ export const POST = withRequestId(async (req: NextRequest) => {
     where: { OR: [{ privyId: privyUser.id }, { walletAddress: address }] },
   });
 
+  const isAdmin = isKnownAdminAddress(address);
+  const initialRoles: Role[] = isAdmin ? [Role.ADMIN, Role.OPERATOR, Role.USER] : [Role.USER];
+
   if (!user) {
     user = await prisma.user.create({
       data: {
@@ -103,16 +107,22 @@ export const POST = withRequestId(async (req: NextRequest) => {
         referralCode: referralCode(),
         isPublic: true,
         isBanned: false,
-        roles: ["USER"],
+        roles: initialRoles,
         lastSeenAt: new Date(),
       },
     });
   } else {
+    const existingRoles = new Set<Role>(user.roles);
+    if (isAdmin) {
+      existingRoles.add(Role.ADMIN);
+      existingRoles.add(Role.OPERATOR);
+    }
     user = await prisma.user.update({
       where: { id: user.id },
       data: {
         privyId: privyUser.id,
         walletAddress: address,
+        roles: Array.from(existingRoles),
         lastSeenAt: new Date(),
       },
     });

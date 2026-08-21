@@ -5,6 +5,7 @@
  */
 import { prisma, type Prisma } from "@/lib/server/db";
 import type { UserDTO, UserStats, Address } from "@/lib/types";
+import { isKnownAdminAddress } from "@/lib/server/auth";
 
 function toDto(u: {
   id: string;
@@ -18,6 +19,11 @@ function toDto(u: {
   roles: string[];
   createdAt: Date;
 }): UserDTO {
+  const rolesSet = new Set(u.roles);
+  if (isKnownAdminAddress(u.walletAddress)) {
+    rolesSet.add("ADMIN");
+    rolesSet.add("OPERATOR");
+  }
   return {
     id: u.id,
     walletAddress: u.walletAddress as Address,
@@ -25,7 +31,7 @@ function toDto(u: {
     referredById: u.referredById ?? undefined,
     isPublic: u.isPublic,
     isBanned: u.isBanned,
-    roles: u.roles as UserDTO["roles"],
+    roles: Array.from(rolesSet) as UserDTO["roles"],
     createdAt: u.createdAt.toISOString(),
     username: u.username ?? undefined,
     avatar: u.avatar ?? undefined,

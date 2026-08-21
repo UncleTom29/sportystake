@@ -30,7 +30,12 @@ import { serverEnv, clientEnv } from "@/lib/env";
 import { getOperatorAccount, verifyOperatorRoles } from "@/lib/server/operatorWallet";
 import { logger } from "@/lib/server/logger";
 import { BetsRepo } from "@/lib/server/repos/bets.repo";
-import { planScoreBasedSettlement, executeMarketSettlement, resolveScoreBasedOutcome } from "@/lib/server/settlement";
+import {
+  planScoreBasedSettlement,
+  executeMarketSettlement,
+  resolveScoreBasedOutcome,
+  settleFinishedMarketsWithPendingBets,
+} from "@/lib/server/settlement";
 
 const CHANNEL_MARKET_FINISHED = "market:finished";
 
@@ -54,6 +59,12 @@ async function bootstrap(): Promise<void> {
 
   logger.info("[settlement] operator ready", { address: account.address });
   await verifyOperatorRoles([{ name: "bettingCore", address: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}` }]);
+
+  // Retroactive sweep: settle any markets that already have final scores recorded
+  await settleFinishedMarketsWithPendingBets();
+  setInterval(() => {
+    void settleFinishedMarketsWithPendingBets();
+  }, 60_000);
 
   const sub = redisSubscriber();
   await sub.subscribe(CHANNEL_MARKET_FINISHED);

@@ -142,6 +142,8 @@ export interface MarketSettlementPlan {
   totalPayout: bigint;
   /** marketType (or "marketType:betId" for per-bet cases) the resolver couldn't handle — left PENDING, needs manual admin action via voidBet or a follow-up. */
   unresolved: string[];
+  homeScore?: number;
+  awayScore?: number;
 }
 
 /** Plans settlement for every pending bet on a market from its final score, across every market type present. */
@@ -208,7 +210,78 @@ export async function planScoreBasedSettlement(
     }
   }
 
-  return { winningBetIds, voidedBetIds, totalPayout, unresolved: [...unresolved] };
+  return { winningBetIds, voidedBetIds, totalPayout, unresolved: [...unresolved], homeScore, awayScore };
+}
+
+/**
+ * Resolves all pending parlay legs on a market against the final score,
+ * and updates parent Parlay statuses accordingly.
+ */
+export async function reconcileParlayLegsForMarket(
+  marketId: string,
+  homeScore: number,
+  awayScore: number,
+): Promise<{ resolvedLegs: number; resolvedParlays: number }> {
+  const { prisma } = await import("@/lib/server/db");
+  const legs = await prisma.parlayLeg.findMany({
+    where: { marketId, result: "PENDING" },
+  });
+
+  if (legs.length === 0) return { resolvedLegs: 0, resolvedParlays: 0 };
+
+  const affectedParlayIds = new Set<string>();
+
+  for (const leg of legs) {
+    let result: "WON" | "LOST" | "VOID" = "LOST";
+    if (leg.marketType === "asian_handicap") {
+      const v = resolveAsianHandicapBet(leg.selectionLabel, homeScore, awayScore);
+      result = v === "win" ? "WON" : v === "push" ? "VOID" : "LOST";
+    } else if (leg.marketType === "double_chance") {
+      const v = resolveDoubleChanceBet(leg.selectionLabel, homeScore, awayScore);
+      result = v === "win" ? "WON" : "LOST";
+    } else {
+      const winningOutcome = resolveScoreBasedOutcome(leg.marketType ?? "1X2", homeScore, awayScore);
+      if (winningOutcome !== null) {
+        result = leg.outcome === winningOutcome ? "WON" : "LOST";
+      }
+    }
+
+    await prisma.parlayLeg.update({
+      where: { id: leg.id },
+      data: { result },
+    });
+
+    affectedParlayIds.add(leg.parlayId);
+  }
+
+  let resolvedParlays = 0;
+  for (const parlayId of affectedParlayIds) {
+    const parlay = await prisma.parlay.findUnique({
+      where: { id: parlayId },
+      include: { legs: true },
+    });
+    if (!parlay) continue;
+
+    const anyLost = parlay.legs.some((l) => l.result === "LOST");
+    const allFinished = parlay.legs.every((l) => l.result === "WON" || l.result === "VOID" || l.result === "LOST");
+    const allWonOrVoid = parlay.legs.every((l) => l.result === "WON" || l.result === "VOID");
+
+    if (anyLost) {
+      await prisma.parlay.update({
+        where: { id: parlayId },
+        data: { status: "LOST", settledAt: new Date() },
+      });
+      resolvedParlays++;
+    } else if (allFinished && allWonOrVoid) {
+      await prisma.parlay.update({
+        where: { id: parlayId },
+        data: { status: "WON", settledAt: new Date() },
+      });
+      resolvedParlays++;
+    }
+  }
+
+  return { resolvedLegs: legs.length, resolvedParlays };
 }
 
 /**
@@ -373,6 +446,9 @@ export async function executeMarketSettlement(
   }
 
   await BetsRepo.reconcileSettlement(marketId, plan.winningBetIds, plan.voidedBetIds);
+  if (plan.homeScore !== undefined && plan.awayScore !== undefined) {
+    await reconcileParlayLegsForMarket(marketId, plan.homeScore, plan.awayScore);
+  }
   await MarketsRepo.setStatus(marketId, "SETTLED", primaryWinningOutcome);
 
   // Gap 3: Paging / Critical alert for unresolved settlement items
@@ -388,6 +464,48 @@ export async function executeMarketSettlement(
   }
 
   return { settleTxHash, voidTxHashes };
+}
+
+/**
+ * Periodically searches for any markets that already have final scores recorded
+ * but still have unresolved pending bets or parlay legs, and settles them immediately.
+ */
+export async function settleFinishedMarketsWithPendingBets(): Promise<void> {
+  try {
+    const { prisma } = await import("@/lib/server/db");
+    const markets = await prisma.market.findMany({
+      where: {
+        homeScore: { not: null },
+        awayScore: { not: null },
+        OR: [
+          { bets: { some: { status: "PENDING" } } },
+          { parlayLegs: { some: { result: "PENDING" } } },
+        ],
+      },
+      select: {
+        id: true,
+        homeScore: true,
+        awayScore: true,
+      },
+    });
+
+    if (markets.length === 0) return;
+
+    logger.info(`[settlement] found ${markets.length} market(s) with scores and pending bets/legs to reconcile`);
+
+    for (const m of markets) {
+      if (m.homeScore === null || m.awayScore === null) continue;
+      const primaryWinningOutcome = resolveScoreBasedOutcome("1X2", m.homeScore, m.awayScore) ?? 0;
+      const plan = await planScoreBasedSettlement(m.id, m.homeScore, m.awayScore);
+      await executeMarketSettlement({
+        marketId: m.id,
+        primaryWinningOutcome,
+        plan,
+      });
+    }
+  } catch (err) {
+    logger.error("[settlement] settleFinishedMarketsWithPendingBets error", { error: String(err) });
+  }
 }
 
 /**

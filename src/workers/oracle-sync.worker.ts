@@ -125,8 +125,8 @@ async function upsertFixture(f: NormalizedFixture): Promise<void> {
     startTime: start,
     closesAt,
     status: statusFor(f),
-    ...(f.homeScore !== undefined ? { homeScore: f.homeScore } : {}),
-    ...(f.awayScore !== undefined ? { awayScore: f.awayScore } : {}),
+    ...(statusFor(f) !== "OPEN" && f.homeScore !== undefined ? { homeScore: f.homeScore } : {}),
+    ...(statusFor(f) !== "OPEN" && f.awayScore !== undefined ? { awayScore: f.awayScore } : {}),
     ...(f.minute !== null ? { liveMinute: f.minute } : {}),
   });
 }

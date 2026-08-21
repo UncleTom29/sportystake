@@ -224,7 +224,7 @@ export default function MyBetsPage() {
                         <>
                           <div className="flex items-center justify-between gap-2">
                             <p className="font-bold text-white">{bet.marketType}</p>
-                            {bet.homeScore !== undefined && bet.awayScore !== undefined && (
+                            {bet.homeScore !== undefined && bet.awayScore !== undefined && (bet.isLive || bet.status === "WON" || bet.status === "LOST" || bet.status === "CLAIMED" || bet.marketStatus === "LIVE" || bet.marketStatus === "SETTLED" || bet.homeScore > 0 || bet.awayScore > 0) && (
                               <span className="mono shrink-0 rounded bg-[var(--color-bg-1)] px-2 py-0.5 text-[11px] font-bold text-white border border-[var(--color-line-1)]">
                                 {bet.homeScore} - {bet.awayScore}
                               </span>
@@ -355,7 +355,7 @@ export default function MyBetsPage() {
                             <p className="truncate font-semibold text-white">
                               {leg.homeTeam && leg.awayTeam ? `${leg.homeTeam} vs ${leg.awayTeam}` : leg.marketLabel}
                             </p>
-                            {hasScore && (
+                            {hasScore && (leg.result === "WON" || leg.result === "LOST" || leg.marketStatus === "LIVE" || leg.marketStatus === "SETTLED" || isLive || (leg.homeScore ?? 0) > 0 || (leg.awayScore ?? 0) > 0) && (
                               <span className="mono shrink-0 font-bold text-white">{leg.homeScore} - {leg.awayScore}</span>
                             )}
                           </div>

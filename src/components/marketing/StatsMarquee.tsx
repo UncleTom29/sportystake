@@ -21,7 +21,7 @@ export default function StatsMarquee({
     { Icon: ZapIcon, label: totalWagered, sub: "total wagered" },
     { Icon: LiveIcon, label: String(openMarkets), sub: "open markets" },
     { Icon: FlameIcon, label: String(todayMarkets), sub: "starting today" },
-    { Icon: ShieldIcon, label: solvencyPool, sub: "protocol pool solvency" },
+    { Icon: ShieldIcon, label: "100%", sub: "on-chain escrow" },
     ...(activeWallets && activeWallets !== "—" ? [{ Icon: ShieldIcon, label: String(activeWallets), sub: "active wallets" }] : []),
     ...(maxWin && maxWin !== "—" ? [{ Icon: TrophyIcon, label: maxWin, sub: "biggest win this week" }] : []),
   ];

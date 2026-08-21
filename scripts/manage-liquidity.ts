@@ -22,6 +22,12 @@
  *   npx tsx scripts/manage-liquidity.ts add-virtual <amountUSDC>
  */
 
+import fs from "fs";
+try {
+  if (fs.existsSync(".env")) {
+    process.loadEnvFile(".env");
+  }
+} catch {}
 import {
   createPublicClient,
   createWalletClient,

@@ -77,9 +77,9 @@ export default async function Home() {
             Icon={TrophyIcon}
           />
           <StatCard
-            label="Protocol Pool"
-            value={protocolSolvencyFormatted}
-            sub="Shared LP Solvency"
+            label="AI Model Edge"
+            value="64.6%"
+            sub="+3.8% CLV Beat"
             accent="var(--color-brand-500)"
             Icon={ZapIcon}
           />

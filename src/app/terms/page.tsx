@@ -49,7 +49,7 @@ export default function TermsPage() {
                 4. Provably Fair Casino & Hash Verifier
               </a>
               <a href="#section-5" className="block text-[var(--color-ink-2)] hover:text-white transition-colors py-1">
-                5. Liquidity Pools & "Be The House"
+                5. Protocol Solvency & On-Chain Escrow
               </a>
               <a href="#section-6" className="block text-[var(--color-ink-2)] hover:text-white transition-colors py-1">
                 6. Smart Contract Execution & Payouts
@@ -166,15 +166,15 @@ export default function TermsPage() {
           <section id="section-5" className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 shadow-md">
             <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
               <span className="mono text-sm text-amber-400">05.</span>
-              Liquidity Pools & "Be The House" Terms (Up to 22,000% APY)
+              Protocol Solvency & Escrow Vaults
             </h2>
             <p>
-              Users may deposit USDC into the shared non-custodial `LiquidityPool` to act as the protocol house.
+              All platform wagers and casino payouts are escrowed directly in on-chain smart contracts deployed on Arc Network.
             </p>
             <ul className="mt-3 space-y-1.5 list-disc list-inside text-[12px] text-[var(--color-ink-3)]">
-              <li><strong>Yield Generation:</strong> Yield (up to 22,000% APY) is derived from actual sportsbook & casino wager margins. Yield is variable and fluctuates based on volume.</li>
-              <li><strong>Risk Disclosure:</strong> LP depositors share in house profit and house loss. Capital loss is possible if players experience a statistically positive winning streak.</li>
-              <li><strong>Timelock Exit:</strong> LP withdrawals require a 48-hour request timelock to ensure vault solvency and prevent bank-run exits during active events.</li>
+              <li><strong>Solvency Assurance:</strong> Winnings are settled directly from dedicated on-chain protocol vaults with verifiable reserves.</li>
+              <li><strong>Zero Counterparty Custody:</strong> Player stakes are held in self-executing escrow until oracle resolution, eliminating exchange insolvency risks.</li>
+              <li><strong>Autonomous Execution:</strong> Wager settlement requires no manual approval and resolves sub-second upon oracle validation.</li>
             </ul>
           </section>
 

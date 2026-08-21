@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s | SportyStake",
   },
   description:
-    "SportyStake is a fully non-custodial decentralized crypto sportsbook, provably fair casino, and liquidity pool protocol. Bet on 40+ sports, access free LLM-powered AI match predictions, and earn up to 22,000% APY. Instant sub-second settlement on Arc Network.",
+    "SportyStake is a fully non-custodial decentralized crypto sportsbook, provably fair casino, and quantitative prediction market. Bet on 40+ sports, deploy autonomous AI betting agents, and access verified +EV match signals. Instant sub-second settlement on Arc Network.",
   keywords: [
     "crypto sportsbook",
     "non-custodial betting",

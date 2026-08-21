@@ -170,7 +170,12 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
   const category = typeof market.metadata?.category === "string" ? market.metadata.category : market.country;
   const description = typeof market.metadata?.description === "string" ? market.metadata.description : null;
   const kickoffAt = Date.parse(market.startTime);
-  const bettingLocked = market.status !== "OPEN" || nowTs === null || (Number.isFinite(kickoffAt) && kickoffAt <= nowTs);
+  const closesAt = Date.parse(market.closesAt);
+  const bettingLocked =
+    market.status !== "OPEN" ||
+    nowTs === null ||
+    (Number.isFinite(kickoffAt) && kickoffAt <= nowTs) ||
+    (Number.isFinite(closesAt) && closesAt <= nowTs);
 
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">

@@ -9,7 +9,7 @@ import { LiveIcon, FlameIcon, ChevronRight } from "@/components/icons/UIIcons";
 
 export default function MatchCard({ match }: { match: Match }) {
   const label = `${match.homeTeam} vs ${match.awayTeam}`;
-  const started = match.isLive || (Number.isFinite(Date.parse(match.startsAt)) && Date.parse(match.startsAt) <= Date.now());
+  const started = match.isLive || (Number.isFinite(Date.parse(match.startsAt)) && Date.parse(match.startsAt) <= Date.now()) || match.status === "SETTLED" || match.status === "CANCELLED" || match.status === "FINISHED";
   const oddsPending = match.markets <= 0;
   const matchDetailHref = `/sportsbook/match/${match.id}`;
   const marketsCount = match.markets > 0 ? match.markets : (match.odds?.length ? match.odds.length : 1);

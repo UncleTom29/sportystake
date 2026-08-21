@@ -62,7 +62,7 @@ export default function MatchRow({
   displayMarket?: DisplayMarketKey;
 }) {
   const label = `${match.homeTeam} vs ${match.awayTeam}`;
-  const locked = match.isLive || hasStarted(match.startsAt);
+  const locked = match.isLive || hasStarted(match.startsAt) || match.status === "SETTLED" || match.status === "CANCELLED" || match.status === "FINISHED";
   const oddsPending = match.markets <= 0;
   const matchDetailHref = `/sportsbook/match/${match.id}`;
   const marketsCount = match.markets > 0 ? match.markets : (match.odds?.length ? match.odds.length : 1);

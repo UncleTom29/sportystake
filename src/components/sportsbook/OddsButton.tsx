@@ -76,7 +76,7 @@ export default function OddsButton({
       type="button"
       onClick={(e) => {
         e.stopPropagation();
-        if (hasOdds) {
+        if (!isDisabled) {
           addSelection({ matchId, matchLabel, market, selection, odds });
         }
       }}

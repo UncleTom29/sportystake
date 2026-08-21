@@ -43,6 +43,7 @@ export type Match = {
   totalLine?: number;
   markets: number;          // count of additional markets
   isHot?: boolean;
+  status?: string;
   odds?: OddsBundle[];
 };
 

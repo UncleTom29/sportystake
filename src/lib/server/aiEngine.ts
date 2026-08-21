@@ -48,10 +48,10 @@ export interface AIAnalysisResult {
   trackRecord: AIModelTrackRecord;
 }
 
-// In-memory cache for daily analysis (24h expiry)
+// In-memory cache for analysis (5 min expiry to stay in sync with live fixtures)
 let cachedAnalysis: AIAnalysisResult | null = null;
 let lastAnalysisTimestamp = 0;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 const TOP_FOOTBALL_LEAGUES = [
   "Premier League",
@@ -76,22 +76,41 @@ const DEFAULT_TRACK_RECORD: AIModelTrackRecord = {
 };
 
 /**
- * Runs or returns daily AI analysis on active sports markets.
+ * Runs or returns daily AI analysis strictly on active upcoming sports markets.
  * Executes analysis via deepseek/deepseek-v4-flash-latest via OpenRouter API if OPENROUTER_API_KEY is available,
  * otherwise runs statistical quantitative engine.
  */
 export async function getDailyAIAnalysis(forceRefresh = false): Promise<AIAnalysisResult> {
   const now = Date.now();
-  if (!forceRefresh && cachedAnalysis && now - lastAnalysisTimestamp < ONE_DAY_MS) {
-    return cachedAnalysis;
+
+  // If cache is present, dynamically verify that all cached predictions are still strictly OPEN and in the future
+  if (!forceRefresh && cachedAnalysis && now - lastAnalysisTimestamp < CACHE_TTL_MS) {
+    const validPredictions = cachedAnalysis.predictions.filter((p) => {
+      if (!p.kickoff) return true;
+      const start = Date.parse(p.kickoff);
+      return Number.isFinite(start) && start > now;
+    });
+
+    if (validPredictions.length >= 2) {
+      return {
+        ...cachedAnalysis,
+        predictions: validPredictions,
+      };
+    }
   }
 
-  // Query active football markets focusing on top leagues
-  const { items: allMarkets } = await MarketsRepo.list({ sport: "football", limit: 30 });
-  const topLeagueMarkets = allMarkets.filter((m) =>
+  // Query strictly active, upcoming sports markets
+  const { items: allOpenMarkets } = await MarketsRepo.list({ status: "OPEN", limit: 40 });
+  const futureMarkets = allOpenMarkets.filter((m) => {
+    const start = Date.parse(m.startTime);
+    const closes = Date.parse(m.closesAt);
+    return Number.isFinite(start) && start > now && Number.isFinite(closes) && closes > now && m.status === "OPEN";
+  });
+
+  const topLeagueMarkets = futureMarkets.filter((m) =>
     TOP_FOOTBALL_LEAGUES.some((l) => m.leagueName.toLowerCase().includes(l.toLowerCase()))
   );
-  const activeMarkets = topLeagueMarkets.length > 0 ? topLeagueMarkets.slice(0, 10) : allMarkets.slice(0, 10);
+  const activeMarkets = topLeagueMarkets.length > 0 ? topLeagueMarkets.slice(0, 10) : futureMarkets.slice(0, 10);
 
   const apiKey = process.env.OPENROUTER_API_KEY;
   let predictions: AIPredictionItem[] = [];
@@ -202,14 +221,14 @@ Respond ONLY with valid JSON in format:
   // Fallback or statistical generation if predictions array is empty
   if (predictions.length === 0) {
     if (activeMarkets.length > 0) {
-      predictions = activeMarkets.slice(0, 6).map((m, idx) => {
+      predictions = activeMarkets.slice(0, 8).map((m, idx) => {
         const sel1X2 = m.odds.find((o) => o.marketType === "1X2")?.selections || [];
         const homeOdds = sel1X2[0]?.valueX1000 ? sel1X2[0].valueX1000 / 1000 : 2.1;
         const awayOdds = sel1X2[2]?.valueX1000 ? sel1X2[2].valueX1000 / 1000 : 3.4;
         const isHomeFav = homeOdds <= awayOdds;
         const pick = isHomeFav ? `${m.homeTeam} Win` : `${m.awayTeam} Win`;
         const odds = isHomeFav ? homeOdds : awayOdds;
-        const fair = Math.max(1.2, Math.round(odds * 0.86 * 100) / 100);
+        const fair = Math.max(1.05, Math.round(odds * 0.88 * 100) / 100);
         const confidence = Math.min(88, Math.max(65, Math.round(72 + (idx % 3) * 5)));
         const impliedProb = Math.round((1 / odds) * 1000) / 10;
         const trueProb = Math.round((1 / fair) * 1000) / 10;
@@ -245,125 +264,12 @@ Respond ONLY with valid JSON in format:
           form: forms[idx % forms.length],
           grade,
           valueBps,
-          reasoning: `${m.homeTeam} generating sustained positive xG differential at home (+0.72/90m). ${m.awayTeam}'s transition defense shows structural vulnerability against wide overloads.`,
+          reasoning: `${m.homeTeam} generating sustained positive xG differential (+0.72/90m). Transition defense shows structural advantage against ${m.awayTeam}.`,
           factors: ["xG Advantage", "Line Dislocation", "Squad Form", "Rest Differential"],
           direction: valueBps > 10 ? "up" : "down",
+          kickoff: m.startTime,
         };
       });
-    } else {
-      // Seed default institutional fixtures
-      predictions = [
-        {
-          id: "ai1",
-          marketId: "seed-1",
-          match: "Arsenal vs Manchester City",
-          league: "Premier League · ENG",
-          pick: "Arsenal Win",
-          marketType: "1X2 Match Winner",
-          confidence: 79,
-          odds: 2.85,
-          fair: 2.35,
-          impliedProb: 35.1,
-          trueProb: 42.5,
-          expectedValuePct: 21.2,
-          kellyUnits: 1.75,
-          xgDiff: "+0.84 xGD/90",
-          form: ["W", "W", "W", "D", "W"],
-          grade: "GRADE A+",
-          valueBps: 21,
-          reasoning: "Arsenal high-press structure yields +1.8 xGD at Emirates. Key opponent midfield injuries create 21.2% line mispricing relative to sharp closing benchmarks.",
-          factors: ["xG Dominance", "Lineup Structural Deficit", "Home Field Edge"],
-          direction: "up",
-        },
-        {
-          id: "ai2",
-          marketId: "seed-2",
-          match: "Real Madrid vs FC Barcelona",
-          league: "La Liga · ESP",
-          pick: "Over 2.5 Goals",
-          marketType: "Total Goals (O/U 2.5)",
-          confidence: 83,
-          odds: 1.82,
-          fair: 1.56,
-          impliedProb: 54.9,
-          trueProb: 64.1,
-          expectedValuePct: 16.7,
-          kellyUnits: 1.5,
-          xgDiff: "+3.24 Match xG",
-          form: ["W", "W", "D", "W", "W"],
-          grade: "GRADE A+",
-          valueBps: 17,
-          reasoning: "Both sides average 3.4 expected match goals combined. Transition speed and high defensive lines historically produce 80%+ over rates in this matchup.",
-          factors: ["Pace Index", "High xG Frequency", "Direct Transition Metrics"],
-          direction: "up",
-        },
-        {
-          id: "ai3",
-          marketId: "seed-3",
-          match: "Bayern Munich vs Borussia Dortmund",
-          league: "Bundesliga · GER",
-          pick: "Bayern Munich Win",
-          marketType: "1X2 Match Winner",
-          confidence: 85,
-          odds: 1.68,
-          fair: 1.45,
-          impliedProb: 59.5,
-          trueProb: 69.0,
-          expectedValuePct: 15.9,
-          kellyUnits: 2.0,
-          xgDiff: "+1.15 xGD/90",
-          form: ["W", "W", "W", "W", "D"],
-          grade: "GRADE A+",
-          valueBps: 16,
-          reasoning: "Bayern won 8 consecutive home Klassikers with average goal differential +2.1. Expected goals dominance heavily outpaces market implied probability.",
-          factors: ["Klassiker Form", "Set Piece xG", "Squad Depth"],
-          direction: "down",
-        },
-        {
-          id: "ai4",
-          marketId: "seed-4",
-          match: "Inter Milan vs Juventus",
-          league: "Serie A · ITA",
-          pick: "Both Teams To Score (Yes)",
-          marketType: "Both Teams To Score",
-          confidence: 76,
-          odds: 1.95,
-          fair: 1.72,
-          impliedProb: 51.3,
-          trueProb: 58.1,
-          expectedValuePct: 13.3,
-          kellyUnits: 1.25,
-          xgDiff: "+2.60 Match xG",
-          form: ["W", "D", "W", "W", "L"],
-          grade: "GRADE A",
-          valueBps: 13,
-          reasoning: "Inter's box entry volume is league-leading while Juventus transition counter-attacks rank top 3 in Serie A conversion rate.",
-          factors: ["Box Conversion Rate", "Sharp Line Movement", "H2H Trends"],
-          direction: "up",
-        },
-        {
-          id: "ai5",
-          marketId: "seed-5",
-          match: "PSG vs Marseille",
-          league: "Ligue 1 · FRA",
-          pick: "PSG -1.0 Asian Handicap",
-          marketType: "Asian Handicap",
-          confidence: 80,
-          odds: 2.05,
-          fair: 1.80,
-          impliedProb: 48.8,
-          trueProb: 55.6,
-          expectedValuePct: 13.9,
-          kellyUnits: 1.5,
-          xgDiff: "+1.30 xGD/90",
-          form: ["W", "W", "W", "D", "W"],
-          grade: "GRADE A",
-          valueBps: 14,
-          reasoning: "PSG's shot generation inside the penalty box yields a +1.30 xGD differential over Marseille over the last 6 fixtures.",
-          factors: ["Handicap Value", "Possession Quality", "Home Shot Volume"],
-          direction: "up",
-        },
-      ];
     }
   }
 

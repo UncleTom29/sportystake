@@ -175,19 +175,20 @@ export default function LiveMatchModal({ event, onClose }: Props) {
           {market ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
-                  Live Betting Odds
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)] flex items-center gap-1.5">
+                  <span className="mono rounded bg-[var(--color-ink-4)]/30 px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-ink-3)]">LOCKED</span>
+                  {isFinished ? "Match Concluded" : "Live In-Play (Prematch Closed)"}
                 </span>
                 <Link
                   href={`/sportsbook/match/${market.id}`}
                   onClick={onClose}
                   className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-brand-500)] hover:underline"
                 >
-                  View All Markets <ArrowUpRight className="h-3 w-3" />
+                  Match Details <ArrowUpRight className="h-3 w-3" />
                 </Link>
               </div>
 
-              {/* Render 1X2 market odds if available */}
+              {/* Render 1X2 market odds locked */}
               {market.odds.find((o) => o.marketType === "1X2") && (
                 <div className="grid grid-cols-3 gap-2">
                   {market.odds
@@ -201,6 +202,7 @@ export default function LiveMatchModal({ event, onClose }: Props) {
                         selection={sel.label}
                         label={sel.label}
                         odds={sel.valueX1000 / 1000}
+                        disabled={true}
                       />
                     ))}
                 </div>

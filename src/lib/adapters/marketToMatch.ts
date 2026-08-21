@@ -126,6 +126,7 @@ export function marketToMatch(m: MarketDTO, opts: { isHot?: boolean } = {}): Mat
     ...(underOdds ? { totalUnderOdds: underOdds } : {}),
     totalLine: 2.5,
     markets: m.marketsCount,
+    status: m.status,
     ...(opts.isHot ? { isHot: true } : {}),
     odds: m.odds,
   };

@@ -56,6 +56,20 @@ async function resolveLeg(sel: BetSelection): Promise<ResolvedLeg | null> {
     return null;
   }
   if (!market) return null;
+
+  const now = Date.now();
+  const start = Date.parse(market.startTime);
+  const closes = Date.parse(market.closesAt);
+  if (
+    market.status !== "OPEN" ||
+    (Number.isFinite(start) && start <= now) ||
+    (Number.isFinite(closes) && closes <= now)
+  ) {
+    throw new Error(
+      `${market.homeTeam || "Match"} vs ${market.awayTeam || "Match"} is already closed, in-play, or finished.`
+    );
+  }
+
   const candidateType = marketTypeFromMarketName(sel.market);
   const bundle = market.odds.find((b) => b.marketType === candidateType) ?? market.odds[0];
   if (!bundle) return null;

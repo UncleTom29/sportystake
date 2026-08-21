@@ -284,9 +284,27 @@ export default function AIAnalyticsPage() {
   }, [fetchAnalysis]);
 
   const handleTailPick = (p: PredictionItem) => {
+    if (p.kickoff && Date.parse(p.kickoff) <= Date.now()) {
+      pushToast({
+        kind: "error",
+        title: "Match Already Started",
+        body: "This match is currently in-play or finished. Wagering has closed.",
+      });
+      return;
+    }
+
+    if (!p.marketId || p.marketId.startsWith("seed-")) {
+      pushToast({
+        kind: "error",
+        title: "Market Unavailable",
+        body: "This market is not currently open for wagering.",
+      });
+      return;
+    }
+
     const converted: BetSelection[] = [
       {
-        matchId: p.marketId || `ai-${p.id}`,
+        matchId: p.marketId,
         matchLabel: p.match,
         market: p.marketType || "1X2",
         selection: p.pick,
@@ -314,8 +332,15 @@ export default function AIAnalyticsPage() {
 
   // Filtered & Sorted Predictions
   const filteredPredictions = useMemo(() => {
+    const now = Date.now();
     return predictions
       .filter((p) => {
+        if (p.kickoff && Date.parse(p.kickoff) <= now) {
+          return false;
+        }
+        if (p.marketId && p.marketId.startsWith("seed-")) {
+          return false;
+        }
         if (selectedLeague !== "ALL" && !p.league.toLowerCase().includes(selectedLeague.toLowerCase())) {
           return false;
         }

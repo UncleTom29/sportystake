@@ -500,6 +500,36 @@ async function addCasinoLiquidity(amountUsdc: number) {
   console.log(`   Wallet:    ${account.address}`);
   console.log(`   Casino:    ${CASINO_HOUSE_ADDRESS}`);
 
+  // Pre-flight ADMIN_ROLE check
+  const adminRole = await publicClient.readContract({
+    address: CASINO_HOUSE_ADDRESS,
+    abi: casinoHouseAbi,
+    functionName: "ADMIN_ROLE",
+  });
+  const hasAdmin = await publicClient.readContract({
+    address: CASINO_HOUSE_ADDRESS,
+    abi: [
+      {
+        type: "function",
+        name: "hasRole",
+        stateMutability: "view",
+        inputs: [
+          { name: "role", type: "bytes32" },
+          { name: "account", type: "address" },
+        ],
+        outputs: [{ name: "", type: "bool" }],
+      },
+    ],
+    functionName: "hasRole",
+    args: [adminRole, account.address],
+  });
+
+  if (!hasAdmin) {
+    throw new Error(
+      `Wallet ${account.address} does not hold ADMIN_ROLE on CasinoHouse contract (${CASINO_HOUSE_ADDRESS}). Only designated protocol admin accounts can deposit or withdraw casino bankroll.`
+    );
+  }
+
   await ensureAllowance(CASINO_HOUSE_ADDRESS, amountRaw);
 
   console.log(`⏳ Calling CasinoHouse.depositBankroll(${amountRaw})...`);
@@ -525,7 +555,35 @@ async function withdrawCasinoLiquidity(amountUsdc: number, recipient?: string) {
   if (amountUsdc <= 0) throw new Error("Amount must be greater than 0");
   const amountRaw = parseUnits(amountUsdc.toString(), 6);
   const { account, walletClient } = getWallet();
-  const toAddress = (recipient || account.address) as Address;
+  // Pre-flight ADMIN_ROLE check
+  const adminRole = await publicClient.readContract({
+    address: CASINO_HOUSE_ADDRESS,
+    abi: casinoHouseAbi,
+    functionName: "ADMIN_ROLE",
+  });
+  const hasAdmin = await publicClient.readContract({
+    address: CASINO_HOUSE_ADDRESS,
+    abi: [
+      {
+        type: "function",
+        name: "hasRole",
+        stateMutability: "view",
+        inputs: [
+          { name: "role", type: "bytes32" },
+          { name: "account", type: "address" },
+        ],
+        outputs: [{ name: "", type: "bool" }],
+      },
+    ],
+    functionName: "hasRole",
+    args: [adminRole, account.address],
+  });
+
+  if (!hasAdmin) {
+    throw new Error(
+      `Wallet ${account.address} does not hold ADMIN_ROLE on CasinoHouse contract (${CASINO_HOUSE_ADDRESS}). Only designated protocol admin accounts can deposit or withdraw casino bankroll.`
+    );
+  }
 
   // Check maximum withdrawable
   const [casinoBal, pendingExposure] = await Promise.all([

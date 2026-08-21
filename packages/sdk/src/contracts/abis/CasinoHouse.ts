@@ -209,4 +209,33 @@ export const casinoHouseAbi = [
     ],
     anonymous: false,
   },
+  // --- Errors ---
+  {
+    type: 'error',
+    name: 'AccessControlUnauthorizedAccount',
+    inputs: [
+      { name: 'account', type: 'address' },
+      { name: 'neededRole', type: 'bytes32' },
+    ],
+  },
+  {
+    type: 'error',
+    name: 'ZeroAmount',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'InsufficientBankroll',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'BetNotFound',
+    inputs: [],
+  },
+  {
+    type: 'error',
+    name: 'BetAlreadySettled',
+    inputs: [],
+  },
 ] as const;

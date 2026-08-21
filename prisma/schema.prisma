@@ -166,6 +166,7 @@ model Bet {
   parlayId          String?
   parlay            Parlay?     @relation(fields: [parlayId], references: [id])
   txHash            String?     @db.VarChar(66)
+  bookingCode       String?     @db.VarChar(12)
   blockNumber       BigInt?
   placedAt          DateTime    @default(now())
   settledAt         DateTime?
@@ -173,6 +174,7 @@ model Bet {
 
   @@index([userId, placedAt(sort: Desc)])
   @@index([marketId, status])
+  @@index([bookingCode])
   @@index([status, settledAt])
 }
 
@@ -199,6 +201,7 @@ model Parlay {
   status            BetStatus   @default(PENDING)
   isBonusBet        Boolean     @default(false)
   txHash            String?     @db.VarChar(66)
+  bookingCode       String?     @db.VarChar(12)
   placedAt          DateTime    @default(now())
   settledAt         DateTime?
 
@@ -206,6 +209,7 @@ model Parlay {
   Bet               Bet[]
 
   @@index([userId, placedAt(sort: Desc)])
+  @@index([bookingCode])
 }
 
 model ParlayLeg {

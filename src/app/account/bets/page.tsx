@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Bets } from "@/lib/api-client";
 import type { BetDTO, BetStatus } from "@/lib/types";
-import { ChevronLeft, ZapIcon, TrophyIcon, CloseIcon } from "@/components/icons/UIIcons";
+import { ChevronLeft, ZapIcon, TrophyIcon, CloseIcon, TicketIcon } from "@/components/icons/UIIcons";
 import { clientEnv } from "@/lib/env";
 import { privyContractWrite } from "@/lib/privyTx";
 import { useNotifications } from "@/lib/notificationStore";
@@ -35,7 +35,19 @@ export default function MyBetsPage() {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const pushToast = useNotifications((s) => s.pushToast);
+
+  const handleCopyCode = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCodeId(code);
+      pushToast({ kind: "success", title: "Booking code copied", body: code });
+      setTimeout(() => setCopiedCodeId((c) => (c === code ? null : c)), 2000);
+    } catch {
+      pushToast({ kind: "error", title: "Failed to copy code" });
+    }
+  };
 
   /** Routes to claimWinnings/claimParlayWinnings depending on bet.parlayId —
    *  a parlay's BetDTO.id is the on-chain parlayId, not a Bet.id, so calling
@@ -258,6 +270,22 @@ export default function MyBetsPage() {
                       </span>
                     </span>
                     <span className="text-[var(--color-ink-3)]">{new Date(bet.createdAt).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                    {bet.bookingCode && (
+                      <div className="inline-flex items-center gap-1.5 rounded bg-[var(--color-bg-1)] border border-[var(--color-line-1)] px-2 py-0.5 text-[11px]">
+                        <TicketIcon className="h-3 w-3 text-[var(--color-brand-500)] shrink-0" />
+                        <span className="text-[var(--color-ink-3)] font-medium">Code:</span>
+                        <span className="mono font-bold text-white tracking-wider">{bet.bookingCode}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleCopyCode(bet.bookingCode!);
+                          }}
+                          className="ml-1 rounded px-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/20 transition-colors"
+                        >
+                          {copiedCodeId === bet.bookingCode ? "Copied!" : "Copy"}
+                        </button>
+                      </div>
+                    )}
                     {bet.txHash && (
                       <a
                         href={explorerTxUrl(bet.txHash)}

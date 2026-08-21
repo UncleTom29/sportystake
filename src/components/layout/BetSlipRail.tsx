@@ -87,14 +87,28 @@ export default function BetSlipRail() {
 
       if (tab === "singles") {
         if (singleStake <= 0) { pushToast({ kind: "warn", title: "Enter a stake" }); return; }
+        const currentSelections = [...selections];
         const { placed, failures } = await placeSingleBets(selections, singleStake);
-        if (placed.length) pushToast({ kind: "success", title: `${placed.length} bet${placed.length > 1 ? "s" : ""} placed` });
+        if (placed.length) {
+          pushToast({ kind: "success", title: `${placed.length} bet${placed.length > 1 ? "s" : ""} placed` });
+          const code = placed[0]?.bookingCode;
+          if (code) {
+            setBookedData({ code, totalOdds: currentSelections[0]?.odds ?? 1, selections: currentSelections });
+          }
+        }
         if (failures.length) pushToast({ kind: "error", title: `${failures.length} leg(s) failed`, body: failures[0].error });
         if (placed.length && !failures.length) clearAll();
       } else {
         if (parlayStake <= 0) { pushToast({ kind: "warn", title: "Enter a stake" }); return; }
+        const currentSelections = [...selections];
         const { parlay, failures } = await placeParlay(selections, parlayStake);
-        if (parlay) { pushToast({ kind: "success", title: "Parlay placed", body: `${parlay.legs.length} legs @ ${(parlay.combinedOddsX1000 / 1000).toFixed(2)}×` }); clearAll(); }
+        if (parlay) {
+          pushToast({ kind: "success", title: "Parlay placed", body: `${parlay.legs.length} legs @ ${(parlay.combinedOddsX1000 / 1000).toFixed(2)}×` });
+          if (parlay.bookingCode) {
+            setBookedData({ code: parlay.bookingCode, totalOdds: Number(parlay.combinedOddsX1000) / 1000, selections: currentSelections });
+          }
+          clearAll();
+        }
         else pushToast({ kind: "error", title: "Parlay failed", body: failures[0]?.error ?? "Unknown error" });
       }
     } catch (e) {

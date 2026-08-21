@@ -60,6 +60,7 @@ function toDto(b: NonNullable<BetRow>): BetDTO {
     homeTeam: b.market?.homeTeam ?? undefined,
     awayTeam: b.market?.awayTeam ?? undefined,
     marketStatus: b.market?.status ?? undefined,
+    bookingCode: b.bookingCode || (b.id ? `ST-${b.id.replace(/^0x/, "").slice(0, 6).toUpperCase()}` : undefined),
   };
 }
 
@@ -122,6 +123,8 @@ function parlayToDto(p: NonNullable<ParlayRow>): BetDTO {
     txHash: p.txHash ?? undefined,
     createdAt: p.placedAt.toISOString(),
     settledAt: p.settledAt?.toISOString(),
+    marketStatus: "OPEN",
+    bookingCode: p.bookingCode || (p.id ? `ST-${p.id.replace(/^0x/, "").slice(0, 6).toUpperCase()}` : undefined),
     legs: legs.map((l) => ({
       marketId: l.marketId,
       marketLabel: legMarketLabel(l.market),
@@ -208,6 +211,7 @@ export const BetsRepo = {
     isPublic: boolean;
     txHash?: string;
     parlayId?: string;
+    bookingCode?: string;
   }): Promise<BetDTO> {
     const created = await prisma.bet.create({
       data: {
@@ -224,6 +228,7 @@ export const BetsRepo = {
         isPublic: input.isPublic,
         ...(input.txHash ? { txHash: input.txHash } : {}),
         ...(input.parlayId ? { parlayId: input.parlayId } : {}),
+        ...(input.bookingCode ? { bookingCode: input.bookingCode } : {}),
       },
       include: { user: true, market: true },
     });

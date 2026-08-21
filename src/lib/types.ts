@@ -124,6 +124,7 @@ export interface BetDTO {
   homeTeam?: string;
   awayTeam?: string;
   marketStatus?: string;
+  bookingCode?: string;
   /** True when this row is a CasinoBet (Aviator/Dice/Slots/…), not a
    *  BettingCore sports bet or parlay — no on-chain BettingCore betId
    *  exists for it, so the frontend must not offer a claimWinnings()
@@ -158,6 +159,7 @@ export interface ParlayDTO {
   combinedOddsX1000: number;
   potentialPayout: string;
   status: BetStatus;
+  bookingCode?: string;
   createdAt: string;
 }
 

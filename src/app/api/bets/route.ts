@@ -50,6 +50,26 @@ export const POST = withRequestId(async (req: NextRequest) => {
   const market = await prisma.market.findUnique({ where: { id: verified.marketId } });
   if (!market) throw new ApiError("NotFound", "Market not found", 404);
 
+  const { createBookingCodeForSelections } = await import("@/lib/server/bookingCode");
+  let bookingCode: string | undefined;
+  try {
+    bookingCode = await createBookingCodeForSelections({
+      selections: [
+        {
+          matchId: verified.marketId,
+          matchLabel: `${market.homeTeam} vs ${market.awayTeam}`,
+          market: body.marketType,
+          selection: body.selectionLabel,
+          odds: Number(verified.oddsX1000) / 1000,
+          stake: Number(verified.amount) / 1e6,
+        },
+      ],
+      createdById: auth.sub,
+    });
+  } catch (err) {
+    logger.warn("[api/bets] Failed to generate booking code", { error: String(err) });
+  }
+
   const bet = await BetsRepo.create({
     id: verified.betId,
     userId: auth.sub,
@@ -63,6 +83,7 @@ export const POST = withRequestId(async (req: NextRequest) => {
     isLive: body.isLive,
     isPublic: body.isPublic,
     txHash: body.txHash,
+    bookingCode,
   });
 
   publish("bet:confirmed", { betId: bet.id, userId: bet.userId });

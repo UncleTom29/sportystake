@@ -59,6 +59,27 @@ export const POST = withRequestId(async (req: NextRequest) => {
     if (!byId.has(marketId)) throw new ApiError("NotFound", `Market ${marketId} not found`, 404);
   }
 
+  const { createBookingCodeForSelections } = await import("@/lib/server/bookingCode");
+  let bookingCode: string | undefined;
+  try {
+    bookingCode = await createBookingCodeForSelections({
+      selections: verified.marketIds.map((marketId, i) => {
+        const m = byId.get(marketId)!;
+        return {
+          matchId: marketId,
+          matchLabel: `${m.homeTeam} vs ${m.awayTeam}`,
+          market: body.legs[i].marketType ?? "1X2",
+          selection: body.legs[i].selectionLabel,
+          odds: (body.legs[i].oddsX1000 ?? 1000) / 1000,
+          stake: Number(verified.stake) / 1e6,
+        };
+      }),
+      createdById: auth.sub,
+    });
+  } catch (err) {
+    // Non-blocking
+  }
+
   const parlay = await prisma.parlay.create({
     data: {
       id: verified.parlayId,
@@ -67,18 +88,12 @@ export const POST = withRequestId(async (req: NextRequest) => {
       combinedOddsX1000: verified.combinedOddsX1000,
       potentialPayout: verified.potentialPayout,
       txHash: body.txHash,
+      bookingCode,
       legs: {
         create: verified.marketIds.map((marketId, i) => ({
           marketId,
           outcome: verified.outcomes[i],
           selectionLabel: body.legs[i].selectionLabel,
-          // Same trust model as selectionLabel above: display metadata
-          // only, supplied by the client since neither field is
-          // individually recoverable from the on-chain event (the
-          // contract only stores the combined odds figure, and doesn't
-          // store market type at all). Never used in settlement/payout
-          // logic — outcome/marketId/stake/combinedOdds above are what
-          // actually move money, and those come from the verified event.
           marketType: body.legs[i].marketType,
           oddsX1000: body.legs[i].oddsX1000 ?? 0,
         })),
@@ -97,6 +112,7 @@ export const POST = withRequestId(async (req: NextRequest) => {
       combinedOddsX1000: Number(parlay.combinedOddsX1000),
       potentialPayout: usdcToString(parlay.potentialPayout),
       status: parlay.status,
+      bookingCode: parlay.bookingCode ?? undefined,
       createdAt: parlay.placedAt.toISOString(),
       legs: parlay.legs.map((l) => ({
         id: l.id,

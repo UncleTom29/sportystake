@@ -57,7 +57,7 @@ export default function Header() {
           <SegLink href="/sportsbook" label="Sports" />
           <SegLink href="/live" label="Live 🔴" />
           <SegLink href="/casino" label="Casino" />
-          <SegLink href="/ai-analytics" label="AI Picks ⚡" />
+          <SegLink href="/prediction-markets" label="Prediction Markets" />
           <SegLink href="/leaderboard" label="Leaderboard" />
           {isAdminOrOperator && <SegLink href="/admin" label="Admin 🛡️" />}
         </nav>

@@ -9,9 +9,8 @@ import { sportsList } from "@/lib/mockData";
 
 const primary = [
   { href: "/sportsbook?featured=1&popular=hot", label: "Popular", Icon: FlameIcon },
-  { href: "/prediction-markets", label: "Prediction Markets", Icon: ZapIcon },
-  { href: "/social", label: "Social", Icon: TicketIcon },
   { href: "/ai-analytics", label: "AI Picks", Icon: ZapIcon },
+  { href: "/social", label: "Social", Icon: TicketIcon },
 ];
 
 export default function SportsNav() {

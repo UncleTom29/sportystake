@@ -51,6 +51,7 @@ export interface LiveRow {
 
 export interface TrackedMatch {
   fixtureId: number;
+  sport?: string;
   homeScore: number;
   awayScore: number;
   matchTime: string;
@@ -71,17 +72,25 @@ export interface InferredFinish {
 }
 
 export const MISSING_TICKS_THRESHOLD = 2;
-export const MIN_MATCH_AGE_MINUTES = 40;
-/** A match seen exactly once (never confirmed) that then never reappears
- *  stays ineligible for inference forever (see `eligible` below) — without
- *  this ceiling it would otherwise sit in tracked state accumulating
- *  missingTicks indefinitely. ~2h of misses at the ~2m poll cadence is far
- *  past anything a real gap explains; drop it and defer entirely to the 4h
- *  stuck-market safety net, which has its own (slower, cruder) path to a
- *  resolution. */
+export const MIN_MATCH_AGE_MINUTES = 20;
 export const MAX_MISSING_TICKS_BEFORE_DROP = 60;
 
 const VIRTUAL_ID_THRESHOLD = 1_000_000_000;
+
+function minAgeForSport(sport?: string): number {
+  const norm = (sport ?? "").toLowerCase();
+  if (
+    norm.includes("esport") ||
+    norm.includes("fifa") ||
+    norm.includes("table") ||
+    norm.includes("dart") ||
+    norm.includes("badminton") ||
+    norm.includes("cybersport")
+  ) {
+    return 5;
+  }
+  return 20;
+}
 
 function ageMinutes(matchTime: string, now: number): number | null {
   const kickoff = Date.parse(matchTime);
@@ -118,6 +127,7 @@ export function reconcileLiveTracking(
 
     nextState[row.match_id] = {
       fixtureId,
+      sport: row.sport,
       homeScore: row.score.home,
       awayScore: row.score.away,
       matchTime: row.match_time,
@@ -131,7 +141,8 @@ export function reconcileLiveTracking(
 
     const missingTicks = tracked.missingTicks + 1;
     const age = ageMinutes(tracked.matchTime, now);
-    const eligible = tracked.confirmedLive && age !== null && age >= MIN_MATCH_AGE_MINUTES;
+    const minAge = minAgeForSport(tracked.sport);
+    const eligible = tracked.confirmedLive && (age === null || age >= minAge);
 
     if (missingTicks >= MISSING_TICKS_THRESHOLD && eligible) {
       inferredFinished.push({

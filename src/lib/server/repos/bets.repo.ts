@@ -290,6 +290,69 @@ export const BetsRepo = {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(offset, offset + limit);
 
+    // Real-time live score enrichment directly from Redis oracle:live:events
+    try {
+      const { redis } = await import("@/lib/server/redis");
+      const r = redis();
+      const raw = await r.get("oracle:live:events");
+      if (raw) {
+        const liveEvents = JSON.parse(raw) as {
+          match_id: string;
+          match: string;
+          score: { home: number; away: number };
+          finished: boolean;
+        }[];
+        if (Array.isArray(liveEvents) && liveEvents.length > 0) {
+          const byTeamPair = new Map<string, { home: number; away: number }>();
+          for (const le of liveEvents) {
+            if (le.match && le.score) {
+              const parts = le.match.split(/\s+(?:vs\.?|-)\s+/i);
+              if (parts.length === 2) {
+                const normHome = parts[0].trim().toLowerCase();
+                const normAway = parts[1].trim().toLowerCase();
+                byTeamPair.set(`${normHome}|${normAway}`, le.score);
+              }
+            }
+          }
+
+          for (const item of merged) {
+            if (item.status === "PENDING" && item.homeTeam && item.awayTeam) {
+              const normHome = item.homeTeam.trim().toLowerCase();
+              const normAway = item.awayTeam.trim().toLowerCase();
+              const liveScore = byTeamPair.get(`${normHome}|${normAway}`)
+                ?? Array.from(byTeamPair.entries()).find(([k]) => {
+                  const [h, a] = k.split("|");
+                  return (normHome.includes(h) || h.includes(normHome)) && (normAway.includes(a) || a.includes(normAway));
+                })?.[1];
+              if (liveScore) {
+                item.homeScore = liveScore.home;
+                item.awayScore = liveScore.away;
+              }
+            }
+            if (item.legs) {
+              for (const leg of item.legs) {
+                if (leg.result === "PENDING" && leg.homeTeam && leg.awayTeam) {
+                  const normHome = leg.homeTeam.trim().toLowerCase();
+                  const normAway = leg.awayTeam.trim().toLowerCase();
+                  const liveScore = byTeamPair.get(`${normHome}|${normAway}`)
+                    ?? Array.from(byTeamPair.entries()).find(([k]) => {
+                      const [h, a] = k.split("|");
+                      return (normHome.includes(h) || h.includes(normHome)) && (normAway.includes(a) || a.includes(normAway));
+                    })?.[1];
+                  if (liveScore) {
+                    leg.homeScore = liveScore.home;
+                    leg.awayScore = liveScore.away;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Non-blocking fallback to DB scores
+    }
+
     return { items: merged, total: betsTotal + parlaysTotal + casinoBetsTotal };
   },
 

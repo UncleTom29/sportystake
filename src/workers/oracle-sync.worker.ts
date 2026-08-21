@@ -189,7 +189,7 @@ async function handleFinished(evt: FinishedEvent): Promise<void> {
   const id = marketIdFor(evt.fixtureId);
   await prisma.market.updateMany({
     where: { id },
-    data: { status: "SETTLED", homeScore: evt.homeScore, awayScore: evt.awayScore },
+    data: { homeScore: evt.homeScore, awayScore: evt.awayScore },
   });
 }
 

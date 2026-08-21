@@ -29,6 +29,7 @@ import { prisma } from "@/lib/server/db";
 import { serverEnv, clientEnv } from "@/lib/env";
 import { getOperatorAccount, verifyOperatorRoles } from "@/lib/server/operatorWallet";
 import { logger } from "@/lib/server/logger";
+import { BetsRepo } from "@/lib/server/repos/bets.repo";
 import { planScoreBasedSettlement, executeMarketSettlement, resolveScoreBasedOutcome } from "@/lib/server/settlement";
 
 const CHANNEL_MARKET_FINISHED = "market:finished";
@@ -66,7 +67,10 @@ async function bootstrap(): Promise<void> {
         logger.warn("[settlement] no market for fixture", { fixtureId: evt.fixtureId });
         return;
       }
-      if (market.status === "SETTLED" || market.status === "CANCELLED") return;
+      const pending = await BetsRepo.pendingByMarket(market.id);
+      if (market.status === "CANCELLED" || (market.status === "SETTLED" && pending.length === 0)) {
+        return;
+      }
 
       // Persist the verified final score onto the market row
       await prisma.market.update({

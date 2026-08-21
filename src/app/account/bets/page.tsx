@@ -89,16 +89,27 @@ export default function MyBetsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    Bets.my({ status: filter === "ALL" ? undefined : filter, limit: 50 })
-      .then((res) => {
-        if (cancelled) return;
-        setBets(res.items);
-        setTotal(res.total);
-      })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    const fetchBets = (showLoader = false) => {
+      if (showLoader) setLoading(true);
+      Bets.my({ status: filter === "ALL" ? undefined : filter, limit: 50 })
+        .then((res) => {
+          if (cancelled) return;
+          setBets(res.items);
+          setTotal(res.total);
+        })
+        .catch(() => {})
+        .finally(() => { if (!cancelled && showLoader) setLoading(false); });
+    };
+
+    fetchBets(true);
+    const interval = setInterval(() => {
+      fetchBets(false);
+    }, 10_000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [filter]);
 
   const stats = useMemo(() => {

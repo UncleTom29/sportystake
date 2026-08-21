@@ -386,19 +386,14 @@ function SportsbookPageInner() {
       });
     }
 
-    const leagueOrder = new Map(sidebarLeagues.map((l, idx) => [l.name, idx]));
     return Array.from(map.entries()).sort(([nameA, msA], [nameB, msB]) => {
-      const ao = leagueOrder.get(nameA);
-      const bo = leagueOrder.get(nameB);
-      if (ao !== undefined && bo !== undefined) return ao - bo;
-      if (ao !== undefined) return -1;
-      if (bo !== undefined) return 1;
-
       const sportA = msA[0]?.sportSlug ?? "football";
       const sportB = msB[0]?.sportSlug ?? "football";
+      const countryA = msA[0]?.country;
+      const countryB = msB[0]?.country;
       return compareLeagues(
-        { name: nameA, sport: sportA },
-        { name: nameB, sport: sportB }
+        { name: nameA, sport: sportA, country: countryA },
+        { name: nameB, sport: sportB, country: countryB }
       );
     });
   }, [matches, sidebarLeagues, activePopular]);

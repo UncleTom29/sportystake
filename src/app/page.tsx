@@ -35,7 +35,6 @@ interface HomeOverview {
   openMarketsTotal: number;
   todayMarketsTotal: number;
   totalWageredFormatted: string;
-  protocolSolvencyFormatted: string;
   activeWalletsFormatted: string;
   maxWinFormatted: string;
 }
@@ -55,7 +54,6 @@ export default async function Home() {
     openMarketsTotal,
     todayMarketsTotal,
     totalWageredFormatted,
-    protocolSolvencyFormatted,
     activeWalletsFormatted,
     maxWinFormatted,
   } = data;
@@ -106,7 +104,6 @@ export default async function Home() {
           totalWagered={totalWageredFormatted}
           openMarkets={openMarketsTotal}
           todayMarkets={todayMarketsTotal}
-          solvencyPool={protocolSolvencyFormatted}
           activeWallets={activeWalletsFormatted}
           maxWin={maxWinFormatted}
         />

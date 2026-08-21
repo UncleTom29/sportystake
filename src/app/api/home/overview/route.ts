@@ -100,15 +100,12 @@ export const GET = withRequestId(async () => {
     .slice(0, 20);
 
   const virtConfig = getVirtualLiquidityConfig();
-  const realSportsPoolUsdc = Number(onchainPool.totalLiquidity + onchainPool.virtualLiquidity) / 1_000_000;
-  const totalProtocolCapacityUsdc = realSportsPoolUsdc + virtConfig.sportsPoolUsdc + virtConfig.casinoVaultUsdc;
 
   const sportsWageredRaw = sportsWagered?._sum?.amount ? Number(sportsWagered._sum.amount) / 1_000_000 : 0;
   const casinoWageredRaw = casinoWagered?._sum?.amount ? Number(casinoWagered._sum.amount) / 1_000_000 : 0;
   const totalWageredRawUsdc = sportsWageredRaw + casinoWageredRaw + (virtConfig.virtualWageredUsdc ?? 5000000);
 
   const totalWageredFormatted = formatUsd(totalWageredRawUsdc);
-  const protocolSolvencyFormatted = formatUsd(totalProtocolCapacityUsdc > 0 ? totalProtocolCapacityUsdc : 5075000);
   const activeWalletsFormatted = userCount > 0 ? userCount.toLocaleString("en-US") : "—";
 
   const maxWinSports = topSportsWin?.potentialPayout ? Number(topSportsWin.potentialPayout) / 1_000_000 : 0;
@@ -124,7 +121,6 @@ export const GET = withRequestId(async () => {
     openMarketsTotal,
     todayMarketsTotal,
     totalWageredFormatted,
-    protocolSolvencyFormatted,
     activeWalletsFormatted,
     maxWinFormatted,
   });

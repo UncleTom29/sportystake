@@ -74,9 +74,30 @@ export default function UserBalanceDropdown() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // State 1: Not signed in → handled by WalletButton
+  // State 1: Not signed in → 1-click Deposit / Connect trigger
   if (authStatus !== "authenticated" || !user || !address) {
-    return null;
+    return (
+      <button
+        onClick={async () => {
+          try {
+            await signIn();
+          } catch (e) {
+            pushToast({ kind: "error", title: "Sign-in failed", body: (e as Error).message });
+          }
+        }}
+        disabled={isSigningIn}
+        aria-label="Deposit USDC"
+        className="flex h-9 items-center gap-1 rounded-lg border border-[var(--color-brand-500)]/40 bg-[var(--color-brand-500)]/10 px-2 sm:px-2.5 py-1 text-xs font-bold text-white hover:border-[var(--color-brand-500)] hover:bg-[var(--color-brand-500)]/20 transition-all active:scale-95 shadow-sm"
+      >
+        <div className="flex h-5 w-5 items-center justify-center rounded-md bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)]">
+          <UsdcIcon className="h-3.5 w-3.5" />
+        </div>
+        <span className="mono text-[12px] font-black text-white">$0.00</span>
+        <span className="rounded bg-[var(--color-brand-500)] px-1.5 py-0.5 text-[10px] font-black text-black uppercase ml-0.5">
+          {isSigningIn ? "…" : "Deposit"}
+        </span>
+      </button>
+    );
   }
 
   // State 2: Signed in — User Balance Pill + Popover Dropdown

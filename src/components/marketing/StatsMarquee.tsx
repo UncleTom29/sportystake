@@ -4,7 +4,6 @@ export interface StatsMarqueeProps {
   totalWagered: string;
   openMarkets: string | number;
   todayMarkets: string | number;
-  solvencyPool: string;
   activeWallets?: string | number;
   maxWin?: string;
 }
@@ -13,7 +12,6 @@ export default function StatsMarquee({
   totalWagered,
   openMarkets,
   todayMarkets,
-  solvencyPool,
   activeWallets = "—",
   maxWin = "—",
 }: StatsMarqueeProps) {
@@ -21,7 +19,8 @@ export default function StatsMarquee({
     { Icon: ZapIcon, label: totalWagered, sub: "total wagered" },
     { Icon: LiveIcon, label: String(openMarkets), sub: "open markets" },
     { Icon: FlameIcon, label: String(todayMarkets), sub: "starting today" },
-    { Icon: ShieldIcon, label: "100%", sub: "on-chain escrow" },
+    { Icon: ZapIcon, label: "64.6%", sub: "AI model win rate" },
+    { Icon: ShieldIcon, label: "100%", sub: "on-chain smart contract escrow" },
     ...(activeWallets && activeWallets !== "—" ? [{ Icon: ShieldIcon, label: String(activeWallets), sub: "active wallets" }] : []),
     ...(maxWin && maxWin !== "—" ? [{ Icon: TrophyIcon, label: maxWin, sub: "biggest win this week" }] : []),
   ];

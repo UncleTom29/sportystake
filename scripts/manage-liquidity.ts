@@ -567,11 +567,7 @@ async function addCasinoLiquidity(amountUsdc: number) {
   console.log(`   Casino:    ${CASINO_HOUSE_ADDRESS}`);
 
   // Pre-flight ADMIN_ROLE check
-  const adminRole = await publicClient.readContract({
-    address: CASINO_HOUSE_ADDRESS,
-    abi: casinoHouseAbi,
-    functionName: "ADMIN_ROLE",
-  });
+  const ADMIN_ROLE_HASH = "0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775" as `0x${string}`;
   const hasAdmin = await publicClient.readContract({
     address: CASINO_HOUSE_ADDRESS,
     abi: [
@@ -587,7 +583,7 @@ async function addCasinoLiquidity(amountUsdc: number) {
       },
     ],
     functionName: "hasRole",
-    args: [adminRole, account.address],
+    args: [ADMIN_ROLE_HASH, account.address],
   });
 
   if (!hasAdmin) {
@@ -624,11 +620,7 @@ async function withdrawCasinoLiquidity(amountUsdc: number, recipient?: string) {
   const toAddress = (recipient || account.address) as Address;
 
   // Pre-flight ADMIN_ROLE check
-  const adminRole = await publicClient.readContract({
-    address: CASINO_HOUSE_ADDRESS,
-    abi: casinoHouseAbi,
-    functionName: "ADMIN_ROLE",
-  });
+  const ADMIN_ROLE_HASH = "0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775" as `0x${string}`;
   const hasAdmin = await publicClient.readContract({
     address: CASINO_HOUSE_ADDRESS,
     abi: [
@@ -644,7 +636,7 @@ async function withdrawCasinoLiquidity(amountUsdc: number, recipient?: string) {
       },
     ],
     functionName: "hasRole",
-    args: [adminRole, account.address],
+    args: [ADMIN_ROLE_HASH, account.address],
   });
 
   if (!hasAdmin) {

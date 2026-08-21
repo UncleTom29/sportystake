@@ -15,6 +15,7 @@ import {
   TrophyIcon,
   StarIcon,
 } from "@/components/icons/UIIcons";
+import OnChainVaultManager from "@/components/admin/OnChainVaultManager";
 
 type Tab = "analytics" | "risk" | "markets" | "casino" | "users" | "config" | "audit";
 
@@ -377,28 +378,11 @@ function RiskSection() {
 
   return (
     <div className="space-y-6">
+      {/* On-Chain Protocol Vaults & Direct Bankroll Funding */}
+      <OnChainVaultManager />
+
       {/* Virtual Liquidity Admin Control */}
       <VirtualLiquidityControl />
-
-      {/* Pool Mechanics Card */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-          <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Real LP Deposited TVL</p>
-          <p className="mono mt-1 text-xl font-black text-white">{formatUsdcNum(risk?.pool?.tvl)}</p>
-        </div>
-        <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-          <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Virtual Liquidity Credit</p>
-          <p className="mono mt-1 text-xl font-black text-[var(--color-brand-500)]">
-            +{formatUsdcNum(risk?.pool?.virtualLiquidity)}
-          </p>
-        </div>
-        <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">
-          <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Locked For Open Markets</p>
-          <p className="mono mt-1 text-xl font-black text-[var(--color-warn)]">
-            {formatUsdcNum(risk?.pool?.lockedForPayouts)}
-          </p>
-        </div>
-      </div>
 
       {/* Market Liabilities */}
       <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4">

@@ -15,7 +15,7 @@ import { createPublicClient, createWalletClient, http, keccak256, toBytes, type 
 import { privateKeyToAccount, type Account } from "viem/accounts";
 import { clientEnv } from "@/lib/env";
 
-export type ContractName = "casinoHouse" | "crashGame" | "bettingCore";
+export type ContractName = "casinoHouse" | "crashGame" | "bettingCore" | "liquidityPool";
 
 const chain = {
   id: clientEnv.NEXT_PUBLIC_CHAIN_ID,
@@ -33,6 +33,7 @@ function getEnvKeyInfo(contract: ContractName): { key: string; source: string } 
     casinoHouse: "OPERATOR_PRIVATE_KEY_CASINO",
     crashGame: "OPERATOR_PRIVATE_KEY_CRASH",
     bettingCore: "OPERATOR_PRIVATE_KEY_BETTING",
+    liquidityPool: "OPERATOR_PRIVATE_KEY_LIQUIDITY",
   };
 
   const specificSource = envVarMap[contract];

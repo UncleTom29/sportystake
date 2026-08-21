@@ -141,6 +141,20 @@ export const casinoHouseAbi = [
   },
   {
     type: 'function',
+    name: 'ADMIN_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
+    name: 'OPERATOR_ROLE',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'bytes32' }],
+  },
+  {
+    type: 'function',
     name: 'hasRole',
     stateMutability: 'view',
     inputs: [

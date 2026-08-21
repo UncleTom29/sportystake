@@ -300,7 +300,7 @@ export default function AccountPage() {
       <div className="mt-4 grid gap-2 md:grid-cols-3">
         <QuickLink href="/account/bets" label="My Bets" sub={`${stats?.totalBets ?? 0} total · ${stats?.won ?? 0} won`} icon="🎟" />
         <QuickLink href="/account/wallet" label="Wallet" sub={isConnected ? `${balanceFormatted} USDC balance` : "Sign in to view"} icon="💼" />
-        <QuickLink href="/pools" label="LP Positions" sub="Provide liquidity · earn yield" icon="💧" />
+        <QuickLink href="/ai-analytics" label="AI Signals & Auto-Pilot" sub="Model edge · +EV signals" icon="⚡" />
       </div>
 
       {/* Activity Chart */}

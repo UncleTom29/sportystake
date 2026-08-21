@@ -259,17 +259,10 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
             </div>
           )}
 
-          {/* Pool CTA — one shared pool backs every market, not a per-market pool */}
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 rounded-md bg-[var(--color-bg-1)] p-2.5 sm:py-2 text-[12px]">
-            <div className="flex items-center gap-1.5 text-[var(--color-ink-2)]">
-              <ShieldIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)] shrink-0" />
-              Backed by the shared liquidity pool
-            </div>
-            <div className="hidden sm:block h-4 w-px bg-[var(--color-line-1)]" />
-            <Link href="/pools" className="flex items-center gap-1 text-[var(--color-brand-500)] hover:underline font-semibold">
-              <ZapIcon className="h-3 w-3" />
-              Add liquidity
-            </Link>
+          {/* Guarantee banner */}
+          <div className="mt-4 flex items-center justify-center gap-2 rounded-md bg-[var(--color-bg-1)] p-2.5 sm:py-2 text-[12px]">
+            <ShieldIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)] shrink-0" />
+            <span className="text-[var(--color-ink-2)]">100% Guaranteed On-Chain Smart Contract Payouts</span>
           </div>
         </div>
       </div>

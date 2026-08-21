@@ -34,14 +34,14 @@ const footerNavigation = [
     ],
   },
   {
-    title: "Earn & Liquidity",
+    title: "AI & Predictions",
     links: [
-      { label: "Be The House (LP Pools)", href: "/pools" },
-      { label: "Protocol Solvency Vault", href: "/pools" },
-      { label: "My LP Positions", href: "/pools/my-positions" },
+      { label: "AI Picks & Predictions", href: "/ai-analytics" },
+      { label: "Live Quant Engine", href: "/ai-analytics" },
+      { label: "Circuits Auto-Pilot", href: "/ai-analytics" },
+      { label: "Prediction Markets", href: "/prediction-markets" },
       { label: "Shared Ticket Affiliate", href: "/sportsbook" },
       { label: "Lifetime Referral Program", href: "/profile" },
-      { label: "Yield Calculator (22,000% APY)", href: "/pools" },
     ],
   },
   {
@@ -96,11 +96,11 @@ export default function Footer() {
 
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                <ZapIcon className="h-5 w-5" />
+                <ShieldIcon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[13px] font-bold text-white">Be The House</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Up to 22,000% LP APY</p>
+                <p className="text-[13px] font-bold text-white">Guaranteed Solvency</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">100% On-Chain Escrowed Vaults</p>
               </div>
             </div>
           </div>

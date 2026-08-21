@@ -208,10 +208,10 @@ export default function TermsPage() {
             </p>
             <div className="mt-4 flex items-center justify-center gap-3">
               <Link
-                href="/pools"
+                href="/ai-analytics"
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[var(--color-brand-500)] px-4 text-[12px] font-bold text-black hover:bg-[var(--color-brand-400)]"
               >
-                View Pools
+                AI Analytics
                 <ArrowUpRight className="h-3.5 w-3.5" />
               </Link>
               <Link

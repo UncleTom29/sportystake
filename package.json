@@ -39,6 +39,8 @@
     "contracts:test": "npm --prefix packages/contracts run test",
     "contracts:deploy:local": "npm --prefix packages/contracts run deploy:local",
     "contracts:deploy:arc": "npm --prefix packages/contracts run deploy:arc",
+    "liquidity": "tsx --env-file=.env scripts/manage-liquidity.ts",
+    "liquidity:check": "tsx --env-file=.env scripts/manage-liquidity.ts check",
     "build": "npm run db:generate && next build",
     "start": "next start",
     "lint": "eslint",

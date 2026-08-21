@@ -5,7 +5,7 @@ import { useBetSlip } from "@/lib/betSlipStore";
 import { LogoMark, SearchIcon, TicketIcon } from "@/components/icons/UIIcons";
 import WalletButton from "@/components/integration/WalletButton";
 import NotificationBell from "@/components/integration/NotificationBell";
-import LPAmountDropdown from "@/components/layout/LPAmountDropdown";
+import UserBalanceDropdown from "@/components/layout/UserBalanceDropdown";
 import SearchModal from "@/components/integration/SearchModal";
 import SetUsernameModal from "@/components/integration/SetUsernameModal";
 
@@ -57,7 +57,7 @@ export default function Header() {
           <SegLink href="/sportsbook" label="Sports" />
           <SegLink href="/live" label="Live 🔴" />
           <SegLink href="/casino" label="Casino" />
-          <SegLink href="/pools" label="Pool" />
+          <SegLink href="/ai-analytics" label="AI Picks ⚡" />
           <SegLink href="/leaderboard" label="Leaderboard" />
           {isAdminOrOperator && <SegLink href="/admin" label="Admin 🛡️" />}
         </nav>
@@ -98,8 +98,7 @@ export default function Header() {
             )}
           </button>
 
-          <LPAmountDropdown />
-
+          <UserBalanceDropdown />
           <NotificationBell />
           <WalletButton />
         </div>

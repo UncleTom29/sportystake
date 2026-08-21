@@ -21,7 +21,7 @@ const mainItems = [
   { href: "/", label: "Home", Icon: HomeIcon },
   { href: "/sportsbook", label: "Sports", Icon: TrophyIcon, base: "/sportsbook" },
   { href: "/casino", label: "Casino", Icon: CasinoChipIcon },
-  { href: "/pools", label: "Pool", Icon: WalletIcon },
+  { href: "/ai-analytics", label: "AI Picks", Icon: ZapIcon },
 ];
 
 const moreNavItems = [

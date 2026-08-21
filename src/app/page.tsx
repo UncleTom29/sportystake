@@ -162,13 +162,13 @@ export default async function Home() {
             Icon={CopyIcon}
           />
           <PromoFeatureCard
-            tag="Be The House"
-            title="Up to 22,000% APY"
-            sub="Deposit USDC into single shared liquidity pools. Earn margin directly from platform wagers."
-            cta="Provide LP Liquidity"
-            href="/pools"
-            accent="#a78bfa"
-            tnc="T&C apply · Permissionless single pool"
+            tag="Quant Model Terminal"
+            title="AI Match Predictions"
+            sub="Real-time expected value (+EV) distributions, probability edges, and automated tailing."
+            cta="Explore AI Picks"
+            href="/ai-analytics"
+            accent="#00e701"
+            tnc="100% Free · Top 5 European Leagues"
             Icon={ZapIcon}
           />
         </div>
@@ -421,44 +421,42 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 9. LP Spotlight Section: Be The House */}
+        {/* 9. Quantitative Model Spotlight Section */}
         <section className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
           <div className="bg-mesh absolute inset-0 opacity-80" />
           <div className="relative grid items-center gap-6 md:grid-cols-[1.4fr_1fr]">
             <div>
-              <Badge variant="brand">Earn · Non-Custodial LP</Badge>
+              <Badge variant="brand">Quant Model Terminal</Badge>
               <h3 className="mt-3 text-2xl font-black tracking-tight md:text-3xl">
-                Be the house. Earn up to <span className="text-[var(--color-brand-500)]">22,000% APY</span>.
+                Beat the market with <span className="text-[var(--color-brand-500)]">+EV AI Model Signals</span>.
               </h3>
               <p className="mt-2 max-w-lg text-[13px] text-[var(--color-ink-2)] md:text-sm">
-                Provide stablecoin liquidity into SportyStake&apos;s single on-chain shared pool. Bettors win directly from the
-                {protocolSolvencyFormatted} protocol pool, and LPs earn a proportional share of real house margin. Non-custodial, permissionless,
-                one pool for the whole protocol.
+                Our quantitative engine tracks expected goals (xG), injury distributions, and line dislocations across Europe&apos;s top 5 football leagues. Tail verified +EV signals or deploy autonomous agents with 1 click.
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 <Link
-                  href="/pools"
+                  href="/ai-analytics"
                   className="inline-flex h-11 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-5 text-[14px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] transition-transform active:scale-95"
                 >
-                  Provide Liquidity
+                  View Model Signals
                   <ArrowUpRight className="h-4 w-4" />
                 </Link>
                 <Link
-                  href="/pools"
+                  href="/sportsbook"
                   className="inline-flex h-11 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--color-bg-3)]"
                 >
-                  View Solvency Pool
+                  Explore Sportsbook
                 </Link>
                 <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-3)]">
-                  <ShieldIcon className="h-3.5 w-3.5" />
-                  Audited Smart Contracts · 100% Non-Custodial
+                  <ShieldIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)]" />
+                  100% Non-Custodial Smart Contract Escrow
                 </div>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <PoolStatCard name="Protocol Pool Solvency" value={protocolSolvencyFormatted} sub="Shared Liquidity" highlight />
-              <PoolStatCard name="Max Yield APY" value="22,000%" sub="Top LP Earners" />
+              <PoolStatCard name="30-Day Win Rate" value="64.6%" sub="Verified Model Record" highlight />
+              <PoolStatCard name="Average CLV Beat" value="+3.8%" sub="Closing Line Value" />
               <PoolStatCard name="Settlement Latency" value="18ms" sub="Arc Chain Finality" />
               <PoolStatCard name="KYC Requirement" value="Zero" sub="1-Click Web3 Auth" />
             </div>

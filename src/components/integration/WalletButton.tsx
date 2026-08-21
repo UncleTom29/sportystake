@@ -53,28 +53,22 @@ export default function WalletButton() {
   // State 2: signed in
   return (
     <div className="relative">
-      <div className="flex items-center gap-1.5">
-        <div className="hidden items-center gap-1.5 rounded-md border border-[var(--color-brand-500)]/30 bg-[var(--color-brand-500)]/10 px-2.5 py-1.5 sm:flex">
-          <span className="mono text-[11px] font-black text-[var(--color-brand-500)]">${balanceLabel}</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)]/70">USDC</span>
-        </div>
-        <button
-          onClick={() => setMenuOpen((v) => !v)}
-          className="flex items-center gap-2 rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-2)] px-2.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[var(--color-bg-3)]"
-          aria-haspopup="menu"
-          aria-expanded={menuOpen}
-        >
+      <button
+        onClick={() => setMenuOpen((v) => !v)}
+        className="flex items-center gap-2 rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-2)] px-2.5 py-1.5 text-[12px] font-semibold text-white hover:bg-[var(--color-bg-3)]"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+      >
           <span
             className="h-5 w-5 shrink-0 rounded-full"
             style={{ background: "linear-gradient(135deg, var(--color-brand-500), #2dc4ff)" }}
             aria-hidden
           />
-          <span className="mono hidden sm:inline">{user.username ?? shortAddr(address)}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
-            <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" />
-          </svg>
-        </button>
-      </div>
+        <span className="mono hidden sm:inline">{user.username ?? shortAddr(address)}</span>
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
+          <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" />
+        </svg>
+      </button>
       {menuOpen && (
         <div
           role="menu"
@@ -93,9 +87,6 @@ export default function WalletButton() {
           </Link>
           <Link href="/account/bets" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-[12px] hover:bg-[var(--color-bg-3)]">
             My bets
-          </Link>
-          <Link href="/pools/my-positions" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-[12px] hover:bg-[var(--color-bg-3)]">
-            My LP positions
           </Link>
           {Boolean(user?.roles?.some((r) => r === "ADMIN" || r === "OPERATOR")) && (
             <Link

@@ -313,7 +313,7 @@ function VirtualLiquidityControl() {
             placeholder="50000"
           />
           <p className="text-[10px] text-[var(--color-ink-4)] mt-1">
-            Added to sports pool TVL on /pools
+            Protocol capacity credit for sports betting markets
           </p>
         </div>
 
@@ -329,7 +329,7 @@ function VirtualLiquidityControl() {
             placeholder="25000"
           />
           <p className="text-[10px] text-[var(--color-ink-4)] mt-1">
-            Added to Casino Bankroll Vault liquidity on /casino
+            Protocol capacity credit for casino house games
           </p>
         </div>
 

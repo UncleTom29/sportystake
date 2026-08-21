@@ -404,15 +404,41 @@ export const AIAnalytics = {
         match: string;
         league: string;
         pick: string;
+        marketType?: string;
         confidence: number;
         odds: number;
         fair: number;
+        impliedProb?: number;
+        trueProb?: number;
+        expectedValuePct?: number;
+        kellyUnits?: number;
+        xgDiff?: string;
+        form?: string[];
+        grade?: "GRADE A+" | "GRADE A" | "GRADE B+" | "GRADE B";
         valueBps: number;
         reasoning: string;
         factors: string[];
         direction: "up" | "down";
+        kickoff?: string;
       }[];
       insights: { tag: string; title: string; desc: string; accent: string }[];
+      trackRecord?: {
+        winRate: number;
+        roi: number;
+        avgClvBeat: number;
+        totalPicks: number;
+        verifiedPeriod: string;
+        unitsWon: number;
+      };
     }>(`/api/ai-analytics${forceRefresh ? "?refresh=true" : ""}`),
+  recalibrate: () =>
+    api.post<{
+      lastAnalyzedAt: string;
+      modelUsed: string;
+      predictions: any[];
+      insights: any[];
+      trackRecord: any;
+    }>("/api/ai-analytics", {}),
 };
+
 

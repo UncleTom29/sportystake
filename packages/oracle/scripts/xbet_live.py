@@ -195,7 +195,7 @@ def _row_from_event(ev: dict, sport_default: str) -> dict | None:
     cp = sc.get("CP")  # current period index
 
     home_s = away_s = 0
-    if fs:
+    if fs and ("S1" in fs or "S2" in fs):
         # FS is the running aggregate; once populated it's authoritative.
         try:
             home_s = int(fs.get("S1") or 0)
@@ -211,6 +211,12 @@ def _row_from_event(ev: dict, sport_default: str) -> dict | None:
                 away_s += int(val.get("S2") or 0)
             except (TypeError, ValueError):
                 pass
+    elif "S1" in sc or "S2" in sc:
+        try:
+            home_s = int(sc.get("S1") or 0)
+            away_s = int(sc.get("S2") or 0)
+        except (TypeError, ValueError):
+            pass
 
     period_name = None
     if cp and ps:

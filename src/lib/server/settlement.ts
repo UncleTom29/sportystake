@@ -224,7 +224,7 @@ export async function reconcileParlayLegsForMarket(
 ): Promise<{ resolvedLegs: number; resolvedParlays: number }> {
   const { prisma } = await import("@/lib/server/db");
   const legs = await prisma.parlayLeg.findMany({
-    where: { marketId, result: "PENDING" },
+    where: { marketId },
   });
 
   if (legs.length === 0) return { resolvedLegs: 0, resolvedParlays: 0 };

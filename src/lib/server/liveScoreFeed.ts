@@ -53,6 +53,8 @@ export async function fetchLiveScoreMatches(sport: string = "soccer", targetDate
     ? "tennis"
     : sport.toLowerCase().includes("hock")
     ? "hockey"
+    : sport.toLowerCase().includes("crick")
+    ? "cricket"
     : "soccer";
 
   const dateStr = getFormattedDate(targetDate);

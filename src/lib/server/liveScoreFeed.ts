@@ -160,18 +160,37 @@ export async function findScoreForTeams(
 
 function matchInList(normHome: string, normAway: string, matches: LiveScoreMatch[]): LiveScoreMatch | null {
   for (const m of matches) {
-    const homeMatches =
+    const directHome =
       m.homeNorm === normHome ||
-      (m.homeNorm.length >= 4 && normHome.includes(m.homeNorm)) ||
-      (normHome.length >= 4 && m.homeNorm.includes(normHome));
+      (m.homeNorm.length >= 3 && normHome.includes(m.homeNorm)) ||
+      (normHome.length >= 3 && m.homeNorm.includes(normHome));
 
-    const awayMatches =
+    const directAway =
       m.awayNorm === normAway ||
-      (m.awayNorm.length >= 4 && normAway.includes(m.awayNorm)) ||
-      (normAway.length >= 4 && m.awayNorm.includes(normAway));
+      (m.awayNorm.length >= 3 && normAway.includes(m.awayNorm)) ||
+      (normAway.length >= 3 && m.awayNorm.includes(normAway));
 
-    if (homeMatches && awayMatches) {
+    if (directHome && directAway) {
       return m;
+    }
+
+    // Bidirectional matching (in case provider listed away vs home)
+    const revHome =
+      m.homeNorm === normAway ||
+      (m.homeNorm.length >= 3 && normAway.includes(m.homeNorm)) ||
+      (normAway.length >= 3 && m.homeNorm.includes(normAway));
+
+    const revAway =
+      m.awayNorm === normHome ||
+      (m.awayNorm.length >= 3 && normHome.includes(m.awayNorm)) ||
+      (normHome.length >= 3 && m.awayNorm.includes(normHome));
+
+    if (revHome && revAway) {
+      return {
+        ...m,
+        homeScore: m.awayScore,
+        awayScore: m.homeScore,
+      };
     }
   }
   return null;

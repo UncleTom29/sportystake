@@ -418,17 +418,17 @@ export const BetsRepo = {
     // rather than conditionally swapping one for a plain Promise.resolve().
     const [wonResult, voidedResult, lostResult] = await prisma.$transaction([
       prisma.bet.updateMany({
-        where: { id: { in: winningBetIds } },
+        where: { id: { in: winningBetIds }, status: { not: "CLAIMED" } },
         data: { status: "WON", settledAt: new Date() },
       }),
       prisma.bet.updateMany({
-        where: { id: { in: voidedBetIds } },
+        where: { id: { in: voidedBetIds }, status: { notIn: ["CLAIMED", "REFUNDED"] } },
         data: { status: "CANCELLED", settledAt: new Date() },
       }),
       prisma.bet.updateMany({
         where: {
           marketId,
-          status: "PENDING",
+          status: { notIn: ["CLAIMED", "REFUNDED"] },
           id: { notIn: [...winningBetIds, ...voidedBetIds] },
         },
         data: { status: "LOST", settledAt: new Date() },

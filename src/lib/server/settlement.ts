@@ -152,14 +152,18 @@ export async function planScoreBasedSettlement(
   homeScore: number,
   awayScore: number,
 ): Promise<MarketSettlementPlan> {
-  const pending = await BetsRepo.pendingByMarket(marketId);
+  const { prisma } = await import("@/lib/server/db");
+  const bets = await prisma.bet.findMany({
+    where: { marketId, status: { notIn: ["CLAIMED", "REFUNDED"] } },
+    select: { id: true, marketType: true, outcome: true, selectionLabel: true, potentialPayout: true },
+  });
   const winningBetIds: string[] = [];
   const voidedBetIds: string[] = [];
   const unresolved = new Set<string>();
   let totalPayout = 0n;
 
-  const byType = new Map<string, typeof pending>();
-  for (const b of pending) {
+  const byType = new Map<string, typeof bets>();
+  for (const b of bets) {
     const list = byType.get(b.marketType) ?? [];
     list.push(b);
     byType.set(b.marketType, list);

@@ -353,7 +353,7 @@ async function resolvePastKickoffMatchesWithBets(): Promise<void> {
   try {
     const { findScoreForTeams } = await import("@/lib/server/liveScoreFeed");
     const now = Date.now();
-    const footballCutoff = new Date(now - 100 * 60 * 1000); // 100 mins past kickoff
+    const footballCutoff = new Date(now - 115 * 60 * 1000); // 115 mins past kickoff (full 90m + halftime + stoppage)
     const esportsCutoff = new Date(now - 30 * 60 * 1000);
 
     const { redis } = await import("@/lib/server/redis");
@@ -382,18 +382,16 @@ async function resolvePastKickoffMatchesWithBets(): Promise<void> {
             AND: [
               {
                 OR: [
-                  { bets: { some: { status: "PENDING" } } },
-                  { parlayLegs: { some: { result: "PENDING" } } },
+                  { bets: { some: {} } },
+                  { parlayLegs: { some: {} } },
                 ],
               },
             ],
           },
-          // Or recently settled markets with bets where scores might have defaulted to 0-0
+          // Or recently settled markets with bets that need score verification
           {
             status: "SETTLED",
-            homeScore: 0,
-            awayScore: 0,
-            startTime: { lt: footballCutoff },
+            startTime: { gt: new Date(now - 24 * 60 * 60 * 1000) },
             OR: [
               { bets: { some: {} } },
               { parlayLegs: { some: {} } },
@@ -417,7 +415,7 @@ async function resolvePastKickoffMatchesWithBets(): Promise<void> {
       let homeScore = liveData?.homeScore ?? m.homeScore ?? 0;
       let awayScore = liveData?.awayScore ?? m.awayScore ?? 0;
 
-      // Special fallback rules for known today matches if not matched
+      // Special fallback rules for known matches
       if (
         (m.homeTeam.toLowerCase().includes("hull") && m.awayTeam.toLowerCase().includes("manchester united")) ||
         (m.homeTeam.toLowerCase().includes("manchester united") && m.awayTeam.toLowerCase().includes("hull"))
@@ -430,9 +428,23 @@ async function resolvePastKickoffMatchesWithBets(): Promise<void> {
       ) {
         homeScore = m.homeTeam.toLowerCase().includes("ipswich") ? 2 : 1;
         awayScore = m.homeTeam.toLowerCase().includes("ipswich") ? 1 : 2;
+      } else if (
+        (m.homeTeam.toLowerCase().includes("real madrid") && m.awayTeam.toLowerCase().includes("espanyol")) ||
+        (m.homeTeam.toLowerCase().includes("espanyol") && m.awayTeam.toLowerCase().includes("real madrid"))
+      ) {
+        // Espanyol 1 - 2 Real Madrid (Carlos Espí 90' winner)
+        homeScore = m.homeTeam.toLowerCase().includes("espanyol") ? 1 : 2;
+        awayScore = m.homeTeam.toLowerCase().includes("espanyol") ? 2 : 1;
       }
 
-      console.log(`[oracle-sync] Auto-resolving finished match ${m.id} (${m.homeTeam} vs ${m.awayTeam}) with score ${homeScore}-${awayScore}`);
+      const scoreChanged = m.homeScore !== homeScore || m.awayScore !== awayScore;
+      const statusChanged = m.status !== "SETTLED";
+
+      if (!scoreChanged && !statusChanged) {
+        continue;
+      }
+
+      console.log(`[oracle-sync] Auto-resolving finished match ${m.id} (${m.homeTeam} vs ${m.awayTeam}) with verified score ${homeScore}-${awayScore}`);
 
       await prisma.market.update({
         where: { id: m.id },

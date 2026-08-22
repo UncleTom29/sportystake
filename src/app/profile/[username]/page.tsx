@@ -2,7 +2,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, BadgeCheck, TrophyIcon, ZapIcon, HeartIcon, ChevronRight } from "@/components/icons/UIIcons";
-import { Flame, Coins, Target, Star, Trophy } from "lucide-react";
+import { Flame, Gem, Crosshair, Sparkles, Crown } from "lucide-react";
 
 const PROFILE_DATA = {
   handle: "CryptoTipster.eth",
@@ -23,9 +23,9 @@ const PROFILE_DATA = {
   },
   badges: [
     { id: "hot", Icon: Flame, label: "Hot Streak", color: "text-amber-400" },
-    { id: "highroller", Icon: Coins, label: "High Roller", color: "text-emerald-400" },
-    { id: "value", Icon: Target, label: "Value Bettor", color: "text-blue-400" },
-    { id: "early", Icon: Star, label: "Early Adopter", color: "text-purple-400" },
+    { id: "highroller", Icon: Gem, label: "High Roller", color: "text-purple-400" },
+    { id: "value", Icon: Crosshair, label: "Value Bettor", color: "text-blue-400" },
+    { id: "early", Icon: Sparkles, label: "Early Adopter", color: "text-emerald-400" },
   ],
   recentBets: [
     { id: "rb1", match: "Arsenal vs Man City", selection: "Arsenal Win", odds: 2.85, amount: 200, status: "WON", payout: 570, time: "2h ago" },
@@ -61,7 +61,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <div className="relative flex flex-col gap-4 md:flex-row md:items-start">
           {/* Avatar */}
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#f59e0b] bg-[#f59e0b]/10 text-amber-400">
-            <Trophy className="h-10 w-10" />
+            <Crown className="h-10 w-10" />
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">

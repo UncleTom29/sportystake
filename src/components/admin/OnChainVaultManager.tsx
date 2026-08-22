@@ -9,15 +9,17 @@ import {
   CloseIcon,
 } from "@/components/icons/UIIcons";
 import {
-  Trophy,
-  Dices,
-  Rocket,
+  Coins,
+  Gamepad2,
+  Gauge,
   Landmark,
   Zap,
-  ArrowUpRight,
-  ArrowDownLeft,
-  Clock,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Timer,
+  Unlock,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import { useNotifications } from "@/lib/notificationStore";
 import { useWallet } from "@/lib/walletStore";
@@ -498,10 +500,11 @@ export default function OnChainVaultManager() {
               fetchLiquidity();
             }}
             disabled={refreshing}
-            className="flex h-9 items-center justify-center rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] px-3 text-xs font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-bg-3)] hover:text-white transition-all active:scale-95"
+            className="flex h-9 items-center justify-center rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] px-3 text-xs font-semibold text-[var(--color-ink-2)] hover:bg-[var(--color-bg-3)] hover:text-white transition-all active:scale-95 gap-1.5"
             title="Refresh On-Chain Balances"
           >
-            {refreshing ? "Refreshing..." : "↻ Refresh"}
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Refreshing..." : "Refresh"}
           </button>
         </div>
       </div>
@@ -534,7 +537,7 @@ export default function OnChainVaultManager() {
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)]">
-                  <Trophy className="h-4 w-4" />
+                  <Coins className="h-4 w-4" />
                 </span>
                 <div>
                   <h3 className="font-bold text-white text-sm">Sports Betting Pool</h3>
@@ -595,12 +598,12 @@ export default function OnChainVaultManager() {
                       "48h Cooldown required"
                     ) : userTimelockStatus === "active" ? (
                       <>
-                        <Clock className="h-3 w-3 inline text-amber-400" />
+                        <Timer className="h-3 w-3 inline text-amber-400" />
                         {formatTime(userTimelockRemaining)} remaining
                       </>
                     ) : (
                       <>
-                        <CheckCircle2 className="h-3 w-3 inline text-emerald-400" />
+                        <Unlock className="h-3 w-3 inline text-emerald-400" />
                         Cooldown Expired (Ready)
                       </>
                     )}
@@ -617,9 +620,10 @@ export default function OnChainVaultManager() {
                 setActiveVault("sports");
                 setModalMode("deposit");
               }}
-              className="flex-1 rounded-xl bg-[var(--color-brand-500)] py-2 text-xs font-black text-[var(--color-bg-0)] hover:brightness-110 transition-all shadow-sm active:scale-95"
+              className="flex-1 rounded-xl bg-[var(--color-brand-500)] py-2 text-xs font-black text-[var(--color-bg-0)] hover:brightness-110 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1"
             >
-              + Deposit USDC
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              Deposit USDC
             </button>
 
             {userTimelockStatus === "expired" ? (
@@ -628,7 +632,7 @@ export default function OnChainVaultManager() {
                 disabled={submitting}
                 className="flex-1 rounded-xl bg-emerald-500 py-2 text-xs font-black text-black hover:brightness-110 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1"
               >
-                <ArrowUpRight className="h-3.5 w-3.5" />
+                <ArrowUpFromLine className="h-3.5 w-3.5" />
                 {submitting ? "Processing..." : "Withdraw LP"}
               </button>
             ) : userTimelockStatus === "active" ? (
@@ -636,7 +640,7 @@ export default function OnChainVaultManager() {
                 disabled
                 className="flex-1 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2 text-xs font-bold text-amber-400 cursor-not-allowed opacity-80 flex items-center justify-center gap-1"
               >
-                <Clock className="h-3.5 w-3.5" />
+                <Timer className="h-3.5 w-3.5" />
                 Cooldown Active
               </button>
             ) : (
@@ -645,7 +649,7 @@ export default function OnChainVaultManager() {
                 disabled={submitting || (userLpValue || 0) <= 0}
                 className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1"
               >
-                <Clock className="h-3.5 w-3.5" />
+                <Timer className="h-3.5 w-3.5" />
                 {submitting ? "..." : "Request Exit"}
               </button>
             )}
@@ -658,7 +662,7 @@ export default function OnChainVaultManager() {
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400">
-                  <Dices className="h-4 w-4" />
+                  <Gamepad2 className="h-4 w-4" />
                 </span>
                 <div>
                   <h3 className="font-bold text-white text-sm">Casino House Vault</h3>
@@ -711,9 +715,10 @@ export default function OnChainVaultManager() {
                 setActiveVault("casino");
                 setModalMode("deposit");
               }}
-              className="flex-1 rounded-xl bg-purple-500 py-2 text-xs font-black text-white hover:brightness-110 transition-all shadow-sm active:scale-95"
+              className="flex-1 rounded-xl bg-purple-500 py-2 text-xs font-black text-white hover:brightness-110 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1"
             >
-              + Deposit Bankroll
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              Deposit Bankroll
             </button>
             <button
               onClick={() => {
@@ -723,7 +728,7 @@ export default function OnChainVaultManager() {
               disabled={(data?.casinoHouse.maxWithdrawable || 0) <= 0}
               className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1"
             >
-              <ArrowUpRight className="h-3.5 w-3.5" />
+              <ArrowUpFromLine className="h-3.5 w-3.5" />
               Withdraw
             </button>
           </div>
@@ -735,7 +740,7 @@ export default function OnChainVaultManager() {
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15 text-rose-400">
-                  <Rocket className="h-4 w-4" />
+                  <Gauge className="h-4 w-4" />
                 </span>
                 <div>
                   <h3 className="font-bold text-white text-sm">Crash Game Vault</h3>
@@ -788,9 +793,10 @@ export default function OnChainVaultManager() {
                 setActiveVault("crash");
                 setModalMode("deposit");
               }}
-              className="flex-1 rounded-xl bg-rose-500 py-2 text-xs font-black text-white hover:brightness-110 transition-all shadow-sm active:scale-95"
+              className="flex-1 rounded-xl bg-rose-500 py-2 text-xs font-black text-white hover:brightness-110 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1"
             >
-              + Deposit Bankroll
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              Deposit Bankroll
             </button>
             <button
               onClick={() => {
@@ -800,7 +806,7 @@ export default function OnChainVaultManager() {
               disabled={(data?.crashGame.maxWithdrawable || 0) <= 0}
               className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1"
             >
-              <ArrowUpRight className="h-3.5 w-3.5" />
+              <ArrowUpFromLine className="h-3.5 w-3.5" />
               Withdraw
             </button>
           </div>
@@ -836,12 +842,12 @@ export default function OnChainVaultManager() {
               <h3 className="text-base font-black text-white flex items-center gap-2">
                 {modalMode === "deposit" ? (
                   <>
-                    <ArrowDownLeft className="h-4 w-4 text-[var(--color-brand-500)]" />
+                    <ArrowDownToLine className="h-4 w-4 text-[var(--color-brand-500)]" />
                     Deposit Liquidity
                   </>
                 ) : (
                   <>
-                    <ArrowUpRight className="h-4 w-4 text-amber-400" />
+                    <ArrowUpFromLine className="h-4 w-4 text-amber-400" />
                     Withdraw Liquidity
                   </>
                 )}

@@ -15,16 +15,16 @@ import {
   TrophyIcon,
   StarIcon,
 } from "@/components/icons/UIIcons";
+import { LayoutDashboard, Landmark, Layers, Users2 } from "lucide-react";
 import OnChainVaultManager from "@/components/admin/OnChainVaultManager";
-import { BarChart3, Shield, Trophy, Users as UsersIcon } from "lucide-react";
 
 type Tab = "analytics" | "risk" | "markets" | "users";
 
 const TABS: { id: Tab; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "analytics", label: "Analytics & Quota", Icon: BarChart3 },
-  { id: "risk", label: "Vaults & Liquidity", Icon: Shield },
-  { id: "markets", label: "Markets & Settlement", Icon: Trophy },
-  { id: "users", label: "User Governance", Icon: UsersIcon },
+  { id: "analytics", label: "Analytics & Quota", Icon: LayoutDashboard },
+  { id: "risk", label: "Vaults & Liquidity", Icon: Landmark },
+  { id: "markets", label: "Markets & Settlement", Icon: Layers },
+  { id: "users", label: "User Governance", Icon: Users2 },
 ];
 
 export default function AdminPortalPage() {

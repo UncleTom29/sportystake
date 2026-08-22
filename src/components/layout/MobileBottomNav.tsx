@@ -18,12 +18,12 @@ import {
 } from "@/components/icons/UIIcons";
 
 import {
-  Radio,
-  Trophy,
-  Users,
-  Target,
+  Activity,
+  Award,
+  Share2,
+  BrainCircuit,
   TrendingUp,
-  Wallet,
+  WalletCards,
   ShieldCheck,
 } from "lucide-react";
 
@@ -35,12 +35,12 @@ const mainItems = [
 ];
 
 const moreNavItems = [
-  { href: "/live", label: "Live Scores", desc: "Real-time match updates", Icon: Radio, iconColor: "text-[var(--color-live)]" },
-  { href: "/leaderboard", label: "Leaderboard & Referrals", desc: "Rankings & prize pools", Icon: Trophy, iconColor: "text-amber-400" },
-  { href: "/social", label: "Social Bet Feed", desc: "Tail top tipster tickets", Icon: Users, iconColor: "text-blue-400" },
-  { href: "/ai-analytics", label: "AI Picks & Predictions", desc: "Smart AI match insights", Icon: Target, iconColor: "text-[var(--color-brand-500)]" },
+  { href: "/live", label: "Live Scores", desc: "Real-time match updates", Icon: Activity, iconColor: "text-[var(--color-live)]" },
+  { href: "/leaderboard", label: "Leaderboard & Referrals", desc: "Rankings & prize pools", Icon: Award, iconColor: "text-amber-400" },
+  { href: "/social", label: "Social Bet Feed", desc: "Tail top tipster tickets", Icon: Share2, iconColor: "text-blue-400" },
+  { href: "/ai-analytics", label: "AI Picks & Predictions", desc: "Smart AI match insights", Icon: BrainCircuit, iconColor: "text-[var(--color-brand-500)]" },
   { href: "/prediction-markets", label: "Prediction Markets", desc: "Speculate on global outcomes", Icon: TrendingUp, iconColor: "text-purple-400" },
-  { href: "/account", label: "Wallet & Account", desc: "Profile, bets & referrals", Icon: Wallet, iconColor: "text-cyan-400" },
+  { href: "/account", label: "Wallet & Account", desc: "Profile, bets & referrals", Icon: WalletCards, iconColor: "text-cyan-400" },
 ];
 
 export default function MobileBottomNav() {

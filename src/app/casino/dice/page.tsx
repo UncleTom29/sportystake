@@ -5,7 +5,7 @@ import { useNotifications } from "@/lib/notificationStore";
 import { useWallet } from "@/lib/walletStore";
 import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { placeCasinoBetOnchain, resolveCasinoBetWithRetry } from "@/lib/placeCasinoBet";
-import { Trophy, AlertCircle } from "lucide-react";
+import { Trophy, XCircle, Dices } from "lucide-react";
 import PendingCasinoBetBanner from "@/components/casino/PendingCasinoBetBanner";
 
 type DiceResult = { roll: number; win: boolean; payout: number; timestamp: number };
@@ -141,7 +141,7 @@ export default function DicePage() {
                       </>
                     ) : (
                       <>
-                        <AlertCircle className="h-4 w-4" />
+                        <XCircle className="h-4 w-4" />
                         You Lose
                       </>
                     )}

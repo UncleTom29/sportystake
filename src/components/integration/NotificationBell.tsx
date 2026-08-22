@@ -5,12 +5,13 @@ import { useNotifications } from "@/lib/notificationStore";
 import { BellIcon } from "@/components/icons/UIIcons";
 
 import {
-  Trophy,
-  TrendingDown,
-  Ticket,
-  Coins,
-  AlertTriangle,
-  Radio,
+  CheckCircle2,
+  XCircle,
+  Receipt,
+  Banknote,
+  AlertCircle,
+  Info,
+  Gift,
 } from "lucide-react";
 
 function timeAgo(at: number): string {
@@ -24,18 +25,23 @@ function timeAgo(at: number): string {
 function KindIcon({ kind }: { kind: string }) {
   switch (kind) {
     case "bet_won":
-      return <Trophy className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />;
+      return <CheckCircle2 className="h-4 w-4 text-[var(--color-brand-500)] shrink-0 mt-0.5" />;
     case "bet_lost":
-      return <TrendingDown className="h-4 w-4 text-[var(--color-live)] shrink-0 mt-0.5" />;
+      return <XCircle className="h-4 w-4 text-[var(--color-live)] shrink-0 mt-0.5" />;
     case "bet_confirmed":
-      return <Ticket className="h-4 w-4 text-[var(--color-brand-500)] shrink-0 mt-0.5" />;
+      return <Receipt className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />;
     case "lp_settled":
-      return <Coins className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />;
+    case "payout":
+      return <Banknote className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />;
+    case "bonus":
+    case "BONUS_COMPLETED":
+      return <Gift className="h-4 w-4 text-purple-400 shrink-0 mt-0.5" />;
     case "quota":
-      return <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />;
+    case "warning":
+      return <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />;
     case "system":
     default:
-      return <Radio className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />;
+      return <Info className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />;
   }
 }
 

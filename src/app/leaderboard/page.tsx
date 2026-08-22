@@ -8,12 +8,13 @@ import {
 } from "@/components/icons/UIIcons";
 import {
   Crown,
+  Award,
   Medal,
-  Trophy,
-  Dices,
+  Activity,
+  Gem,
   TrendingUp,
   Flame,
-  Users,
+  UserPlus,
 } from "lucide-react";
 import { useWallet } from "@/lib/walletStore";
 import { LeaderboardApi } from "@/lib/api-client";
@@ -49,7 +50,7 @@ function RankBadge({ rank }: { rank: number }) {
   if (rank === 2) {
     return (
       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-300/20 text-slate-200 ring-1 ring-slate-300/40">
-        <Medal className="h-3.5 w-3.5" />
+        <Award className="h-3.5 w-3.5" />
       </div>
     );
   }
@@ -200,11 +201,11 @@ export default function LeaderboardPage() {
         {/* Category Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1.5 scrollbar-none">
           {[
-            { id: "sports", label: "Sports Volume", Icon: Trophy, color: "text-emerald-400" },
-            { id: "casino", label: "Casino High-Rollers", Icon: Dices, color: "text-purple-400" },
+            { id: "sports", label: "Sports Volume", Icon: Activity, color: "text-emerald-400" },
+            { id: "casino", label: "Casino High-Rollers", Icon: Gem, color: "text-purple-400" },
             { id: "roi", label: "Top ROI %", Icon: TrendingUp, color: "text-cyan-400" },
             { id: "streaks", label: "Win Streaks", Icon: Flame, color: "text-amber-400" },
-            { id: "referrals", label: "Top Referrers", Icon: Users, color: "text-blue-400" },
+            { id: "referrals", label: "Top Referrers", Icon: UserPlus, color: "text-blue-400" },
           ].map((c) => (
             <button
               key={c.id}

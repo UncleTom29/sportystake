@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { LeaderboardApi } from "@/lib/api-client";
 import { TrophyIcon, FlameIcon, ZapIcon } from "@/components/icons/UIIcons";
-import { Crown, Medal, User } from "lucide-react";
+import { Crown, Award, Medal, UserCircle2 } from "lucide-react";
 
 export default function DailyCasinoWinnersLeaderboard() {
   const [period, setPeriod] = useState<"daily" | "weekly" | "alltime">("daily");
@@ -89,7 +89,7 @@ export default function DailyCasinoWinnersLeaderboard() {
                         </div>
                       ) : item.rank === 2 ? (
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-300/20 text-slate-200 ring-1 ring-slate-300/40">
-                          <Medal className="h-3.5 w-3.5" />
+                          <Award className="h-3.5 w-3.5" />
                         </div>
                       ) : item.rank === 3 ? (
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-700/20 text-amber-600 ring-1 ring-amber-700/40">
@@ -102,7 +102,7 @@ export default function DailyCasinoWinnersLeaderboard() {
                     <td>
                       <div className="flex items-center gap-2">
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-bg-3)] text-xs text-[var(--color-ink-2)]">
-                          <User className="h-3.5 w-3.5" />
+                          <UserCircle2 className="h-4 w-4" />
                         </div>
                         <div>
                           <p className="font-bold text-white leading-none">

@@ -20,7 +20,15 @@ import {
   ArrowUpRight,
   TicketIcon,
 } from "@/components/icons/UIIcons";
-import { Shield, Zap, Rocket } from "lucide-react";
+import {
+  BrainCircuit,
+  RefreshCw,
+  Play,
+  Pause,
+  ShieldCheck,
+  Scale,
+  Gauge,
+} from "lucide-react";
 
 export interface PredictionItem {
   id: string;
@@ -415,7 +423,7 @@ for (const item of sharpPicks) {
           <div className="max-w-2xl">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="mono inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-500)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-brand-500)] animate-pulse" />
+                <BrainCircuit className="h-3.5 w-3.5 animate-pulse" />
                 QUANTITATIVE MODEL TERMINAL
               </span>
               <span className="mono rounded-full bg-[var(--color-bg-1)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-ink-3)] border border-[var(--color-line-1)]">
@@ -450,7 +458,7 @@ for (const item of sharpPicks) {
                   disabled={recalibrating}
                   className="mt-1 flex items-center gap-2 rounded-lg bg-[var(--color-brand-500)] px-3.5 py-1.5 text-[11px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)] transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <ZapIcon className={`h-3.5 w-3.5 ${recalibrating ? "animate-spin" : ""}`} />
+                  <RefreshCw className={`h-3.5 w-3.5 ${recalibrating ? "animate-spin" : ""}`} />
                   {recalibrating ? "Recalibrating Model..." : "Recalibrate Model"}
                 </button>
               </div>
@@ -904,7 +912,7 @@ for (const item of sharpPicks) {
                       : "bg-[var(--color-brand-500)] text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]"
                   }`}
                 >
-                  <ZapIcon className="h-4 w-4" />
+                  {autoPilotEnabled ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   {autoPilotEnabled ? "Pause Auto-Pilot" : "Activate Auto-Pilot"}
                 </button>
               </div>
@@ -936,7 +944,7 @@ for (const item of sharpPicks) {
               >
                 <div className="flex items-center justify-between">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-400">
-                    <Shield className="h-4 w-4" />
+                    <ShieldCheck className="h-4 w-4" />
                   </span>
                   <span className="mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)]">Low Variance</span>
                 </div>
@@ -960,7 +968,7 @@ for (const item of sharpPicks) {
               >
                 <div className="flex items-center justify-between">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)]">
-                    <Zap className="h-4 w-4" />
+                    <Scale className="h-4 w-4" />
                   </span>
                   <span className="mono rounded bg-[var(--color-brand-500)]/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--color-brand-500)]">Recommended</span>
                 </div>
@@ -984,7 +992,7 @@ for (const item of sharpPicks) {
               >
                 <div className="flex items-center justify-between">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15 text-rose-400">
-                    <Rocket className="h-4 w-4" />
+                    <Gauge className="h-4 w-4" />
                   </span>
                   <span className="mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-warning)]">Max Volume</span>
                 </div>

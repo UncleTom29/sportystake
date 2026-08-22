@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ZapIcon, CloseIcon, BadgeCheck } from "@/components/icons/UIIcons";
-import { Check, X } from "lucide-react";
+import { Check, CheckCircle2, XCircle } from "lucide-react";
 
 type Step = { label: string; detail?: string };
 type Status = "pending" | "success" | "error";
@@ -57,7 +57,7 @@ export default function TransactionModal({
         {status === "success" ? (
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-brand-500)]/10">
-              <BadgeCheck className="h-8 w-8 text-[var(--color-brand-500)]" />
+              <CheckCircle2 className="h-8 w-8 text-[var(--color-brand-500)]" />
             </div>
             <p className="text-center text-[15px] font-bold text-white">Transaction confirmed!</p>
             {txHash && (
@@ -70,7 +70,7 @@ export default function TransactionModal({
         ) : status === "error" ? (
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-live)]/10">
-              <X className="h-8 w-8 text-[var(--color-live)]" />
+              <XCircle className="h-8 w-8 text-[var(--color-live)]" />
             </div>
             <p className="text-center text-[15px] font-bold text-white">Transaction failed</p>
             {errorMsg && <p className="text-center text-[12px] text-[var(--color-ink-3)]">{errorMsg}</p>}

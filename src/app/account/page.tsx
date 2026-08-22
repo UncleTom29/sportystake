@@ -19,17 +19,18 @@ import {
   GiftIcon,
 } from "@/components/icons/UIIcons";
 import {
-  Trophy,
-  TrendingDown,
-  Droplets,
-  Coins,
-  Ticket,
-  FileText,
-  Pencil,
+  CheckCircle2,
+  XCircle,
+  ArrowDownLeft,
+  Banknote,
+  Clock4,
+  UserCircle2,
+  Camera,
   Flame,
-  Wallet,
-  Zap,
-  User,
+  ReceiptText,
+  WalletCards,
+  BrainCircuit,
+  AtSign,
 } from "lucide-react";
 import SetUsernameModal from "@/components/integration/SetUsernameModal";
 import AvatarSelectorModal from "@/components/integration/AvatarSelectorModal";
@@ -38,16 +39,16 @@ import WelcomeBonusControl from "@/components/profile/WelcomeBonusControl";
 function ActivityTypeIcon({ type }: { type: string }) {
   switch (type) {
     case "bet_won":
-      return <Trophy className="h-4 w-4 text-[var(--color-brand-500)]" />;
+      return <CheckCircle2 className="h-4 w-4 text-[var(--color-brand-500)]" />;
     case "bet_lost":
-      return <TrendingDown className="h-4 w-4 text-[var(--color-live)]" />;
+      return <XCircle className="h-4 w-4 text-[var(--color-live)]" />;
     case "lp_deposit":
-      return <Droplets className="h-4 w-4 text-cyan-400" />;
+      return <ArrowDownLeft className="h-4 w-4 text-cyan-400" />;
     case "lp_settled":
-      return <Coins className="h-4 w-4 text-amber-400" />;
+      return <Banknote className="h-4 w-4 text-amber-400" />;
     case "bet_placed":
     default:
-      return <Ticket className="h-4 w-4 text-[var(--color-warn)]" />;
+      return <Clock4 className="h-4 w-4 text-[var(--color-warn)]" />;
   }
 }
 
@@ -151,9 +152,9 @@ export default function AccountPage() {
             title="Click to change avatar"
             className="relative group flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--color-bg-3)] text-2xl font-black border-2 border-[var(--color-line-2)] hover:border-[var(--color-brand-500)] transition-all"
           >
-            {userMe?.avatar || <User className="h-8 w-8 text-[var(--color-ink-2)]" />}
+            {userMe?.avatar || <UserCircle2 className="h-10 w-10 text-[var(--color-ink-2)]" />}
             <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand-500)] text-[10px] font-bold text-[var(--color-bg-0)] shadow">
-              <Pencil className="h-3 w-3" />
+              <Camera className="h-3 w-3" />
             </span>
           </div>
           <div className="flex-1 min-w-0">
@@ -310,9 +311,9 @@ export default function AccountPage() {
 
       {/* Quick Links */}
       <div className="mt-4 grid gap-2 md:grid-cols-3">
-        <QuickLink href="/account/bets" label="My Bets" sub={`${stats?.totalBets ?? 0} total · ${stats?.won ?? 0} won`} Icon={Ticket} />
-        <QuickLink href="/account/wallet" label="Wallet" sub={isConnected ? `${balanceFormatted} USDC balance` : "Sign in to view"} Icon={Wallet} />
-        <QuickLink href="/ai-analytics" label="AI Signals & Auto-Pilot" sub="Model edge · +EV signals" Icon={Zap} />
+        <QuickLink href="/account/bets" label="My Bets" sub={`${stats?.totalBets ?? 0} total · ${stats?.won ?? 0} won`} Icon={ReceiptText} />
+        <QuickLink href="/account/wallet" label="Wallet" sub={isConnected ? `${balanceFormatted} USDC balance` : "Sign in to view"} Icon={WalletCards} />
+        <QuickLink href="/ai-analytics" label="AI Signals & Auto-Pilot" sub="Model edge · +EV signals" Icon={BrainCircuit} />
       </div>
 
       {/* Activity Chart */}
@@ -337,7 +338,7 @@ export default function AccountPage() {
           </div>
         ) : activity.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-            <Ticket className="h-10 w-10 text-[var(--color-ink-4)]" />
+            <ReceiptText className="h-10 w-10 text-[var(--color-ink-4)]" />
             <div>
               <p className="text-[14px] font-bold text-white">No bets placed yet</p>
               <p className="mt-1 text-[12px] text-[var(--color-ink-3)]">

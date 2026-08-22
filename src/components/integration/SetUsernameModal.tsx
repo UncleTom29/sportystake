@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { UserApi } from "@/lib/api-client";
 import { useNotifications } from "@/lib/notificationStore";
-import { ShieldIcon, CloseIcon } from "@/components/icons/UIIcons";
-import { Check, X } from "lucide-react";
+import { CloseIcon } from "@/components/icons/UIIcons";
+import { AtSign, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function SetUsernameModal({
   open,
@@ -84,7 +84,7 @@ export default function SetUsernameModal({
 
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-            <ShieldIcon className="h-5 w-5" />
+            <AtSign className="h-5 w-5" />
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">Choose Username</h3>
@@ -119,12 +119,12 @@ export default function SetUsernameModal({
             {/* Validation helper message */}
             {available === true && (
               <p className="mt-1.5 text-[11px] font-bold text-[var(--color-brand-500)] flex items-center gap-1">
-                <Check className="h-3 w-3" /> @{username} is available!
+                <CheckCircle2 className="h-3.5 w-3.5" /> @{username} is available!
               </p>
             )}
             {available === false && reason && (
               <p className="mt-1.5 text-[11px] font-bold text-[var(--color-live)] flex items-center gap-1">
-                <X className="h-3 w-3" /> {reason}
+                <AlertCircle className="h-3.5 w-3.5" /> {reason}
               </p>
             )}
           </div>

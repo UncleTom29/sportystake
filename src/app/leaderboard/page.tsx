@@ -135,7 +135,7 @@ export default function LeaderboardPage() {
               </span>
               <span className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-live)]">
                 <span className="h-2 w-2 rounded-full bg-[var(--color-live)] animate-pulse" />
-                Live Database Standings
+                Live Protocol Standings
               </span>
             </div>
             <h1 className="mt-3 text-3xl font-black tracking-tight text-white md:text-4xl">

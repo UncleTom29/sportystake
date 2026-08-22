@@ -250,7 +250,7 @@ export default function SocialPage() {
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <TrophyIcon className="h-4 w-4 text-[var(--color-warn)]" />
-                <h3 className="text-sm font-bold text-white">Top Database Tipsters</h3>
+                <h3 className="text-sm font-bold text-white">Top Ranked Tipsters</h3>
               </div>
               <Link href="/leaderboard" className="text-[11px] font-bold text-[var(--color-brand-500)] hover:underline">
                 Full Leaderboard →

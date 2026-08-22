@@ -31,7 +31,7 @@ const mainItems = [
   { href: "/", label: "Home", Icon: HomeIcon },
   { href: "/sportsbook", label: "Sports", Icon: TrophyIcon, base: "/sportsbook" },
   { href: "/casino", label: "Casino", Icon: CasinoChipIcon },
-  { href: "/prediction-markets", label: "Predictions", Icon: ZapIcon },
+  { href: "/prediction-markets", label: "Predictions", Icon: TrendingUp },
 ];
 
 const moreNavItems = [

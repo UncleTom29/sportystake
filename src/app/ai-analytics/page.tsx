@@ -197,7 +197,7 @@ export default function AIAnalyticsPage() {
     if (nextState) {
       pushToast({
         kind: "success",
-        title: "Auto-Pilot Activated 🤖",
+        title: "Auto-Pilot Activated",
         body: `Autonomous agent is now monitoring +EV signals with your ${
           selectedStrategy === "balanced" ? "Balanced Alpha" : selectedStrategy === "conservative" ? "Conservative Sharp" : selectedStrategy === "aggressive" ? "High Velocity" : "Custom"
         } strategy.`,
@@ -205,7 +205,7 @@ export default function AIAnalyticsPage() {
     } else {
       pushToast({
         kind: "info",
-        title: "Auto-Pilot Paused ⏸",
+        title: "Auto-Pilot Paused",
         body: "Automated execution suspended. No further wagers will be placed automatically.",
       });
     }

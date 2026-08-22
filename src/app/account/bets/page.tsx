@@ -55,24 +55,15 @@ export default function MyBetsPage() {
   const handleClaim = async (bet: BetDTO) => {
     setClaimingId(bet.id);
     try {
-      let res: { payoutUsdc?: string } | null = null;
-      try {
-        const receipt = await privyContractWrite({
-          contractAddress: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}`,
-          abiFunctionSignature: bet.parlayId ? "claimParlayWinnings(bytes32)" : "claimWinnings(bytes32)",
-          abiParameters: [bet.id],
-        });
-        res = bet.parlayId
-          ? await Bets.claimParlay(bet.id, receipt.transactionHash)
-          : await Bets.claim(bet.id, receipt.transactionHash);
-      } catch (chainErr) {
-        console.warn("[claim] On-chain direct claim reverted, executing instant operator payout:", chainErr);
-        res = bet.parlayId
-          ? await Bets.claimParlayDirect(bet.id)
-          : await Bets.claimDirect(bet.id);
-      }
-
-      const claimedAmount = parseFloat(res?.payoutUsdc || "0") || parseFloat(bet.potentialPayout || "0");
+      const receipt = await privyContractWrite({
+        contractAddress: clientEnv.NEXT_PUBLIC_BETTING_CORE_ADDRESS as `0x${string}`,
+        abiFunctionSignature: bet.parlayId ? "claimParlayWinnings(bytes32)" : "claimWinnings(bytes32)",
+        abiParameters: [bet.id],
+      });
+      const res = bet.parlayId
+        ? await Bets.claimParlay(bet.id, receipt.transactionHash)
+        : await Bets.claim(bet.id, receipt.transactionHash);
+      const claimedAmount = parseFloat(res.payoutUsdc || "0") || parseFloat(bet.potentialPayout || "0");
       const formattedClaimed = claimedAmount > 0 ? claimedAmount.toFixed(2) : "0.00";
       setBets((cur) => cur.map((b) => b.id === bet.id ? { ...b, status: "CLAIMED", potentialPayout: String(claimedAmount || b.potentialPayout) } : b));
       pushToast({ kind: "success", title: "Winnings claimed", body: `$${formattedClaimed} USDC sent to wallet` });

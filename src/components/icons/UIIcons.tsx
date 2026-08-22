@@ -73,7 +73,11 @@ export function CasinoChipIcon(props: Props) {
 }
 
 export function ZapIcon(props: Props) {
-  return <svg viewBox="0 0 24 24" fill="currentColor" {...props}><path d="M13 3L4 14h7l-1 7 9-11h-7l1-7z" /></svg>;
+  return <svg {...base} {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+}
+
+export function SparklesIcon(props: Props) {
+  return <svg {...base} {...props}><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z" /><path d="M5 3v4M3 5h4M19 17v4M17 19h4" /></svg>;
 }
 
 export function BadgeCheck(props: Props) {

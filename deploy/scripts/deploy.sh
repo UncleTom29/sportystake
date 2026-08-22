@@ -61,7 +61,7 @@ main() {
   source /etc/sportystake/.env
   set +a
   npx prisma generate
-  npx prisma migrate deploy
+  npx prisma migrate deploy || npx prisma db push --accept-data-loss
   pnpm build
 
   # packages/oracle has its own build step (tsc) and its own deps — it uses

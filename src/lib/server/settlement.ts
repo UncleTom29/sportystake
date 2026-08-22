@@ -473,17 +473,46 @@ export async function executeMarketSettlement(
 export async function settleFinishedMarketsWithPendingBets(): Promise<void> {
   try {
     const { prisma } = await import("@/lib/server/db");
+    const { redis } = await import("@/lib/server/redis");
+
+    // Fetch active in-play fixture IDs so we NEVER settle a live match
+    const liveFixtureIds = new Set<string>();
+    try {
+      const raw = await redis().get("oracle:live:events");
+      if (raw) {
+        const liveRows = JSON.parse(raw) as Array<{ match_id: string; finished?: boolean }>;
+        for (const r of liveRows) {
+          if (!r.finished) liveFixtureIds.add(r.match_id);
+        }
+      }
+    } catch {}
+
+    const pastKickoffCutoff = new Date(Date.now() - 100 * 60 * 1000);
+
     const markets = await prisma.market.findMany({
       where: {
+        sport: { not: "prediction-markets" },
         homeScore: { not: null },
         awayScore: { not: null },
         OR: [
-          { bets: { some: { status: "PENDING" } } },
-          { parlayLegs: { some: { result: "PENDING" } } },
+          { status: "SETTLED" },
+          {
+            status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
+            startTime: { lt: pastKickoffCutoff },
+          },
+        ],
+        AND: [
+          {
+            OR: [
+              { bets: { some: { status: "PENDING" } } },
+              { parlayLegs: { some: { result: "PENDING" } } },
+            ],
+          },
         ],
       },
       select: {
         id: true,
+        fixtureId: true,
         homeScore: true,
         awayScore: true,
       },
@@ -491,10 +520,12 @@ export async function settleFinishedMarketsWithPendingBets(): Promise<void> {
 
     if (markets.length === 0) return;
 
-    logger.info(`[settlement] found ${markets.length} market(s) with scores and pending bets/legs to reconcile`);
-
     for (const m of markets) {
       if (m.homeScore === null || m.awayScore === null) continue;
+      // Skip if match is actively in-play in the live feed!
+      if (m.fixtureId && liveFixtureIds.has(m.fixtureId.toString())) {
+        continue;
+      }
       const primaryWinningOutcome = resolveScoreBasedOutcome("1X2", m.homeScore, m.awayScore) ?? 0;
       const plan = await planScoreBasedSettlement(m.id, m.homeScore, m.awayScore);
       await executeMarketSettlement({

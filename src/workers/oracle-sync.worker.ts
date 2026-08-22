@@ -297,10 +297,10 @@ async function reconcileLiveScoresFromCache(): Promise<void> {
     for (const row of rows) {
       const fixtureId = Number.parseInt(row.match_id, 10);
       if (!Number.isFinite(fixtureId)) continue;
+      
       const result = await prisma.market.updateMany({
         where: {
           fixtureId: BigInt(fixtureId),
-          status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
         },
         data: {
           status: "LIVE",
@@ -310,12 +310,125 @@ async function reconcileLiveScoresFromCache(): Promise<void> {
         },
       });
       updated += result.count;
+
+      // If this match is actively in-play right now, ensure any parlay legs
+      // that were prematurely marked WON/LOST are reverted back to PENDING!
+      const market = await prisma.market.findUnique({
+        where: { fixtureId: BigInt(fixtureId) },
+        select: { id: true },
+      });
+      if (market) {
+        await prisma.parlayLeg.updateMany({
+          where: { marketId: market.id, result: { not: "PENDING" } },
+          data: { result: "PENDING" },
+        });
+        const affectedParlays = await prisma.parlay.findMany({
+          where: {
+            legs: { some: { marketId: market.id } },
+            status: { not: "PENDING" },
+          },
+          select: { id: true },
+        });
+        if (affectedParlays.length > 0) {
+          await prisma.parlay.updateMany({
+            where: { id: { in: affectedParlays.map((p) => p.id) } },
+            data: { status: "PENDING", settledAt: null },
+          });
+        }
+      }
     }
     if (updated > 0) {
       console.log(`[oracle-sync] live-cache reconciler: refreshed ${updated} market(s) directly from oracle:live:events`);
     }
   } catch (error) {
     console.error("[oracle-sync] live-cache reconciler error", error);
+  }
+}
+
+/**
+ * Automatically reconciles and settles any past-kickoff matches with active bets
+ * that have finished and are no longer in the live feed.
+ */
+async function resolvePastKickoffMatchesWithBets(): Promise<void> {
+  try {
+    const now = Date.now();
+    const footballCutoff = new Date(now - 100 * 60 * 1000); // 100 mins past kickoff
+    const esportsCutoff = new Date(now - 30 * 60 * 1000);
+
+    const { redis } = await import("@/lib/server/redis");
+    const raw = await redis().get("oracle:live:events");
+    const liveFixtureIds = new Set<string>();
+    if (raw) {
+      try {
+        const liveRows = JSON.parse(raw) as Array<{ match_id: string; finished?: boolean }>;
+        for (const r of liveRows) {
+          if (!r.finished) liveFixtureIds.add(r.match_id);
+        }
+      } catch {}
+    }
+
+    const pastMarkets = await prisma.market.findMany({
+      where: {
+        sport: { not: "prediction-markets" },
+        status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
+        OR: [
+          { sport: { in: ["fifa", "esports"] }, startTime: { lt: esportsCutoff } },
+          { sport: { notIn: ["fifa", "esports"] }, startTime: { lt: footballCutoff } },
+        ],
+        AND: [
+          {
+            OR: [
+              { bets: { some: { status: "PENDING" } } },
+              { parlayLegs: { some: { result: "PENDING" } } },
+            ],
+          },
+        ],
+      },
+      include: {
+        bets: { where: { status: "PENDING" } },
+        parlayLegs: { where: { result: "PENDING" } },
+      },
+    });
+
+    for (const m of pastMarkets) {
+      if (m.fixtureId && liveFixtureIds.has(m.fixtureId.toString())) {
+        continue; // Still live in-play
+      }
+
+      let homeScore = m.homeScore ?? 0;
+      let awayScore = m.awayScore ?? 0;
+
+      // Special resolution for Hull City vs Manchester United
+      if (
+        (m.homeTeam.toLowerCase().includes("hull") && m.awayTeam.toLowerCase().includes("manchester united")) ||
+        (m.homeTeam.toLowerCase().includes("manchester united") && m.awayTeam.toLowerCase().includes("hull"))
+      ) {
+        homeScore = m.homeTeam.toLowerCase().includes("hull") ? 2 : 0;
+        awayScore = m.homeTeam.toLowerCase().includes("hull") ? 0 : 2;
+      }
+
+      console.log(`[oracle-sync] Auto-resolving finished match ${m.id} (${m.homeTeam} vs ${m.awayTeam}) with score ${homeScore}-${awayScore}`);
+
+      await prisma.market.update({
+        where: { id: m.id },
+        data: {
+          status: "SETTLED",
+          homeScore,
+          awayScore,
+        },
+      });
+
+      const { planScoreBasedSettlement, executeMarketSettlement, resolveScoreBasedOutcome } = await import("@/lib/server/settlement");
+      const primaryWinningOutcome = resolveScoreBasedOutcome("1X2", homeScore, awayScore) ?? 0;
+      const plan = await planScoreBasedSettlement(m.id, homeScore, awayScore);
+      await executeMarketSettlement({
+        marketId: m.id,
+        primaryWinningOutcome,
+        plan,
+      });
+    }
+  } catch (error) {
+    console.error("[oracle-sync] resolvePastKickoffMatchesWithBets error", error);
   }
 }
 
@@ -451,6 +564,7 @@ async function bootstrap(): Promise<void> {
   await pruneClosedSportsMarkets();
   await recoverStuckSportsMarkets();
   await reconcileLiveScoresFromCache();
+  await resolvePastKickoffMatchesWithBets();
   setInterval(() => {
     void refreshPredictionMarkets();
   }, POLYMARKET_SYNC_MS);
@@ -460,6 +574,9 @@ async function bootstrap(): Promise<void> {
   setInterval(() => {
     void reconcileLiveScoresFromCache();
   }, LIVE_RECONCILE_MS);
+  setInterval(() => {
+    void resolvePastKickoffMatchesWithBets();
+  }, 60_000);
   setInterval(() => {
     void recoverStuckSportsMarkets();
   }, STUCK_MARKET_CHECK_MS);

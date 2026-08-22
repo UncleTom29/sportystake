@@ -4,18 +4,29 @@ import { ok, fail, withRequestId, ApiError } from "@/lib/server/api-response";
 import { readAuthFromRequest } from "@/lib/server/auth";
 import { prisma } from "@/lib/server/db";
 import { verifyClaim } from "@/lib/server/betVerification";
+import { getOperatorWallet } from "@/lib/server/operatorWallet";
+import { clientEnv } from "@/lib/env";
 
 export const runtime = "nodejs";
 
-const Body = z.object({ txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/) });
+const Body = z.object({
+  txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/).optional(),
+  direct: z.boolean().optional(),
+});
 
-/**
- * Parlay counterpart to /api/bets/[id]/claim — same pattern, but Parlay
- * lives in its own table (see prisma/schema.prisma), so this can't reuse
- * BetsRepo.byId. The client already signed and confirmed
- * claimParlayWinnings(parlayId) via Circle before calling this; verifies
- * the receipt's ParlayWon event (id + owner) and marks the parlay CLAIMED.
- */
+const erc20Abi = [
+  {
+    type: "function",
+    name: "transfer",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+  },
+] as const;
+
 export const POST = withRequestId(
   async (req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
     const auth = await readAuthFromRequest(req);
@@ -30,6 +41,35 @@ export const POST = withRequestId(
     const parsed = Body.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {
       return fail("ValidationError", "Invalid body", 400, { details: parsed.error.issues });
+    }
+
+    if (parsed.data.direct || !parsed.data.txHash) {
+      const operatorWallet = getOperatorWallet("bettingCore");
+      if (!operatorWallet) throw new ApiError("Internal", "Operator wallet not configured", 500);
+
+      const txHash = await operatorWallet.writeContract({
+        address: clientEnv.NEXT_PUBLIC_USDC_ADDRESS as `0x${string}`,
+        abi: erc20Abi,
+        functionName: "transfer",
+        args: [auth.addr as `0x${string}`, parlay.potentialPayout],
+        chain: operatorWallet.chain,
+        account: operatorWallet.account!,
+      });
+
+      const updated = await prisma.parlay.update({
+        where: { id },
+        data: {
+          status: "CLAIMED",
+          settledAt: new Date(),
+          txHash,
+        },
+      });
+
+      return ok({
+        parlay: { id: updated.id, status: updated.status, potentialPayout: updated.potentialPayout.toString() },
+        payoutUsdc: parlay.potentialPayout.toString(),
+        txHash,
+      });
     }
 
     const claim = await verifyClaim(parsed.data.txHash as `0x${string}`, "ParlayWon", auth.addr);
@@ -49,6 +89,7 @@ export const POST = withRequestId(
     return ok({
       parlay: { id: updated.id, status: updated.status, potentialPayout: updated.potentialPayout.toString() },
       payoutUsdc: claim.amount.toString(),
+      txHash: parsed.data.txHash,
     });
   },
 );

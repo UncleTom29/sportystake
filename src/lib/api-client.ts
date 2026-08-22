@@ -190,11 +190,17 @@ export const Bets = {
   detail: (id: string) => api.get<BetDTO>(`/api/bets/${id}`),
   claim: (id: string, txHash: string) =>
     api.post<{ bet: BetDTO; payoutUsdc: string }>(`/api/bets/${id}/claim`, { txHash }),
+  claimDirect: (id: string) =>
+    api.post<{ bet: BetDTO; payoutUsdc: string }>(`/api/bets/${id}/claim`, { direct: true }),
   refund: (id: string, txHash: string) =>
     api.post<{ bet: BetDTO; refundUsdc: string }>(`/api/bets/${id}/refund`, { txHash }),
   claimParlay: (parlayId: string, txHash: string) =>
     api.post<{ parlay: { id: string; status: string; potentialPayout: string }; payoutUsdc: string }>(
       `/api/bets/parlay/${parlayId}/claim`, { txHash },
+    ),
+  claimParlayDirect: (parlayId: string) =>
+    api.post<{ parlay: { id: string; status: string; potentialPayout: string }; payoutUsdc: string }>(
+      `/api/bets/parlay/${parlayId}/claim`, { direct: true },
     ),
   refundParlay: (parlayId: string, txHash: string) =>
     api.post<{ parlay: { id: string; status: string }; refundUsdc: string }>(

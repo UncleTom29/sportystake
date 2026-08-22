@@ -39,7 +39,7 @@ export default function AvatarSelectorModal({
       if (!res.ok || data.success === false) {
         throw new Error(data.message || "Failed to update avatar");
       }
-      pushToast({ kind: "success", title: "Avatar Updated! ✨", body: `Changed avatar to ${selected}` });
+      pushToast({ kind: "success", title: "Avatar Updated", body: `Changed avatar to ${selected}` });
       onAvatarSaved(selected);
       onClose();
     } catch (e) {

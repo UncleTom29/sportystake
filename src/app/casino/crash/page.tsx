@@ -7,6 +7,7 @@ import { useWallet } from "@/lib/walletStore";
 import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { Casino } from "@/lib/api-client";
 import type { OnchainCrashRound } from "@/lib/api-client";
+import { Plane } from "lucide-react";
 import { joinCrashRound, cashOutCrashRound, claimCrashPayout, getPendingCrashPayout, getMyCrashEntry } from "@/lib/crashClient";
 import { formatUsdc } from "../../../../packages/sdk/src/utils";
 
@@ -430,7 +431,8 @@ export default function AviatorPage() {
             </Link>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
-            ✈️ Aviator
+            <Plane className="h-6 w-6 text-[#ff2d55]" />
+            Aviator
           </h1>
           <p className="text-[13px] text-[var(--color-ink-3)]">
             Watch the red plane climb. Cash out before it flies away! Provably fair on-chain RNG.

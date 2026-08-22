@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShieldIcon, BadgeCheck, ZapIcon, ArrowUpRight } from "@/components/icons/UIIcons";
+import { ShieldAlert, Link2, Scale } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 
 const TERMS_STORAGE_KEY = "sportystake_terms_accepted_v1";
@@ -65,21 +66,21 @@ export default function ComplianceModal() {
           {/* Key Bulletins */}
           <div className="mt-4 space-y-2.5 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 text-[12px]">
             <div className="flex items-start gap-2.5">
-              <span className="text-base leading-none">🔞</span>
+              <ShieldAlert className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
               <div>
                 <strong className="text-white">Age Requirement:</strong> You must be at least 18 years of age (or legal gambling age in your jurisdiction).
               </div>
             </div>
 
             <div className="flex items-start gap-2.5">
-              <span className="text-base leading-none">⛓️</span>
+              <Link2 className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
               <div>
                 <strong className="text-white">100% Non-Custodial Protocol:</strong> SportyStake operates via self-custodial EVM smart contracts. You retain sole ownership of your Web3 keys & funds.
               </div>
             </div>
 
             <div className="flex items-start gap-2.5">
-              <span className="text-base leading-none">⚖️</span>
+              <Scale className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
               <div>
                 <strong className="text-white">Jurisdictional Liability:</strong> Accessing decentralized wagering and liquidity pools must comply with your local laws. You assume full legal responsibility.
               </div>

@@ -60,7 +60,7 @@ export default function SocialPage() {
     appendSelections(converted);
     pushToast({
       kind: "success",
-      title: "Picks Tailed! 🎟️",
+      title: "Picks Tailed",
       body: `Copied ticket from ${slip.user?.username || "user"} to your betslip`,
     });
   };
@@ -123,7 +123,7 @@ export default function SocialPage() {
                 onChange={(e) => setSearchCode(e.target.value.toUpperCase())}
                 onKeyDown={(e) => e.key === "Enter" && handleLoadByCode()}
                 placeholder="Enter 6-char code (e.g. 7X9K2W)"
-                className="mono h-10 w-full rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-3 text-[13px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)] focus:border-[var(--color-brand-500)]"
+                className="mono h-10 w-full rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-3 text-[14px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)] focus:border-[var(--color-brand-500)]"
               />
               <button
                 onClick={handleLoadByCode}
@@ -149,19 +149,20 @@ export default function SocialPage() {
             </div>
             <div className="flex gap-1.5">
               {[
-                { id: "all", label: "🔥 All Live Shares" },
-                { id: "won", label: "🏆 Winning Bets" },
+                { id: "all", label: "All Live Shares", Icon: FlameIcon },
+                { id: "won", label: "Winning Bets", Icon: TrophyIcon },
               ].map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFeedFilter(f.id as any)}
-                  className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all ${
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all ${
                     feedFilter === f.id
                       ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)] shadow"
                       : "bg-[var(--color-bg-1)] text-[var(--color-ink-3)] hover:text-white"
                   }`}
                 >
-                  {f.label}
+                  <f.Icon className="h-3.5 w-3.5" />
+                  <span>{f.label}</span>
                 </button>
               ))}
             </div>

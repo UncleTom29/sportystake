@@ -68,7 +68,7 @@ export default function UserBalanceDropdown() {
     setCopied(true);
     pushToast({
       kind: "success",
-      title: "Address Copied! 📋",
+      title: "Address Copied",
       body: displayAddress,
     });
     setTimeout(() => setCopied(false), 2000);

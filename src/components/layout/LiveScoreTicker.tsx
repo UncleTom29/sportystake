@@ -66,7 +66,7 @@ export default function LiveScoreTicker() {
 
   const items = live.map((m) => ({
     market: m,
-    label: `🔴 ${m.homeTeam} ${m.homeScore ?? 0}–${m.awayScore ?? 0} ${m.awayTeam}${m.liveMinute ? ` ${m.liveMinute}'` : ""}`,
+    label: `${m.homeTeam} ${m.homeScore ?? 0}–${m.awayScore ?? 0} ${m.awayTeam}${m.liveMinute ? ` ${m.liveMinute}'` : ""}`,
     league: m.leagueName,
   }));
   const doubled = [...items, ...items];
@@ -104,7 +104,10 @@ export default function LiveScoreTicker() {
                 onClick={() => handleSelect(item.market)}
                 className="flex items-center gap-2 cursor-pointer hover:underline text-left"
               >
-                <span className="font-semibold text-white">{item.label}</span>
+                <span className="flex items-center gap-1.5 font-semibold text-white">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-live)] animate-pulse" />
+                  {item.label}
+                </span>
                 <span className="text-[var(--color-ink-3)]">· {item.league}</span>
               </button>
             ))}

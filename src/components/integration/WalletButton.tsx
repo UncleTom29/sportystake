@@ -7,6 +7,8 @@ import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { useUsdcBalance, formatUsdc } from "@/lib/useWalletBalance";
 import { useNotifications } from "@/lib/notificationStore";
 
+import { ShieldCheck } from "lucide-react";
+
 function shortAddr(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
@@ -92,9 +94,10 @@ export default function WalletButton() {
             <Link
               href="/admin"
               onClick={() => setMenuOpen(false)}
-              className="block px-3 py-2 text-[12px] font-bold text-[var(--color-brand-500)] hover:bg-[var(--color-bg-3)]"
+              className="flex items-center gap-1.5 px-3 py-2 text-[12px] font-bold text-[var(--color-brand-500)] hover:bg-[var(--color-bg-3)]"
             >
-              Admin Portal 🛡️
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Admin Portal</span>
             </Link>
           )}
           <button

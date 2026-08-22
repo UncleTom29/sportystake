@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@/lib/walletStore";
 import { useUsdcBalance } from "@/lib/useWalletBalance";
-import { ChevronLeft, CopyIcon, ZapIcon } from "@/components/icons/UIIcons";
+import { ChevronLeft, CopyIcon, ZapIcon, CloseIcon } from "@/components/icons/UIIcons";
 
 export default function WalletPage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -86,7 +86,9 @@ export default function WalletPage() {
             <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">Withdraw</p>
-                <button onClick={() => setShowWithdraw(false)} className="text-[var(--color-ink-3)] hover:text-white">✕</button>
+                <button onClick={() => setShowWithdraw(false)} className="text-[var(--color-ink-3)] hover:text-white">
+                  <CloseIcon className="h-4 w-4" />
+                </button>
               </div>
               <label className="mb-1 block text-[11px] text-[var(--color-ink-3)]">Amount (USDC)</label>
               <div className="flex h-11 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-3 focus-within:border-[var(--color-brand-500)]/40 mb-2">

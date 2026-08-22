@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ZapIcon, CloseIcon, BadgeCheck } from "@/components/icons/UIIcons";
+import { Check, X } from "lucide-react";
 
 type Step = { label: string; detail?: string };
 type Status = "pending" | "success" | "error";
@@ -69,7 +70,7 @@ export default function TransactionModal({
         ) : status === "error" ? (
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-live)]/10">
-              <span className="text-3xl">✕</span>
+              <X className="h-8 w-8 text-[var(--color-live)]" />
             </div>
             <p className="text-center text-[15px] font-bold text-white">Transaction failed</p>
             {errorMsg && <p className="text-center text-[12px] text-[var(--color-ink-3)]">{errorMsg}</p>}
@@ -102,7 +103,7 @@ export default function TransactionModal({
                 return (
                   <div key={i} className={`flex items-center gap-3 ${active ? "opacity-100" : done ? "opacity-60" : "opacity-30"}`}>
                     <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-all ${done ? "bg-[var(--color-brand-500)] text-[var(--color-bg-0)]" : active ? "border-2 border-[var(--color-brand-500)] text-[var(--color-brand-500)]" : "border border-[var(--color-line-2)] text-[var(--color-ink-3)]"}`}>
-                      {done ? "✓" : i + 1}
+                      {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
                     </div>
                     <div className="flex-1">
                       <p className={`text-[13px] font-semibold ${active ? "text-white" : "text-[var(--color-ink-2)]"}`}>{step.label}</p>

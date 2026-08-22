@@ -17,6 +17,10 @@ node_modules
 # builds separately via npm), so only the root lockfile is excluded here.
 /package-lock.json
 
+# rollover bot — local run state and generated picks, not shared
+/scripts/rollover-bot/state/
+/scripts/rollover-bot/picks/
+
 # testing
 /coverage
 

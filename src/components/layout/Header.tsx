@@ -9,6 +9,8 @@ import UserBalanceDropdown from "@/components/layout/UserBalanceDropdown";
 import SearchModal from "@/components/integration/SearchModal";
 import SetUsernameModal from "@/components/integration/SetUsernameModal";
 
+import { ShieldCheck, Radio } from "lucide-react";
+
 export default function Header() {
   const { selections, toggle } = useBetSlip();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -61,11 +63,21 @@ export default function Header() {
 
         <nav className="ml-2 hidden items-center gap-1 md:flex">
           <SegLink href="/sportsbook" label="Sports" />
-          <SegLink href="/live" label="Live 🔴" />
+          <SegLink
+            href="/live"
+            label="Live"
+            icon={<Radio className="h-3.5 w-3.5 text-[var(--color-live)] animate-pulse" />}
+          />
           <SegLink href="/casino" label="Casino" />
           <SegLink href="/prediction-markets" label="Prediction Markets" />
           <SegLink href="/leaderboard" label="Leaderboard" />
-          {isAdminOrOperator && <SegLink href="/admin" label="Admin 🛡️" />}
+          {isAdminOrOperator && (
+            <SegLink
+              href="/admin"
+              label="Admin"
+              icon={<ShieldCheck className="h-3.5 w-3.5 text-[var(--color-brand-500)]" />}
+            />
+          )}
         </nav>
 
         <div className="ml-auto flex flex-1 items-center justify-end gap-2 md:max-w-md md:flex-none lg:ml-4 lg:max-w-lg lg:flex-1">
@@ -115,13 +127,14 @@ export default function Header() {
   );
 }
 
-function SegLink({ href, label }: { href: string; label: string }) {
+function SegLink({ href, label, icon }: { href: string; label: string; icon?: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="flex h-9 items-center rounded-md px-3 text-[13px] font-semibold text-[var(--color-ink-2)] transition-colors hover:bg-[var(--color-bg-2)] hover:text-white"
+      className="flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-semibold text-[var(--color-ink-2)] transition-colors hover:bg-[var(--color-bg-2)] hover:text-white"
     >
-      {label}
+      {icon}
+      <span>{label}</span>
     </Link>
   );
 }

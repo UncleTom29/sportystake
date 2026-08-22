@@ -4,6 +4,15 @@ import { useState } from "react";
 import { useNotifications } from "@/lib/notificationStore";
 import { BellIcon } from "@/components/icons/UIIcons";
 
+import {
+  Trophy,
+  TrendingDown,
+  Ticket,
+  Coins,
+  AlertTriangle,
+  Radio,
+} from "lucide-react";
+
 function timeAgo(at: number): string {
   const s = Math.floor((Date.now() - at) / 1000);
   if (s < 60) return `${s}s ago`;
@@ -12,14 +21,23 @@ function timeAgo(at: number): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-const KIND_ICON: Record<string, string> = {
-  bet_won: "🏆",
-  bet_lost: "📉",
-  bet_confirmed: "🎟",
-  lp_settled: "💰",
-  quota: "⚠️",
-  system: "🛰",
-};
+function KindIcon({ kind }: { kind: string }) {
+  switch (kind) {
+    case "bet_won":
+      return <Trophy className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />;
+    case "bet_lost":
+      return <TrendingDown className="h-4 w-4 text-[var(--color-live)] shrink-0 mt-0.5" />;
+    case "bet_confirmed":
+      return <Ticket className="h-4 w-4 text-[var(--color-brand-500)] shrink-0 mt-0.5" />;
+    case "lp_settled":
+      return <Coins className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />;
+    case "quota":
+      return <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />;
+    case "system":
+    default:
+      return <Radio className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />;
+  }
+}
 
 export default function NotificationBell() {
   const items = useNotifications((s) => s.notifications);
@@ -52,7 +70,7 @@ export default function NotificationBell() {
               items.map((n) => (
                 <div key={n.id} className="border-b border-[var(--color-line-1)] px-3 py-2.5 last:border-0">
                   <div className="flex items-start gap-2">
-                    <span aria-hidden>{KIND_ICON[n.kind] ?? "•"}</span>
+                    <KindIcon kind={n.kind} />
                     <div className="min-w-0 flex-1">
                       <p className="text-[12px] text-white">{n.message}</p>
                       <p className="mono mt-0.5 text-[10px] text-[var(--color-ink-3)]">{timeAgo(n.at)}</p>

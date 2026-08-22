@@ -17,6 +17,16 @@ import {
   GiftIcon,
 } from "@/components/icons/UIIcons";
 
+import {
+  Radio,
+  Trophy,
+  Users,
+  Target,
+  TrendingUp,
+  Wallet,
+  ShieldCheck,
+} from "lucide-react";
+
 const mainItems = [
   { href: "/", label: "Home", Icon: HomeIcon },
   { href: "/sportsbook", label: "Sports", Icon: TrophyIcon, base: "/sportsbook" },
@@ -25,12 +35,12 @@ const mainItems = [
 ];
 
 const moreNavItems = [
-  { href: "/live", label: "🔴 Live Scores", desc: "Real-time match updates" },
-  { href: "/leaderboard", label: "🏆 Leaderboard & Referrals", desc: "Rankings & prize pools" },
-  { href: "/social", label: "👥 Social Bet Feed", desc: "Tail top tipster tickets" },
-  { href: "/ai-analytics", label: "🎯 AI Picks & Predictions", desc: "Smart AI match insights" },
-  { href: "/prediction-markets", label: "🔮 Prediction Markets", desc: "Speculate on global outcomes" },
-  { href: "/account", label: "💼 Wallet & Account", desc: "Profile, bets & referrals" },
+  { href: "/live", label: "Live Scores", desc: "Real-time match updates", Icon: Radio, iconColor: "text-[var(--color-live)]" },
+  { href: "/leaderboard", label: "Leaderboard & Referrals", desc: "Rankings & prize pools", Icon: Trophy, iconColor: "text-amber-400" },
+  { href: "/social", label: "Social Bet Feed", desc: "Tail top tipster tickets", Icon: Users, iconColor: "text-blue-400" },
+  { href: "/ai-analytics", label: "AI Picks & Predictions", desc: "Smart AI match insights", Icon: Target, iconColor: "text-[var(--color-brand-500)]" },
+  { href: "/prediction-markets", label: "Prediction Markets", desc: "Speculate on global outcomes", Icon: TrendingUp, iconColor: "text-purple-400" },
+  { href: "/account", label: "Wallet & Account", desc: "Profile, bets & referrals", Icon: Wallet, iconColor: "text-cyan-400" },
 ];
 
 export default function MobileBottomNav() {
@@ -109,9 +119,14 @@ export default function MobileBottomNav() {
                   onClick={() => setMoreOpen(false)}
                   className="flex items-center justify-between rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3 hover:border-[var(--color-line-2)] hover:bg-[var(--color-bg-3)] transition-all"
                 >
-                  <div>
-                    <p className="text-[13px] font-bold text-white">{item.label}</p>
-                    <p className="text-[11px] text-[var(--color-ink-3)]">{item.desc}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-bg-1)] border border-[var(--color-line-1)]">
+                      <item.Icon className={`h-4 w-4 ${item.iconColor}`} />
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-bold text-white">{item.label}</p>
+                      <p className="text-[11px] text-[var(--color-ink-3)]">{item.desc}</p>
+                    </div>
                   </div>
                   <span className="text-[var(--color-ink-3)] text-xs">→</span>
                 </Link>
@@ -123,9 +138,14 @@ export default function MobileBottomNav() {
                   onClick={() => setMoreOpen(false)}
                   className="flex items-center justify-between rounded-xl border border-[var(--color-brand-500)]/40 bg-[var(--color-brand-500)]/10 p-3 hover:bg-[var(--color-brand-500)]/20 transition-all"
                 >
-                  <div>
-                    <p className="text-[13px] font-bold text-[var(--color-brand-500)]">Admin Portal 🛡️</p>
-                    <p className="text-[11px] text-[var(--color-ink-3)]">Risk, liquidity & market controls</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)]">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-bold text-[var(--color-brand-500)]">Admin Portal</p>
+                      <p className="text-[11px] text-[var(--color-ink-3)]">Risk, liquidity & market controls</p>
+                    </div>
                   </div>
                   <span className="text-[var(--color-brand-500)] text-xs">→</span>
                 </Link>

@@ -5,6 +5,7 @@ import { useNotifications } from "@/lib/notificationStore";
 import { useWallet } from "@/lib/walletStore";
 import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { placeCasinoBetOnchain, resolveCasinoBetWithRetry } from "@/lib/placeCasinoBet";
+import { Trophy, AlertCircle } from "lucide-react";
 import PendingCasinoBetBanner from "@/components/casino/PendingCasinoBetBanner";
 
 type DiceResult = { roll: number; win: boolean; payout: number; timestamp: number };
@@ -132,8 +133,18 @@ export default function DicePage() {
                 <div className="flex flex-col items-center gap-3">
                   <DiceSVG value={lastRoll} />
                   <p className="mono text-5xl font-black" style={{ color: winColor }}>{lastRoll}</p>
-                  <p className="text-[13px] font-bold" style={{ color: winColor }}>
-                    {lastWin ? "🎉 You Win!" : "💥 You Lose"}
+                  <p className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: winColor }}>
+                    {lastWin ? (
+                      <>
+                        <Trophy className="h-4 w-4" />
+                        You Win!
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4" />
+                        You Lose
+                      </>
+                    )}
                   </p>
                 </div>
               ) : (

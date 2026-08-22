@@ -16,14 +16,15 @@ import {
   StarIcon,
 } from "@/components/icons/UIIcons";
 import OnChainVaultManager from "@/components/admin/OnChainVaultManager";
+import { BarChart3, Shield, Trophy, Users as UsersIcon } from "lucide-react";
 
 type Tab = "analytics" | "risk" | "markets" | "users";
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "analytics", label: "Analytics & Quota", icon: "📊" },
-  { id: "risk", label: "Vaults & Liquidity", icon: "🛡️" },
-  { id: "markets", label: "Markets & Settlement", icon: "⚽" },
-  { id: "users", label: "User Governance", icon: "👥" },
+const TABS: { id: Tab; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "analytics", label: "Analytics & Quota", Icon: BarChart3 },
+  { id: "risk", label: "Vaults & Liquidity", Icon: Shield },
+  { id: "markets", label: "Markets & Settlement", Icon: Trophy },
+  { id: "users", label: "User Governance", Icon: UsersIcon },
 ];
 
 export default function AdminPortalPage() {
@@ -140,7 +141,7 @@ export default function AdminPortalPage() {
                   : "text-[var(--color-ink-2)] hover:bg-[var(--color-bg-2)] hover:text-white"
               }`}
             >
-              <span>{t.icon}</span>
+              <t.Icon className="h-4 w-4 shrink-0" />
               <span>{t.label}</span>
             </button>
           );

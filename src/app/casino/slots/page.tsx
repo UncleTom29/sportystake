@@ -5,6 +5,7 @@ import { useNotifications } from "@/lib/notificationStore";
 import { useWallet } from "@/lib/walletStore";
 import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { placeCasinoBetOnchain, resolveCasinoBetWithRetry } from "@/lib/placeCasinoBet";
+import { Trophy, Check, Play, Square } from "lucide-react";
 import PendingCasinoBetBanner from "@/components/casino/PendingCasinoBetBanner";
 
 const SYMBOLS = ["🍒", "🍋", "⭐", "💎", "🔔", "7️⃣", "🃏"] as const;
@@ -186,12 +187,12 @@ export default function SlotsPage() {
             {!spinning && (
               <div className="mt-4 text-center text-[13px]">
                 {reels[0] === reels[1] && reels[1] === reels[2] ? (
-                  <span className="font-bold text-[var(--color-brand-500)]">
-                    🎉 Three of a kind — {PAYOUTS[reels[0]]}× win!
+                  <span className="font-bold text-[var(--color-brand-500)] flex items-center justify-center gap-1.5">
+                    <Trophy className="h-4 w-4" /> Three of a kind — {PAYOUTS[reels[0]]}× win!
                   </span>
                 ) : reels[0] === reels[1] || reels[1] === reels[2] ? (
-                  <span className="font-bold text-[var(--color-warn)]">
-                    ✓ Two of a kind — half payout
+                  <span className="font-bold text-[var(--color-warn)] flex items-center justify-center gap-1.5">
+                    <Check className="h-4 w-4" /> Two of a kind — half payout
                   </span>
                 ) : (
                   <span className="text-[var(--color-ink-3)]">No match — try again</span>
@@ -254,7 +255,15 @@ export default function SlotsPage() {
                   : "bg-[var(--color-bg-3)] text-[var(--color-ink-1)] hover:bg-[var(--color-bg-4)]"
               }`}
             >
-              {autoSpin ? "⏹ Stop Auto Spin" : "▶ Auto Spin"}
+              {autoSpin ? (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Square className="h-3.5 w-3.5 fill-current" /> Stop Auto Spin
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-1.5">
+                  <Play className="h-3.5 w-3.5 fill-current" /> Auto Spin
+                </span>
+              )}
             </button>
           </div>
 

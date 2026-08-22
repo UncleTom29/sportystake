@@ -217,7 +217,7 @@ export async function processBonusBetSettlement(params: {
         data: {
           userId,
           kind: "BONUS_COMPLETED",
-          title: "🎁 Welcome Bonus Rollover Completed!",
+          title: "Welcome Bonus Rollover Completed!",
           body: `Congratulations! You completed the 10x rollover. ${Number(transferAmount) / 1_000_000} USDC has been converted into your account.`,
         },
       }).catch(() => {});

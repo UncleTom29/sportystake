@@ -2,6 +2,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, BadgeCheck, TrophyIcon, ZapIcon, HeartIcon, ChevronRight } from "@/components/icons/UIIcons";
+import { Flame, Coins, Target, Star, Trophy } from "lucide-react";
 
 const PROFILE_DATA = {
   handle: "CryptoTipster.eth",
@@ -21,10 +22,10 @@ const PROFILE_DATA = {
     netPnl: 9425,
   },
   badges: [
-    { id: "hot", emoji: "🔥", label: "Hot Streak" },
-    { id: "highroller", emoji: "💰", label: "High Roller" },
-    { id: "value", emoji: "🎯", label: "Value Bettor" },
-    { id: "early", emoji: "⭐", label: "Early Adopter" },
+    { id: "hot", Icon: Flame, label: "Hot Streak", color: "text-amber-400" },
+    { id: "highroller", Icon: Coins, label: "High Roller", color: "text-emerald-400" },
+    { id: "value", Icon: Target, label: "Value Bettor", color: "text-blue-400" },
+    { id: "early", Icon: Star, label: "Early Adopter", color: "text-purple-400" },
   ],
   recentBets: [
     { id: "rb1", match: "Arsenal vs Man City", selection: "Arsenal Win", odds: 2.85, amount: 200, status: "WON", payout: 570, time: "2h ago" },
@@ -59,8 +60,8 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(167,139,250,0.1),transparent_55%)]" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-start">
           {/* Avatar */}
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#f59e0b] bg-[#f59e0b]/10 text-3xl font-black">
-            🏆
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#f59e0b] bg-[#f59e0b]/10 text-amber-400">
+            <Trophy className="h-10 w-10" />
           </div>
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -71,8 +72,9 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
             <p className="mt-1 text-[12px] text-[var(--color-ink-3)]">Member since {profile.joined}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {profile.badges.map((b) => (
-                <span key={b.id} className="flex items-center gap-1 rounded-md bg-[var(--color-bg-3)] px-2 py-1 text-[11px] font-semibold text-[var(--color-ink-1)]">
-                  {b.emoji} {b.label}
+                <span key={b.id} className="flex items-center gap-1.5 rounded-md bg-[var(--color-bg-3)] px-2.5 py-1 text-[11px] font-semibold text-[var(--color-ink-1)]">
+                  <b.Icon className={`h-3.5 w-3.5 ${b.color}`} />
+                  <span>{b.label}</span>
                 </span>
               ))}
             </div>
@@ -107,7 +109,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
         <StatCard label="Total bets" value={String(profile.stats.totalBets)} Icon={TrophyIcon} accent="var(--color-warn)" />
         <StatCard label="Win rate" value={`${profile.stats.winRate}%`} Icon={BadgeCheck} accent={winRateColor} />
         <StatCard label="ROI" value={`+${profile.stats.roi}%`} Icon={ZapIcon} accent="var(--color-brand-500)" />
-        <StatCard label="Hot streak" value={`${profile.stats.streak} 🔥`} Icon={HeartIcon} accent="var(--color-warn)" />
+        <StatCard label="Hot streak" value={`${profile.stats.streak} wins`} Icon={Flame} accent="var(--color-warn)" />
       </div>
 
       {/* Public bets */}
@@ -152,7 +154,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
 function StatCard({ label, value, Icon, accent }: {
   label: string; value: string;
-  Icon: (p: { className?: string }) => React.ReactElement;
+  Icon: React.ComponentType<{ className?: string }>;
   accent: string;
 }) {
   return (

@@ -8,6 +8,17 @@ import {
   TrophyIcon,
   CloseIcon,
 } from "@/components/icons/UIIcons";
+import {
+  Trophy,
+  Dices,
+  Rocket,
+  Landmark,
+  Zap,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
 import { useNotifications } from "@/lib/notificationStore";
 import { useWallet } from "@/lib/walletStore";
 import { getPublicClient } from "@/lib/publicClient";
@@ -248,7 +259,7 @@ export default function OnChainVaultManager() {
         setLastTxHash(receipt.transactionHash);
         pushToast({
           kind: "success",
-          title: "On-Chain Deposit Confirmed! 🚀",
+          title: "On-Chain Deposit Confirmed",
           body: `$${amt.toLocaleString()} USDC deposited to ${activeVault.toUpperCase()} vault directly from your wallet in block ${receipt.blockNumber}`,
         });
         setAmountInput("");
@@ -284,7 +295,7 @@ export default function OnChainVaultManager() {
       setLastTxHash(json.data?.txHash || null);
       pushToast({
         kind: "success",
-        title: "On-Chain Deposit Confirmed! 🚀",
+        title: "On-Chain Deposit Confirmed",
         body: `$${amt.toLocaleString()} USDC deposited to ${activeVault.toUpperCase()} vault in block ${json.data?.blockNumber}`,
       });
       setAmountInput("");
@@ -369,7 +380,7 @@ export default function OnChainVaultManager() {
         setLastTxHash(receipt.transactionHash);
         pushToast({
           kind: "success",
-          title: "On-Chain Withdrawal Success! 💸",
+          title: "On-Chain Withdrawal Success",
           body: `Transaction confirmed in block ${receipt.blockNumber}`,
         });
         setAmountInput("");
@@ -411,7 +422,7 @@ export default function OnChainVaultManager() {
       setLastTxHash(json.data?.txHash || null);
       pushToast({
         kind: "success",
-        title: "On-Chain Withdrawal Success! 💸",
+        title: "On-Chain Withdrawal Success",
         body: json.data?.message || `Withdrawal executed successfully in block ${json.data?.blockNumber}`,
       });
       setAmountInput("");
@@ -499,7 +510,7 @@ export default function OnChainVaultManager() {
       {lastTxHash && (
         <div className="rounded-xl border border-[var(--color-brand-500)]/40 bg-[var(--color-brand-500)]/10 p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm">⚡</span>
+            <Zap className="h-4 w-4 text-[var(--color-brand-500)]" />
             <p className="text-xs text-white">
               Latest On-Chain Transaction: <span className="mono text-[var(--color-brand-500)] font-bold">{shortAddr(lastTxHash)}</span>
             </p>
@@ -522,8 +533,8 @@ export default function OnChainVaultManager() {
           <div>
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-base">
-                  ⚽
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)]">
+                  <Trophy className="h-4 w-4" />
                 </span>
                 <div>
                   <h3 className="font-bold text-white text-sm">Sports Betting Pool</h3>
@@ -579,12 +590,20 @@ export default function OnChainVaultManager() {
                 </div>
                 <div className="flex justify-between items-center text-[10px] text-[var(--color-ink-3)]">
                   <span>Withdrawal Timelock:</span>
-                  <span className="mono font-semibold text-amber-400">
-                    {userTimelockStatus === "none"
-                      ? "48h Cooldown required"
-                      : userTimelockStatus === "active"
-                      ? `⏳ ${formatTime(userTimelockRemaining)} remaining`
-                      : "🟢 Cooldown Expired (Ready)"}
+                  <span className="mono font-semibold text-amber-400 flex items-center gap-1">
+                    {userTimelockStatus === "none" ? (
+                      "48h Cooldown required"
+                    ) : userTimelockStatus === "active" ? (
+                      <>
+                        <Clock className="h-3 w-3 inline text-amber-400" />
+                        {formatTime(userTimelockRemaining)} remaining
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-3 w-3 inline text-emerald-400" />
+                        Cooldown Expired (Ready)
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
@@ -607,24 +626,27 @@ export default function OnChainVaultManager() {
               <button
                 onClick={() => handleWithdraw("execute")}
                 disabled={submitting}
-                className="flex-1 rounded-xl bg-emerald-500 py-2 text-xs font-black text-black hover:brightness-110 transition-all shadow-sm active:scale-95"
+                className="flex-1 rounded-xl bg-emerald-500 py-2 text-xs font-black text-black hover:brightness-110 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1"
               >
-                {submitting ? "Processing..." : "💸 Withdraw LP"}
+                <ArrowUpRight className="h-3.5 w-3.5" />
+                {submitting ? "Processing..." : "Withdraw LP"}
               </button>
             ) : userTimelockStatus === "active" ? (
               <button
                 disabled
-                className="flex-1 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2 text-xs font-bold text-amber-400 cursor-not-allowed opacity-80"
+                className="flex-1 rounded-xl border border-amber-500/30 bg-amber-500/10 py-2 text-xs font-bold text-amber-400 cursor-not-allowed opacity-80 flex items-center justify-center gap-1"
               >
-                ⏳ Cooldown Active
+                <Clock className="h-3.5 w-3.5" />
+                Cooldown Active
               </button>
             ) : (
               <button
                 onClick={() => handleWithdraw("request")}
                 disabled={submitting || (userLpValue || 0) <= 0}
-                className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40"
+                className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1"
               >
-                {submitting ? "..." : "⏳ Request Exit"}
+                <Clock className="h-3.5 w-3.5" />
+                {submitting ? "..." : "Request Exit"}
               </button>
             )}
           </div>
@@ -635,8 +657,8 @@ export default function OnChainVaultManager() {
           <div>
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/15 text-base">
-                  🎲
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400">
+                  <Dices className="h-4 w-4" />
                 </span>
                 <div>
                   <h3 className="font-bold text-white text-sm">Casino House Vault</h3>
@@ -699,9 +721,10 @@ export default function OnChainVaultManager() {
                 setModalMode("withdraw");
               }}
               disabled={(data?.casinoHouse.maxWithdrawable || 0) <= 0}
-              className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40"
+              className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1"
             >
-              💸 Withdraw
+              <ArrowUpRight className="h-3.5 w-3.5" />
+              Withdraw
             </button>
           </div>
         </div>
@@ -711,8 +734,8 @@ export default function OnChainVaultManager() {
           <div>
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15 text-base">
-                  🚀
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-500/15 text-rose-400">
+                  <Rocket className="h-4 w-4" />
                 </span>
                 <div>
                   <h3 className="font-bold text-white text-sm">Crash Game Vault</h3>
@@ -775,9 +798,10 @@ export default function OnChainVaultManager() {
                 setModalMode("withdraw");
               }}
               disabled={(data?.crashGame.maxWithdrawable || 0) <= 0}
-              className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40"
+              className="flex-1 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-3)] py-2 text-xs font-bold text-white hover:bg-[var(--color-bg-1)] transition-all active:scale-95 disabled:opacity-40 flex items-center justify-center gap-1"
             >
-              💸 Withdraw
+              <ArrowUpRight className="h-3.5 w-3.5" />
+              Withdraw
             </button>
           </div>
         </div>
@@ -786,8 +810,8 @@ export default function OnChainVaultManager() {
       {/* Protocol Total Banner */}
       <div className="rounded-2xl border border-[var(--color-brand-500)]/30 bg-gradient-to-r from-[var(--color-bg-2)] via-[var(--color-brand-500)]/5 to-[var(--color-bg-2)] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/20 text-lg">
-            🏛️
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)]">
+            <Landmark className="h-5 w-5" />
           </div>
           <div>
             <p className="text-[11px] uppercase font-bold tracking-wider text-[var(--color-ink-3)]">
@@ -810,7 +834,17 @@ export default function OnChainVaultManager() {
           <div className="w-full max-w-md rounded-2xl border border-[var(--color-line-2)] bg-[var(--color-bg-2)] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <h3 className="text-base font-black text-white flex items-center gap-2">
-                {modalMode === "deposit" ? "📥 Deposit Liquidity" : "📤 Withdraw Liquidity"}
+                {modalMode === "deposit" ? (
+                  <>
+                    <ArrowDownLeft className="h-4 w-4 text-[var(--color-brand-500)]" />
+                    Deposit Liquidity
+                  </>
+                ) : (
+                  <>
+                    <ArrowUpRight className="h-4 w-4 text-amber-400" />
+                    Withdraw Liquidity
+                  </>
+                )}
                 <span className="rounded bg-[var(--color-bg-3)] px-2 py-0.5 text-xs text-[var(--color-brand-500)] font-bold uppercase">
                   {activeVault}
                 </span>

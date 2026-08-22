@@ -18,17 +18,38 @@ import {
   ChevronRight,
   GiftIcon,
 } from "@/components/icons/UIIcons";
+import {
+  Trophy,
+  TrendingDown,
+  Droplets,
+  Coins,
+  Ticket,
+  FileText,
+  Pencil,
+  Flame,
+  Wallet,
+  Zap,
+  User,
+} from "lucide-react";
 import SetUsernameModal from "@/components/integration/SetUsernameModal";
 import AvatarSelectorModal from "@/components/integration/AvatarSelectorModal";
 import WelcomeBonusControl from "@/components/profile/WelcomeBonusControl";
 
-const TYPE_ICON: Record<string, string> = {
-  bet_won: "🏆",
-  bet_lost: "📉",
-  lp_deposit: "💧",
-  lp_settled: "💰",
-  bet_placed: "🎟",
-};
+function ActivityTypeIcon({ type }: { type: string }) {
+  switch (type) {
+    case "bet_won":
+      return <Trophy className="h-4 w-4 text-[var(--color-brand-500)]" />;
+    case "bet_lost":
+      return <TrendingDown className="h-4 w-4 text-[var(--color-live)]" />;
+    case "lp_deposit":
+      return <Droplets className="h-4 w-4 text-cyan-400" />;
+    case "lp_settled":
+      return <Coins className="h-4 w-4 text-amber-400" />;
+    case "bet_placed":
+    default:
+      return <Ticket className="h-4 w-4 text-[var(--color-warn)]" />;
+  }
+}
 
 function betToActivity(b: BetDTO) {
   const won = b.status === "WON" || b.status === "CLAIMED";
@@ -104,12 +125,12 @@ export default function AccountPage() {
 
   const copyRefLink = () => {
     navigator.clipboard.writeText(refLink);
-    pushToast({ kind: "success", title: "Referral Link Copied! 🎁", body: refLink });
+    pushToast({ kind: "success", title: "Referral Link Copied", body: refLink });
   };
 
   const copyProfileLink = () => {
     navigator.clipboard.writeText(profileLink);
-    pushToast({ kind: "success", title: "Profile Link Copied! 🎟️", body: profileLink });
+    pushToast({ kind: "success", title: "Profile Link Copied", body: profileLink });
   };
 
   const winRate = stats?.winRate ?? 0;
@@ -119,10 +140,6 @@ export default function AccountPage() {
 
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
-      {/* Wide desktop: profile + bonus on the left, referral links in a
-          sidebar on the right, instead of everything stacked full-width —
-          on narrower viewports this collapses back to a single column in
-          the same top-to-bottom order as before. */}
       <div className="lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-4">
       <div className="min-w-0">
       {/* Profile Header */}
@@ -134,9 +151,9 @@ export default function AccountPage() {
             title="Click to change avatar"
             className="relative group flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--color-bg-3)] text-2xl font-black border-2 border-[var(--color-line-2)] hover:border-[var(--color-brand-500)] transition-all"
           >
-            {userMe?.avatar || "🎯"}
+            {userMe?.avatar || <User className="h-8 w-8 text-[var(--color-ink-2)]" />}
             <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand-500)] text-[10px] font-bold text-[var(--color-bg-0)] shadow">
-              ✏️
+              <Pencil className="h-3 w-3" />
             </span>
           </div>
           <div className="flex-1 min-w-0">
@@ -174,7 +191,8 @@ export default function AccountPage() {
                   className="mono flex items-center gap-1 rounded bg-[var(--color-warn)]/15 px-2 py-0.5 text-[11px] font-bold text-[var(--color-warn)]"
                   title="Consecutive wins across your most recent bets and parlays"
                 >
-                  🔥 {streak} streak
+                  <Flame className="h-3.5 w-3.5" />
+                  {streak} streak
                 </span>
               )}
             </div>
@@ -210,9 +228,7 @@ export default function AccountPage() {
       )}
       </div>
 
-      {/* Shareable Links & Referral Card — stacked single-column always;
-          at 360px sidebar width, side-by-side would be too cramped for a
-          URL input + copy button. */}
+      {/* Shareable Links & Referral Card */}
       {isConnected && (
         <div className="mt-4 grid gap-3 lg:mt-0">
           <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4 shadow-md">
@@ -260,8 +276,8 @@ export default function AccountPage() {
         <StatCard label="Win rate" value={loading ? "—" : `${winRate.toFixed(1)}%`} Icon={BadgeCheck} accent={winRateColor} />
         <StatCard
           label="Current streak"
-          value={loading ? "—" : `${streak} 🔥`}
-          Icon={ZapIcon}
+          value={loading ? "—" : `${streak} wins`}
+          Icon={Flame}
           accent="var(--color-warn)"
           hint="Consecutive wins (positive) or losses (negative) across your most recent bets and parlays"
         />
@@ -282,10 +298,6 @@ export default function AccountPage() {
           Icon={TrendUp}
           accent={parseFloat(stats?.netPnl ?? "0") >= 0 ? "var(--color-brand-500)" : "var(--color-live)"}
         />
-        {/* Balance already lives in the header (always visible) and the
-            Wallet quick-link below — showing it a third time here added
-            nothing, so this slot now surfaces a stat that isn't shown
-            anywhere else on the page. */}
         <StatCard
           label="Avg stake"
           value={loading || !stats?.totalBets ? "—" : `$${(parseFloat(stats.totalWagered) / stats.totalBets).toFixed(2)}`}
@@ -298,9 +310,9 @@ export default function AccountPage() {
 
       {/* Quick Links */}
       <div className="mt-4 grid gap-2 md:grid-cols-3">
-        <QuickLink href="/account/bets" label="My Bets" sub={`${stats?.totalBets ?? 0} total · ${stats?.won ?? 0} won`} icon="🎟" />
-        <QuickLink href="/account/wallet" label="Wallet" sub={isConnected ? `${balanceFormatted} USDC balance` : "Sign in to view"} icon="💼" />
-        <QuickLink href="/ai-analytics" label="AI Signals & Auto-Pilot" sub="Model edge · +EV signals" icon="⚡" />
+        <QuickLink href="/account/bets" label="My Bets" sub={`${stats?.totalBets ?? 0} total · ${stats?.won ?? 0} won`} Icon={Ticket} />
+        <QuickLink href="/account/wallet" label="Wallet" sub={isConnected ? `${balanceFormatted} USDC balance` : "Sign in to view"} Icon={Wallet} />
+        <QuickLink href="/ai-analytics" label="AI Signals & Auto-Pilot" sub="Model edge · +EV signals" Icon={Zap} />
       </div>
 
       {/* Activity Chart */}
@@ -325,7 +337,7 @@ export default function AccountPage() {
           </div>
         ) : activity.length === 0 ? (
           <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-            <span className="text-4xl">🎟️</span>
+            <Ticket className="h-10 w-10 text-[var(--color-ink-4)]" />
             <div>
               <p className="text-[14px] font-bold text-white">No bets placed yet</p>
               <p className="mt-1 text-[12px] text-[var(--color-ink-3)]">
@@ -342,7 +354,9 @@ export default function AccountPage() {
         ) : (
           activity.map((a) => (
             <div key={a.id} className="flex items-center gap-3 border-b border-[var(--color-line-1)] px-4 py-3 text-[13px] last:border-0 hover:bg-[var(--color-bg-3)]">
-              <span className="text-xl">{TYPE_ICON[a.type] ?? "📋"}</span>
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-bg-3)]">
+                <ActivityTypeIcon type={a.type} />
+              </span>
               <div className="flex-1 min-w-0">
                 <p className="truncate font-semibold text-white">{a.label}</p>
                 <p className="text-[11px] text-[var(--color-ink-3)]">{a.time}</p>
@@ -409,7 +423,7 @@ function StatCard({
 }: {
   label: string;
   value: string;
-  Icon: (p: { className?: string }) => React.ReactElement;
+  Icon: React.ComponentType<{ className?: string }>;
   accent: string;
   hint?: string;
 }) {
@@ -426,10 +440,12 @@ function StatCard({
   );
 }
 
-function QuickLink({ href, label, sub, icon }: { href: string; label: string; sub: string; icon: string }) {
+function QuickLink({ href, label, sub, Icon }: { href: string; label: string; sub: string; Icon: React.ComponentType<{ className?: string }> }) {
   return (
     <Link href={href} className="flex items-center gap-3 rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4 hover:border-[var(--color-line-2)] hover:bg-[var(--color-bg-3)] transition-colors">
-      <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-bg-3)] text-xl">{icon}</span>
+      <span className="flex h-10 w-10 items-center justify-center rounded-md bg-[var(--color-bg-3)] text-[var(--color-brand-500)]">
+        <Icon className="h-5 w-5" />
+      </span>
       <div className="flex-1 min-w-0">
         <p className="font-bold text-white">{label}</p>
         <p className="text-[11px] text-[var(--color-ink-3)] truncate">{sub}</p>

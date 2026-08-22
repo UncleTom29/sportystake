@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { LeaderboardApi } from "@/lib/api-client";
 import { TrophyIcon, FlameIcon, ZapIcon } from "@/components/icons/UIIcons";
+import { Crown, Medal, User } from "lucide-react";
 
 export default function DailyCasinoWinnersLeaderboard() {
   const [period, setPeriod] = useState<"daily" | "weekly" | "alltime">("daily");
@@ -20,12 +21,6 @@ export default function DailyCasinoWinnersLeaderboard() {
   useEffect(() => {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
-
-  const RANK_BADGE: Record<number, string> = {
-    1: "🥇",
-    2: "🥈",
-    3: "🥉",
-  };
 
   return (
     <div className="mt-8 rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5 shadow-2xl space-y-4">
@@ -67,7 +62,7 @@ export default function DailyCasinoWinnersLeaderboard() {
         <div className="h-40 animate-pulse rounded-xl bg-[var(--color-bg-1)]" />
       ) : items.length === 0 ? (
         <div className="p-8 text-center text-[12px] text-[var(--color-ink-3)]">
-          No casino bets recorded yet for this period. Be the first high roller on the board! 🎲
+          No casino bets recorded yet for this period. Be the first high roller on the board!
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -85,19 +80,30 @@ export default function DailyCasinoWinnersLeaderboard() {
             </thead>
             <tbody className="divide-y divide-[var(--color-line-1)]">
               {items.slice(0, 10).map((item) => {
-                const badge = RANK_BADGE[item.rank];
                 return (
                   <tr key={item.userId || item.rank} className="hover:bg-[var(--color-bg-1)] transition-colors">
                     <td className="py-3 font-bold">
-                      {badge ? (
-                        <span className="text-base">{badge}</span>
+                      {item.rank === 1 ? (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400/20 text-amber-400 ring-1 ring-amber-400/40">
+                          <Crown className="h-3.5 w-3.5" />
+                        </div>
+                      ) : item.rank === 2 ? (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-300/20 text-slate-200 ring-1 ring-slate-300/40">
+                          <Medal className="h-3.5 w-3.5" />
+                        </div>
+                      ) : item.rank === 3 ? (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-700/20 text-amber-600 ring-1 ring-amber-700/40">
+                          <Medal className="h-3.5 w-3.5" />
+                        </div>
                       ) : (
                         <span className="mono text-[var(--color-ink-3)]">#{item.rank}</span>
                       )}
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <span className="text-base">{item.avatar || "🎯"}</span>
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-bg-3)] text-xs text-[var(--color-ink-2)]">
+                          <User className="h-3.5 w-3.5" />
+                        </div>
                         <div>
                           <p className="font-bold text-white leading-none">
                             {item.username || item.handle || "Anonymous"}

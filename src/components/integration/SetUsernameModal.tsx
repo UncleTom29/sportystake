@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { UserApi } from "@/lib/api-client";
 import { useNotifications } from "@/lib/notificationStore";
 import { ShieldIcon, CloseIcon } from "@/components/icons/UIIcons";
+import { Check, X } from "lucide-react";
 
 export default function SetUsernameModal({
   open,
@@ -57,7 +58,7 @@ export default function SetUsernameModal({
       const res = await UserApi.setUsername(username);
       pushToast({
         kind: "success",
-        title: "Username Claimed! 🎉",
+        title: "Username Claimed",
         body: `@${res.user.username} is now associated with your account`,
       });
       onUsernameSet(res.user.username!);
@@ -117,13 +118,13 @@ export default function SetUsernameModal({
 
             {/* Validation helper message */}
             {available === true && (
-              <p className="mt-1.5 text-[11px] font-bold text-[var(--color-brand-500)]">
-                ✓ @{username} is available!
+              <p className="mt-1.5 text-[11px] font-bold text-[var(--color-brand-500)] flex items-center gap-1">
+                <Check className="h-3 w-3" /> @{username} is available!
               </p>
             )}
             {available === false && reason && (
-              <p className="mt-1.5 text-[11px] font-bold text-[var(--color-live)]">
-                ✕ {reason}
+              <p className="mt-1.5 text-[11px] font-bold text-[var(--color-live)] flex items-center gap-1">
+                <X className="h-3 w-3" /> {reason}
               </p>
             )}
           </div>

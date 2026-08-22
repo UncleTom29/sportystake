@@ -9,6 +9,7 @@ import { useNotifications } from "@/lib/notificationStore";
 import { placeSingleBets, placeParlay } from "@/lib/placeBet";
 import { BetSlip } from "@/lib/api-client";
 import BookedBetModal from "@/components/sportsbook/BookedBetModal";
+import { Gift } from "lucide-react";
 
 type Tab = "singles" | "parlay";
 
@@ -74,7 +75,7 @@ export default function BetSlipRail() {
         if (res.ok && data.success) {
           pushToast({
             kind: "success",
-            title: "🎁 Bonus Accumulator Placed!",
+            title: "Bonus Accumulator Placed",
             body: `Stake: $${parlayStake} USDC · Remaining Bonus: $${data.data.remainingBonusBalanceUsdc.toFixed(2)}`,
           });
           setBonusBalance(data.data.remainingBonusBalanceUsdc);
@@ -352,7 +353,10 @@ function SlipContent({
                   : "text-[var(--color-ink-3)] hover:text-white"
               }`}
             >
-              <span>🎁 Bonus</span>
+              <span className="flex items-center gap-1">
+                <Gift className="h-3 w-3" />
+                Bonus
+              </span>
               <span className="mono font-mono text-[10px]">${bonusBalance.toFixed(2)}</span>
             </button>
           </div>

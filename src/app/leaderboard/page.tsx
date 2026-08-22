@@ -6,6 +6,15 @@ import {
   TrophyIcon,
   BadgeCheck,
 } from "@/components/icons/UIIcons";
+import {
+  Crown,
+  Medal,
+  Trophy,
+  Dices,
+  TrendingUp,
+  Flame,
+  Users,
+} from "lucide-react";
 import { useWallet } from "@/lib/walletStore";
 import { LeaderboardApi } from "@/lib/api-client";
 
@@ -29,7 +38,30 @@ interface LeaderboardUser {
   avatar?: string;
 }
 
-const RANK_MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+function RankBadge({ rank }: { rank: number }) {
+  if (rank === 1) {
+    return (
+      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400/20 text-amber-400 ring-1 ring-amber-400/40">
+        <Crown className="h-3.5 w-3.5" />
+      </div>
+    );
+  }
+  if (rank === 2) {
+    return (
+      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-300/20 text-slate-200 ring-1 ring-slate-300/40">
+        <Medal className="h-3.5 w-3.5" />
+      </div>
+    );
+  }
+  if (rank === 3) {
+    return (
+      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-700/20 text-amber-600 ring-1 ring-amber-700/40">
+        <Medal className="h-3.5 w-3.5" />
+      </div>
+    );
+  }
+  return <span className="mono text-[var(--color-ink-3)] font-bold">#{rank}</span>;
+}
 
 /**
  * Real countdown to the period boundary (UTC), replacing what used to be a
@@ -113,11 +145,7 @@ export default function LeaderboardPage() {
             </p>
           </div>
 
-          {/* Countdown to period reset — real, computed from the period
-              boundary (was previously a hardcoded "2d 14h 38m" that never
-              changed regardless of the actual date). No prize-pool figures
-              are shown here since there's no real prize pool backing them
-              yet — this app doesn't have a funded-competition system. */}
+          {/* Countdown to period reset */}
           {countdown && (
             <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 shadow-lg text-right">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">
@@ -172,11 +200,11 @@ export default function LeaderboardPage() {
         {/* Category Tabs */}
         <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1.5 scrollbar-none">
           {[
-            { id: "sports", label: "⚽ Sports Volume" },
-            { id: "casino", label: "🎲 Casino High-Rollers" },
-            { id: "roi", label: "📈 Top ROI %" },
-            { id: "streaks", label: "🔥 Win Streaks" },
-            { id: "referrals", label: "🤝 Top Referrers" },
+            { id: "sports", label: "Sports Volume", Icon: Trophy, color: "text-emerald-400" },
+            { id: "casino", label: "Casino High-Rollers", Icon: Dices, color: "text-purple-400" },
+            { id: "roi", label: "Top ROI %", Icon: TrendingUp, color: "text-cyan-400" },
+            { id: "streaks", label: "Win Streaks", Icon: Flame, color: "text-amber-400" },
+            { id: "referrals", label: "Top Referrers", Icon: Users, color: "text-blue-400" },
           ].map((c) => (
             <button
               key={c.id}
@@ -187,6 +215,7 @@ export default function LeaderboardPage() {
                   : "text-[var(--color-ink-2)] hover:bg-[var(--color-bg-2)] hover:text-white"
               }`}
             >
+              <c.Icon className={`h-3.5 w-3.5 ${category === c.id ? "text-[var(--color-bg-0)]" : c.color}`} />
               <span>{c.label}</span>
             </button>
           ))}
@@ -231,8 +260,14 @@ export default function LeaderboardPage() {
                     : "border-[var(--color-line-1)] bg-[var(--color-bg-2)]"
                 }`}
               >
-                <div className="absolute -top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg-1)] text-2xl shadow-lg ring-1 ring-white/10">
-                  {RANK_MEDAL[actualRank]}
+                <div className="absolute -top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-bg-1)] shadow-lg ring-1 ring-white/10">
+                  {actualRank === 1 ? (
+                    <Crown className="h-5 w-5 text-amber-400" />
+                  ) : actualRank === 2 ? (
+                    <Medal className="h-5 w-5 text-slate-300" />
+                  ) : (
+                    <Medal className="h-5 w-5 text-amber-600" />
+                  )}
                 </div>
 
                 <div
@@ -264,10 +299,6 @@ export default function LeaderboardPage() {
 
       {/* Main Leaderboard Directory Table */}
       <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] shadow-xl">
-        {/* Grid template itself must change per breakpoint, not just hide
-            cell content — a hidden cell still reserved its 90px/110px
-            column track under the old fixed 6-column template, cramming
-            the flexible Bettor/Wallet column into ~70px on a 375px phone. */}
         <div className="grid grid-cols-[40px_1fr_85px_95px] items-center gap-2 border-b border-[var(--color-line-1)] bg-[var(--color-bg-1)] px-3 py-3 text-[10px] uppercase font-bold tracking-wider text-[var(--color-ink-3)] sm:grid-cols-[50px_1fr_90px_90px_110px_110px] sm:gap-0 sm:px-4">
           <span>Rank</span>
           <span>Bettor / Wallet</span>
@@ -291,9 +322,9 @@ export default function LeaderboardPage() {
                 key={p.userId}
                 className="grid grid-cols-[40px_1fr_85px_95px] items-center gap-2 px-3 py-3.5 text-[13px] transition-colors hover:bg-[var(--color-bg-1)] sm:grid-cols-[50px_1fr_90px_90px_110px_110px] sm:gap-0 sm:px-4"
               >
-                <span className="mono font-black text-white">
-                  {RANK_MEDAL[p.rank] ?? `#${p.rank}`}
-                </span>
+                <div className="flex items-center">
+                  <RankBadge rank={p.rank} />
+                </div>
 
                 <div className="flex items-center gap-3 min-w-0">
                   <div

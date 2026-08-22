@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { GiftIcon, BadgeCheck, ZapIcon, ShieldIcon } from "@/components/icons/UIIcons";
+import { Clock } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 
 interface BonusStatus {
@@ -143,8 +144,8 @@ export default function WelcomeBonusControl() {
 
               <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3 col-span-2 sm:col-span-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">Expiry Countdown</span>
-                <p className="mono text-lg font-black text-amber-400 mt-0.5">
-                  ⏳ {status?.daysRemaining} Days Left
+                <p className="mono text-lg font-black text-amber-400 mt-0.5 flex items-center gap-1.5">
+                  <Clock className="h-4 w-4" /> {status?.daysRemaining} Days Left
                 </p>
               </div>
             </div>

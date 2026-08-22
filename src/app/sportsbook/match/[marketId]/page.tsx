@@ -7,6 +7,7 @@ import { marketToMatch } from "@/lib/adapters/marketToMatch";
 import type { Match } from "@/lib/mockData";
 import type { MarketDTO, OddsBundle } from "@/lib/types";
 import OddsButton from "@/components/sportsbook/OddsButton";
+import LiveMatchCenter from "@/components/sportsbook/LiveMatchCenter";
 import {
   ChevronLeft, LiveIcon, ShieldIcon, ZapIcon,
 } from "@/components/icons/UIIcons";
@@ -283,10 +284,16 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
         </div>
       </div>
 
+      {/* 2D Live Match Center / Visualizer */}
+      {!isPrediction && (
+        <div className="mt-6">
+          <LiveMatchCenter market={market} homeColor={matchUi.homeColor} awayColor={matchUi.awayColor} />
+        </div>
+      )}
+
       {markets.length === 0 ? (
         <div className="mt-4 rounded-xl border border-dashed border-[var(--color-line-1)] bg-[var(--color-bg-2)]/40 p-8 text-center text-[12px] text-[var(--color-ink-3)]">
-          No odds available yet for this fixture. The oracle scrapes every 3 minutes —
-          markets typically appear within a few minutes of kick-off listing.
+          No betting lines available yet for this fixture. Odds will appear shortly prior to start.
         </div>
       ) : (
         <>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "@/components/icons/UIIcons";
-import { TrendingUp, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import { TrendingUp, Bot, ShieldCheck, CheckCircle2 } from "lucide-react";
 import PredictionMarketsDashboard from "@/components/prediction-markets/PredictionMarketsDashboard";
 import type { MarketDTO } from "@/lib/types";
 import { internalApiBase } from "@/lib/server/internalApiBase";
@@ -55,7 +55,7 @@ export default async function PredictionMarketsPage() {
                 Smart Contract Verified
               </span>
               <span className="flex items-center gap-1.5 font-semibold text-white">
-                <Zap className="h-4 w-4 text-[var(--color-brand-500)]" />
+                <CheckCircle2 className="h-4 w-4 text-[var(--color-brand-500)]" />
                 Instant USDC Settlement
               </span>
             </div>
@@ -73,7 +73,7 @@ export default async function PredictionMarketsPage() {
               href="/ai-analytics"
               className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[var(--color-bg-3)]"
             >
-              <Sparkles className="h-4 w-4 text-[var(--color-brand-500)]" />
+              <Bot className="h-4 w-4 text-[var(--color-brand-500)]" />
               AI Value Signals
             </Link>
           </div>

@@ -73,7 +73,11 @@ export function CasinoChipIcon(props: Props) {
 }
 
 export function ZapIcon(props: Props) {
-  return <svg {...base} {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+  return (
+    <svg {...base} {...props}>
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  );
 }
 
 export function BotIcon(props: Props) {

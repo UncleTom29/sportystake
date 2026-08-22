@@ -4,92 +4,183 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import OddsButton from "@/components/sportsbook/OddsButton";
 import { SearchIcon, CloseIcon, ChevronLeft, ChevronRight, ArrowUpRight } from "@/components/icons/UIIcons";
-import { Flame, Trophy, Swords, Gamepad2, TrendingUp, Sparkles, Clock, BarChart3, Filter } from "lucide-react";
+import {
+  Flame,
+  Trophy,
+  Swords,
+  Gamepad2,
+  TrendingUp,
+  CircleDot,
+  Activity,
+  Shield,
+  BarChart3,
+  Clock,
+  Filter,
+} from "lucide-react";
 import type { MarketDTO } from "@/lib/types";
 
 interface Props {
   initialMarkets: MarketDTO[];
 }
 
-type CategoryKey = "all" | "football" | "tennis" | "esports" | "combat" | "basketball" | "crypto_specials";
+export type CategoryKey =
+  | "all"
+  | "football"
+  | "esports"
+  | "tennis"
+  | "baseball"
+  | "basketball"
+  | "combat"
+  | "american_football"
+  | "crypto_politics";
 
 interface CategoryDef {
   key: CategoryKey;
   label: string;
+  badge: string;
   Icon: React.ComponentType<{ className?: string }>;
 }
 
-const CATEGORIES: CategoryDef[] = [
-  { key: "all", label: "All Markets", Icon: Flame },
-  { key: "football", label: "Football", Icon: Trophy },
-  { key: "tennis", label: "Tennis", Icon: Sparkles },
-  { key: "esports", label: "Esports", Icon: Gamepad2 },
-  { key: "combat", label: "MMA & Boxing", Icon: Swords },
-  { key: "basketball", label: "Basketball", Icon: TrendingUp },
-  { key: "crypto_specials", label: "Crypto & Specials", Icon: BarChart3 },
+export const CATEGORIES: CategoryDef[] = [
+  { key: "all", label: "All Markets", badge: "All", Icon: Flame },
+  { key: "football", label: "Football", badge: "Football", Icon: Trophy },
+  { key: "esports", label: "Esports", badge: "Esports", Icon: Gamepad2 },
+  { key: "tennis", label: "Tennis", badge: "Tennis", Icon: Activity },
+  { key: "baseball", label: "Baseball", badge: "Baseball", Icon: CircleDot },
+  { key: "basketball", label: "Basketball", badge: "Basketball", Icon: TrendingUp },
+  { key: "combat", label: "MMA & Boxing", badge: "Combat", Icon: Swords },
+  { key: "american_football", label: "American Football", badge: "NFL", Icon: Shield },
+  { key: "crypto_politics", label: "Crypto & Specials", badge: "Specials", Icon: BarChart3 },
 ];
 
-function getCategory(question: string, homeTeam: string): CategoryKey {
-  const text = `${question} ${homeTeam}`.toLowerCase();
+export function getCategory(market: MarketDTO): CategoryKey {
+  const q = (typeof market.metadata?.question === "string" ? market.metadata.question : "") || market.homeTeam || "";
+  const league = market.leagueName || "";
+  const desc = (typeof market.metadata?.description === "string" ? market.metadata.description : "") || "";
+  const text = `${q} ${market.homeTeam} ${league} ${desc}`.toLowerCase();
+
+  // 1. Esports & Gaming
   if (
-    text.includes("tennis") ||
-    text.includes("wta") ||
-    text.includes("atp") ||
-    text.includes("itf") ||
-    text.includes("open:") ||
-    text.includes("classic:") ||
-    text.includes("total sets")
-  ) {
-    return "tennis";
-  }
-  if (
-    text.includes("esports") ||
-    text.includes("rainbow six") ||
-    text.includes("mobile legends") ||
-    text.includes("dota") ||
-    text.includes("slay a dragon") ||
-    text.includes("cs:go") ||
-    text.includes("valorant") ||
-    text.includes("game 1 winner") ||
-    text.includes("game 2 winner")
+    text.includes("lol:") || text.includes("esports") || text.includes("counter-strike") ||
+    text.includes("cs:go") || text.includes("cs2") || text.includes("dota") ||
+    text.includes("rainbow six") || text.includes("mobile legends") || text.includes("valorant") ||
+    text.includes("baron nashor") || text.includes("slay a dragon") || text.includes("map 1") ||
+    text.includes("map 2") || text.includes("game 1") || text.includes("game 2") ||
+    text.includes("lpl") || text.includes("lck") || text.includes("lec") || text.includes("lcs") ||
+    text.includes("overwatch") || text.includes("rocket league") || text.includes("call of duty") ||
+    text.includes("blast premier") || text.includes("pgl major")
   ) {
     return "esports";
   }
+
+  // 2. Tennis
   if (
-    text.includes("ufc") ||
-    text.includes("boxing") ||
-    text.includes("fight") ||
-    text.includes("bout") ||
-    text.includes("prelims") ||
-    text.includes("middleweight") ||
-    text.includes("heavyweight") ||
-    text.includes("knockout")
+    text.includes("tennis") || text.includes("atp") || text.includes("wta") ||
+    text.includes("itf") || text.includes("open:") || text.includes("classic:") ||
+    text.includes("wimbledon") || text.includes("us open") || text.includes("australian open") ||
+    text.includes("french open") || text.includes("roland garros") || text.includes("total sets") ||
+    text.includes("set 1") || text.includes("set 2") || text.includes("set winner")
+  ) {
+    return "tennis";
+  }
+
+  // 3. MMA & Combat Sports
+  if (
+    text.includes("ufc") || text.includes("mma") || text.includes("boxing") ||
+    text.includes("fight night") || text.includes("bout") || text.includes("prelims") ||
+    text.includes("heavyweight") || text.includes("middleweight") || text.includes("welterweight") ||
+    text.includes("lightweight") || text.includes("featherweight") || text.includes("bantamweight") ||
+    text.includes("flyweight") || text.includes("knockout") || text.includes("tko") || text.includes("pfl") ||
+    text.includes("bellator")
   ) {
     return "combat";
   }
+
+  // 4. Baseball (MLB)
   if (
-    text.includes("nba") ||
-    text.includes("basketball") ||
-    text.includes("points o/u") ||
-    text.includes("rebounds") ||
-    text.includes("quarter")
+    text.includes("mlb") || text.includes("baseball") || text.includes("home runs") ||
+    text.includes("strikeouts") || text.includes("innings") || text.includes("red sox") ||
+    text.includes("yankees") || text.includes("dodgers") || text.includes("blue jays") ||
+    text.includes("cardinals") || text.includes("mariners") || text.includes("cubs") ||
+    text.includes("white sox") || text.includes("astros") || text.includes("braves") ||
+    text.includes("phillies") || text.includes("mets") || text.includes("padres") ||
+    text.includes("giants") || text.includes("guardians") || text.includes("royals") ||
+    text.includes("tigers") || text.includes("twins") || text.includes("brewers") ||
+    text.includes("pirates") || text.includes("reds") || text.includes("diamondbacks") ||
+    text.includes("rockies") || text.includes("marlins") || text.includes("nationals") ||
+    text.includes("athletics") || text.includes("rays") || text.includes("orioles")
+  ) {
+    return "baseball";
+  }
+
+  // 5. Basketball (NBA, WNBA, EuroLeague)
+  if (
+    text.includes("nba") || text.includes("wnba") || text.includes("basketball") ||
+    text.includes("euroleague") || text.includes("celtics") || text.includes("lakers") ||
+    text.includes("warriors") || text.includes("bucks") || text.includes("nuggets") ||
+    text.includes("heat") || text.includes("76ers") || text.includes("suns") ||
+    text.includes("clippers") || text.includes("mavericks") || text.includes("timberwolves") ||
+    text.includes("knicks") || text.includes("cavaliers") || text.includes("pacers") ||
+    text.includes("thunder") || text.includes("points o/u") || text.includes("rebounds") ||
+    text.includes("assists")
   ) {
     return "basketball";
   }
+
+  // 6. American Football (NFL, College Football)
   if (
-    text.includes("bitcoin") ||
-    text.includes("btc") ||
-    text.includes("crypto") ||
-    text.includes("eth") ||
-    text.includes("solana") ||
-    text.includes("fed") ||
-    text.includes("interest rate") ||
-    text.includes("election") ||
-    text.includes("president")
+    text.includes("nfl") || text.includes("pro football") || text.includes("super bowl") ||
+    text.includes("touchdown") || text.includes("quarterback") || text.includes("chiefs") ||
+    text.includes("eagles") || text.includes("49ers") || text.includes("bills") ||
+    text.includes("cowboys") || text.includes("ravens") || text.includes("dolphins") ||
+    text.includes("packers") || text.includes("lions") || text.includes("texans") ||
+    text.includes("jets") || text.includes("patriots") || text.includes("steelers")
   ) {
-    return "crypto_specials";
+    return "american_football";
   }
-  return "football";
+
+  // 7. Crypto, Politics & Macro
+  if (
+    text.includes("bitcoin") || text.includes("btc") || text.includes("crypto") ||
+    text.includes("ethereum") || text.includes("eth") || text.includes("solana") ||
+    text.includes("fed") || text.includes("interest rate") || text.includes("election") ||
+    text.includes("president") || text.includes("senate") || text.includes("trump") ||
+    text.includes("harris") || text.includes("biden") || text.includes("inflation") ||
+    text.includes("gdp") || text.includes("spacex") || text.includes("openai")
+  ) {
+    return "crypto_politics";
+  }
+
+  // 8. Soccer / Football
+  if (
+    text.includes(" fc") || text.includes("fc ") || text.includes("united") ||
+    text.includes("city") || text.includes("corners") || text.includes("premier league") ||
+    text.includes("la liga") || text.includes("serie a") || text.includes("bundesliga") ||
+    text.includes("ligue 1") || text.includes("champions league") || text.includes("europa") ||
+    text.includes("copa") || text.includes("first team to score") || text.includes("exact score") ||
+    text.includes("team to advance") || text.includes("both teams to score") || text.includes("btts") ||
+    text.includes("clean sheet") || text.includes("handicap") || text.includes("spread") ||
+    text.includes("liga mx") || text.includes("brasileirão") || text.includes("eredivisie") ||
+    text.includes("vs.") || text.includes(" vs ")
+  ) {
+    return "football";
+  }
+
+  return "crypto_politics";
+}
+
+function getCategoryBadgeLabel(cat: CategoryKey): string {
+  switch (cat) {
+    case "football": return "Football";
+    case "esports": return "Esports";
+    case "tennis": return "Tennis";
+    case "baseball": return "MLB";
+    case "basketball": return "NBA";
+    case "combat": return "MMA / UFC";
+    case "american_football": return "NFL";
+    case "crypto_politics": return "Specials";
+    default: return "Market";
+  }
 }
 
 function predictionBundle(market: MarketDTO) {
@@ -110,25 +201,33 @@ export default function PredictionMarketsDashboard({ initialMarkets }: Props) {
     return initialMarkets.filter((market) => predictionBundle(market)?.selections.length);
   }, [initialMarkets]);
 
+  // Pre-classify all markets for speed and precise filtering
+  const classifiedMarkets = useMemo(() => {
+    return validMarkets.map((m) => ({
+      market: m,
+      category: getCategory(m),
+    }));
+  }, [validMarkets]);
+
   // Category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<CategoryKey, number> = {
-      all: validMarkets.length,
+      all: classifiedMarkets.length,
       football: 0,
-      tennis: 0,
       esports: 0,
-      combat: 0,
+      tennis: 0,
+      baseball: 0,
       basketball: 0,
-      crypto_specials: 0,
+      combat: 0,
+      american_football: 0,
+      crypto_politics: 0,
     };
 
-    for (const m of validMarkets) {
-      const q = typeof m.metadata?.question === "string" ? m.metadata.question : m.homeTeam;
-      const cat = getCategory(q, m.homeTeam);
-      counts[cat] = (counts[cat] || 0) + 1;
+    for (const item of classifiedMarkets) {
+      counts[item.category] = (counts[item.category] || 0) + 1;
     }
     return counts;
-  }, [validMarkets]);
+  }, [classifiedMarkets]);
 
   // Filtered and sorted markets
   const filteredMarkets = useMemo(() => {
@@ -136,19 +235,24 @@ export default function PredictionMarketsDashboard({ initialMarkets }: Props) {
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
 
-    return validMarkets
-      .filter((market) => {
+    return classifiedMarkets
+      .filter(({ market, category }) => {
         const question = typeof market.metadata?.question === "string" ? market.metadata.question : market.homeTeam;
+        const league = market.leagueName || "";
         const desc = typeof market.metadata?.description === "string" ? market.metadata.description : "";
-        const cat = getCategory(question, market.homeTeam);
 
         // Category filter
-        if (selectedCategory !== "all" && cat !== selectedCategory) {
+        if (selectedCategory !== "all" && category !== selectedCategory) {
           return false;
         }
 
         // Search query filter
-        if (query && !question.toLowerCase().includes(query) && !desc.toLowerCase().includes(query)) {
+        if (
+          query &&
+          !question.toLowerCase().includes(query) &&
+          !league.toLowerCase().includes(query) &&
+          !desc.toLowerCase().includes(query)
+        ) {
           return false;
         }
 
@@ -166,17 +270,17 @@ export default function PredictionMarketsDashboard({ initialMarkets }: Props) {
         return true;
       })
       .sort((a, b) => {
-        const volA = typeof a.metadata?.volume === "number" ? a.metadata.volume : 0;
-        const volB = typeof b.metadata?.volume === "number" ? b.metadata.volume : 0;
-        const timeA = new Date(typeof a.metadata?.endDate === "string" ? a.metadata.endDate : a.startTime).getTime();
-        const timeB = new Date(typeof b.metadata?.endDate === "string" ? b.metadata.endDate : b.startTime).getTime();
+        const volA = typeof a.market.metadata?.volume === "number" ? a.market.metadata.volume : 0;
+        const volB = typeof b.market.metadata?.volume === "number" ? b.market.metadata.volume : 0;
+        const timeA = new Date(typeof a.market.metadata?.endDate === "string" ? a.market.metadata.endDate : a.market.startTime).getTime();
+        const timeB = new Date(typeof b.market.metadata?.endDate === "string" ? b.market.metadata.endDate : b.market.startTime).getTime();
 
         if (sortBy === "volume") return volB - volA;
         if (sortBy === "closing_soon") return timeA - timeB;
-        if (sortBy === "newest") return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+        if (sortBy === "newest") return new Date(b.market.startTime).getTime() - new Date(a.market.startTime).getTime();
         return 0;
       });
-  }, [validMarkets, selectedCategory, searchQuery, sortBy, timeFilter]);
+  }, [classifiedMarkets, selectedCategory, searchQuery, sortBy, timeFilter]);
 
   // Pagination calculation
   const totalPages = Math.ceil(filteredMarkets.length / ITEMS_PER_PAGE) || 1;
@@ -328,7 +432,7 @@ export default function PredictionMarketsDashboard({ initialMarkets }: Props) {
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {paginatedMarkets.map((market) => {
+          {paginatedMarkets.map(({ market, category }) => {
             const bundle = predictionBundle(market);
             if (!bundle) return null;
 
@@ -351,6 +455,7 @@ export default function PredictionMarketsDashboard({ initialMarkets }: Props) {
             // Implied probabilities calculation
             const bestSelection = topSelections[0];
             const impliedProb = bestSelection ? Math.round((1000 / bestSelection.valueX1000) * 100) : 50;
+            const badgeText = getCategoryBadgeLabel(category);
 
             return (
               <div
@@ -360,9 +465,16 @@ export default function PredictionMarketsDashboard({ initialMarkets }: Props) {
                 <div>
                   {/* Top Bar */}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="mono rounded bg-[var(--color-bg-1)] px-2 py-0.5 text-[10px] font-bold text-[var(--color-brand-500)] border border-[var(--color-line-1)]">
-                      {bundle.marketType === "multi_outcome" ? `${topSelections.length} Choices` : "Binary Outcome"}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="mono rounded bg-[var(--color-brand-500)]/15 px-2 py-0.5 text-[10px] font-black uppercase text-[var(--color-brand-500)] border border-[var(--color-brand-500)]/30">
+                        {badgeText}
+                      </span>
+                      {bundle.marketType === "multi_outcome" && (
+                        <span className="mono rounded bg-[var(--color-bg-1)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-ink-3)] border border-[var(--color-line-1)]">
+                          {topSelections.length} Choices
+                        </span>
+                      )}
+                    </div>
                     <span className="flex items-center gap-1 text-[11px] font-semibold text-[var(--color-ink-3)]">
                       <Clock className="h-3 w-3" />
                       {formattedEnd}
@@ -376,6 +488,13 @@ export default function PredictionMarketsDashboard({ initialMarkets }: Props) {
                   >
                     {question}
                   </Link>
+
+                  {/* League / Tournament Subtitle */}
+                  {market.leagueName && market.leagueName !== question && (
+                    <p className="mt-1 text-[11px] text-[var(--color-ink-3)] truncate">
+                      {market.leagueName}
+                    </p>
+                  )}
 
                   {description && (
                     <p className="mt-2 line-clamp-2 text-[12px] text-[var(--color-ink-3)]">

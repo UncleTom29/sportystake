@@ -11,7 +11,8 @@ import {
   FlameIcon,
   CasinoChipIcon,
   TrophyIcon,
-  ZapIcon,
+  BotIcon,
+  TrendUp,
   ArrowUpRight,
   ShieldIcon,
   BadgeCheck,
@@ -102,7 +103,7 @@ export default async function Home() {
             href="/ai-analytics"
             accent="#38bdf8"
             tnc="100% Free · Real-time AI sports predictions"
-            Icon={ZapIcon}
+            Icon={BotIcon}
           />
           <PromoFeatureCard
             tag="Perpetual Revenue Cut"
@@ -132,7 +133,7 @@ export default async function Home() {
             href="/ai-analytics"
             accent="#00e701"
             tnc="100% Free · Top 5 European Leagues"
-            Icon={ZapIcon}
+            Icon={BotIcon}
           />
         </div>
       </section>
@@ -200,7 +201,7 @@ export default async function Home() {
               </div>
               <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-                  <ZapIcon className="h-5 w-5" />
+                  <BadgeCheck className="h-5 w-5" />
                 </div>
                 <div>
                   <h4 className="text-[13px] font-bold text-white">Client-Supplied Entropy</h4>
@@ -257,7 +258,7 @@ export default async function Home() {
         <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 shadow-xl">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-              <ZapIcon className="h-6 w-6" />
+              <TrendUp className="h-6 w-6" />
             </div>
             <div>
               <span className="mono text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)]">On-Chain Speed</span>
@@ -426,7 +427,7 @@ export default async function Home() {
             <div className="space-y-3">
               <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
-                  <ZapIcon className="h-5 w-5" />
+                  <BotIcon className="h-5 w-5" />
                 </div>
                 <div>
                   <h4 className="text-[13px] font-bold text-white">Autonomous Quantitative Engine</h4>
@@ -449,9 +450,9 @@ export default async function Home() {
         {/* 10. Web3 Trust & Security Grid */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Trust Icon={ShieldIcon} title="No KYC & Non-Custodial" sub="Your wallet. Your funds. Instant 1-click access without documents." />
-          <Trust Icon={ZapIcon} title="Sub-Second On-Chain Payouts" sub="Smart contracts execute instant payouts the moment events resolve." />
+          <Trust Icon={TrendUp} title="Sub-Second On-Chain Payouts" sub="Smart contracts execute instant payouts the moment events resolve." />
           <Trust Icon={BadgeCheck} title="Provably Fair On-Chain" sub="Cryptographic commit-reveal seed hashes verifiable for every spin & flight." />
-          <Trust Icon={ZapIcon} title="Free LLM Analytics" sub="Real-time Claude Fable AI match predictions and value odds analysis." />
+          <Trust Icon={BotIcon} title="Free LLM Analytics" sub="Real-time Claude Fable AI match predictions and value odds analysis." />
           <Trust Icon={BadgeCheck} title="Built on Arc EVM" sub="High-throughput EVM chain with 18ms median RPC response latency." />
         </section>
       </div>

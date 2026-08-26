@@ -125,7 +125,6 @@ export function reconcileLiveTracking(
     // a match the normal path is about to publish `market:finished` for.
     if (row.finished) continue;
 
-    const ageAtSight = ageMinutes(row.match_time, now);
     nextState[row.match_id] = {
       fixtureId,
       sport: row.sport,
@@ -133,12 +132,7 @@ export function reconcileLiveTracking(
       awayScore: row.score.away,
       matchTime: row.match_time,
       missingTicks: 0,
-      confirmedLive:
-        row.match_id in previous ||
-        row.minute !== null ||
-        row.score.home > 0 ||
-        row.score.away > 0 ||
-        (ageAtSight !== null && ageAtSight >= 5),
+      confirmedLive: row.match_id in previous,
     };
   }
 
@@ -148,8 +142,7 @@ export function reconcileLiveTracking(
     const missingTicks = tracked.missingTicks + 1;
     const age = ageMinutes(tracked.matchTime, now);
     const minAge = minAgeForSport(tracked.sport);
-    const isPastFullTime = age !== null && age >= (minAge >= 20 ? 95 : 20);
-    const eligible = (tracked.confirmedLive && (age === null || age >= minAge)) || isPastFullTime;
+    const eligible = tracked.confirmedLive && (age === null || age >= minAge);
 
     if (missingTicks >= MISSING_TICKS_THRESHOLD && eligible) {
       inferredFinished.push({

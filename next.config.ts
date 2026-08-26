@@ -51,6 +51,17 @@ const nextConfig: NextConfig = {
     "@uncletom29/sportystake-sdk",
   ],
 
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.sportystake.com" }],
+        destination: "https://sportystake.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
+
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "media.api-sports.io" },

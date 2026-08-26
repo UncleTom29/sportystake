@@ -37,8 +37,8 @@ const footerNavigation = [
     title: "AI & Predictions",
     links: [
       { label: "AI Picks & Predictions", href: "/ai-analytics" },
-      { label: "Live Quant Engine", href: "/ai-analytics" },
-      { label: "Circuits Auto-Pilot", href: "/ai-analytics" },
+      { label: "European Football Quant Engine", href: "/ai-analytics" },
+      { label: "Top Leagues +EV Signals", href: "/ai-analytics" },
       { label: "Prediction Markets", href: "/prediction-markets" },
       { label: "Shared Ticket Affiliate", href: "/sportsbook" },
       { label: "Lifetime Referral Program", href: "/profile" },

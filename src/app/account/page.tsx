@@ -313,7 +313,7 @@ export default function AccountPage() {
       <div className="mt-4 grid gap-2 md:grid-cols-3">
         <QuickLink href="/account/bets" label="My Bets" sub={`${stats?.totalBets ?? 0} total · ${stats?.won ?? 0} won`} Icon={ReceiptText} />
         <QuickLink href="/account/wallet" label="Wallet" sub={isConnected ? `${balanceFormatted} USDC balance` : "Sign in to view"} Icon={WalletCards} />
-        <QuickLink href="/ai-analytics" label="AI Signals & Auto-Pilot" sub="Model edge · +EV signals" Icon={BrainCircuit} />
+        <QuickLink href="/ai-analytics" label="AI Football Picks" sub="Top European leagues · +EV signals" Icon={BrainCircuit} />
       </div>
 
       {/* Activity Chart */}

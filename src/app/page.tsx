@@ -21,6 +21,7 @@ import {
   TicketIcon,
   CopyIcon,
 } from "@/components/icons/UIIcons";
+import { Layers, Sparkles, Globe } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import { casinoGames, type Match } from "@/lib/mockData";
 import { internalApiBase } from "@/lib/server/internalApiBase";
@@ -80,7 +81,7 @@ export default async function Home() {
       <section className="mt-8">
         <SectionHeader
           title="Featured Promotions & Affiliate Rewards"
-          subtitle="Boost your bankroll with 100% wager matches, lifetime referrals, and shared ticket payouts"
+          subtitle="Boost your bankroll with 100% wager matches, cross-market parlays, and shared ticket payouts"
           Icon={GiftIcon}
           accent="#00e701"
         />
@@ -96,13 +97,23 @@ export default async function Home() {
             Icon={GiftIcon}
           />
           <PromoFeatureCard
-            tag="100% Free AI"
-            title="Free LLM Analytics"
-            sub="Claude Fable AI powered predictive analytics, value odds scanner, and win probabilities for all matches."
-            cta="Open AI Analytics"
+            tag="Multi-Leg Parlays"
+            title="Prediction Parlays"
+            sub="Combine Crypto, Politics & Macro binary events with sports matches into high-multiplier parlay slips."
+            cta="Parlay Predictions"
+            href="/prediction-markets"
+            accent="#c084fc"
+            tnc="100% On-Chain · Compounded parlay odds"
+            Icon={Layers}
+          />
+          <PromoFeatureCard
+            tag="Quant Model Signals"
+            title="AI Football Picks"
+            sub="Institutional +EV expected value distributions and true Bayesian probability estimates for European football."
+            cta="Explore AI Picks"
             href="/ai-analytics"
             accent="#38bdf8"
-            tnc="100% Free · Real-time AI sports predictions"
+            tnc="100% Free · Top European Leagues"
             Icon={BotIcon}
           />
           <PromoFeatureCard
@@ -124,16 +135,6 @@ export default async function Home() {
             accent="#ffb800"
             tnc="T&C apply · 2% volume commission on copies"
             Icon={CopyIcon}
-          />
-          <PromoFeatureCard
-            tag="Quant Model Terminal"
-            title="AI Match Predictions"
-            sub="Real-time expected value (+EV) distributions, probability edges, and automated tailing."
-            cta="Explore AI Picks"
-            href="/ai-analytics"
-            accent="#00e701"
-            tnc="100% Free · Top 5 European Leagues"
-            Icon={BotIcon}
           />
         </div>
       </section>
@@ -285,8 +286,121 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* 5. Prediction Markets in Multi-Leg Parlays Spotlight */}
+      <section className="mt-8">
+        <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
+          <div className="bg-mesh absolute inset-0 opacity-70" />
+          <div className="relative grid items-center gap-8 lg:grid-cols-[1.2fr_1fr]">
+            <div>
+              <div className="flex items-center gap-2">
+                <Badge variant="violet">NEW · MULTI-ASSET PARLAYS</Badge>
+                <span className="mono text-[10px] font-bold text-purple-300 uppercase tracking-wider">Cross-Market Accumulators</span>
+              </div>
+              <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl lg:text-4xl">
+                Prediction Markets Now Available in <span className="text-purple-400">Multi-Leg Parlays</span>
+              </h2>
+              <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-2)] md:text-sm">
+                Break free from standard single-sport betting. SportyStake lets you combine <strong className="text-white">Crypto milestones</strong>, <strong className="text-white">Macroeconomics</strong>, and <strong className="text-white">Global political elections</strong> directly with <strong className="text-white">Premier League, Champions League, and NBA matches</strong> in unified multi-leg parlay slips for massive compounded returns.
+              </p>
+
+              <div className="mt-5 grid grid-cols-3 gap-2.5 max-w-lg">
+                <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
+                  <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">1. Crypto & Macro</span>
+                  <p className="text-[12px] font-bold text-white mt-0.5">Bitcoin, Fed Rates & Tech</p>
+                </div>
+                <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
+                  <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">2. Global Sports</span>
+                  <p className="text-[12px] font-bold text-[var(--color-brand-500)] mt-0.5">Top European Football</p>
+                </div>
+                <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
+                  <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">3. Multiplied Slip</span>
+                  <p className="text-[12px] font-bold text-purple-400 mt-0.5">Compounded Parlay Odds</p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <Link
+                  href="/prediction-markets"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-purple-500 px-5 text-[13px] font-bold text-white hover:bg-purple-400 transition-transform active:scale-95 shadow-lg shadow-purple-500/20"
+                >
+                  Explore Prediction Markets
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/sportsbook"
+                  className="inline-flex h-11 items-center rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-1)] px-4 text-[13px] font-semibold text-white hover:bg-[var(--color-bg-3)] transition-colors"
+                >
+                  Build a Sports Parlay
+                </Link>
+                <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-3)]">
+                  <ShieldIcon className="h-3.5 w-3.5 text-purple-400" />
+                  100% Non-Custodial Escrow on Arc EVM
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Sample Cross-Market Parlay Ticket */}
+            <div className="rounded-2xl border border-purple-500/30 bg-[var(--color-bg-1)] p-5 shadow-2xl relative">
+              <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
+                    <Layers className="h-3.5 w-3.5" />
+                  </span>
+                  <span className="text-[12px] font-black uppercase tracking-wider text-white">Cross-Market Parlay</span>
+                </div>
+                <span className="mono rounded bg-purple-500/20 px-2 py-0.5 text-[11px] font-bold text-purple-300">
+                  3 Legs Combined
+                </span>
+              </div>
+
+              {/* Legs */}
+              <div className="mt-3.5 space-y-2.5">
+                <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3">
+                  <div className="flex items-center justify-between text-[10px] text-[var(--color-ink-3)] font-bold uppercase">
+                    <span>⚽ Premier League · Match Winner</span>
+                    <span className="mono text-white">1.85x</span>
+                  </div>
+                  <p className="mt-1 text-[13px] font-bold text-white">Arsenal vs Chelsea</p>
+                  <p className="text-[11px] text-[var(--color-brand-500)] font-semibold">Selection: Arsenal Win</p>
+                </div>
+
+                <div className="rounded-xl border border-purple-500/30 bg-purple-950/20 p-3">
+                  <div className="flex items-center justify-between text-[10px] text-purple-300 font-bold uppercase">
+                    <span>🪙 Crypto Prediction · Target Price</span>
+                    <span className="mono text-white">2.20x</span>
+                  </div>
+                  <p className="mt-1 text-[13px] font-bold text-white">Bitcoin &gt; $100,000 by Q4</p>
+                  <p className="text-[11px] text-purple-400 font-semibold">Selection: YES Outcome</p>
+                </div>
+
+                <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3">
+                  <div className="flex items-center justify-between text-[10px] text-[var(--color-ink-3)] font-bold uppercase">
+                    <span>📊 Macro Economics · Federal Reserve</span>
+                    <span className="mono text-white">1.65x</span>
+                  </div>
+                  <p className="mt-1 text-[13px] font-bold text-white">Fed Interest Rate Cut in September</p>
+                  <p className="text-[11px] text-cyan-400 font-semibold">Selection: YES Outcome</p>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="mt-4 rounded-xl bg-[var(--color-bg-3)] p-3.5 border border-[var(--color-line-1)]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-[var(--color-ink-2)] font-semibold">Combined Multiplier:</span>
+                  <span className="mono text-base font-black text-purple-400">6.71x Total Odds</span>
+                </div>
+                <div className="mt-1.5 flex items-center justify-between pt-1.5 border-t border-[var(--color-line-1)]">
+                  <span className="text-[11px] text-[var(--color-ink-3)]">Example $50 USDC Stake:</span>
+                  <span className="mono text-sm font-black text-emerald-400">$335.50 USDC Payout</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="mt-8 space-y-8">
-        {/* 5. Hot events */}
+        {/* 6. Hot events */}
         <section>
           <SectionHeader
             title="Hot Events"
@@ -306,7 +420,7 @@ export default async function Home() {
           )}
         </section>
 
-        {/* 6. Two-col split: Top Football on left, Global Sports on right */}
+        {/* 7. Two-col split: Top Football on left, Global Sports on right */}
         <section className="grid gap-6 lg:grid-cols-2">
           <div>
             <SectionHeader
@@ -348,7 +462,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 7. Top leagues nav */}
+        {/* 8. Top leagues nav */}
         <section>
           <SectionHeader title="Top Leagues" subtitle="Jump straight to top competitions" Icon={TrophyIcon} accent="#facc15" />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-5 xl:grid-cols-10">
@@ -375,7 +489,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 8. Casino preview */}
+        {/* 9. Casino preview */}
         <section>
           <SectionHeader
             title="Casino · Originals"
@@ -391,7 +505,7 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 9. Quantitative Model Spotlight Section */}
+        {/* 10. Quantitative Model Spotlight Section */}
         <section className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
           <div className="bg-mesh absolute inset-0 opacity-80" />
           <div className="relative grid items-center gap-6 md:grid-cols-[1.4fr_1fr]">
@@ -401,7 +515,7 @@ export default async function Home() {
                 Beat the market with <span className="text-[var(--color-brand-500)]">+EV AI Model Signals</span>.
               </h3>
               <p className="mt-2 max-w-lg text-[13px] text-[var(--color-ink-2)] md:text-sm">
-                Our quantitative engine tracks expected goals (xG), injury distributions, and line dislocations across Europe&apos;s top 5 football leagues. Tail verified +EV signals or deploy autonomous agents with 1 click.
+                Our quantitative engine tracks expected goals (xG), lineup data, and line dislocations across Europe&apos;s top 5 football leagues. Tail verified +EV signals directly to your betslip with 1 click.
               </p>
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 <Link
@@ -430,8 +544,8 @@ export default async function Home() {
                   <BotIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className="text-[13px] font-bold text-white">Autonomous Quantitative Engine</h4>
-                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Scans Europe&apos;s top domestic football leagues 24/7 for positive expected value (+EV).</p>
+                  <h4 className="text-[13px] font-bold text-white">European Football Quant Engine</h4>
+                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Scans Europe&apos;s top football leagues 24/7 for positive expected value (+EV) opportunities.</p>
                 </div>
               </div>
               <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
@@ -447,12 +561,12 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 10. Web3 Trust & Security Grid */}
+        {/* 11. Web3 Trust & Security Grid */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <Trust Icon={ShieldIcon} title="No KYC & Non-Custodial" sub="Your wallet. Your funds. Instant 1-click access without documents." />
+          <Trust Icon={Layers} title="Cross-Market Parlays" sub="Combine prediction markets with real sports in unified parlay slips." />
           <Trust Icon={TrendUp} title="Sub-Second On-Chain Payouts" sub="Smart contracts execute instant payouts the moment events resolve." />
           <Trust Icon={BadgeCheck} title="Provably Fair On-Chain" sub="Cryptographic commit-reveal seed hashes verifiable for every spin & flight." />
-          <Trust Icon={BotIcon} title="Free LLM Analytics" sub="Real-time Claude Fable AI match predictions and value odds analysis." />
           <Trust Icon={BadgeCheck} title="Built on Arc EVM" sub="High-throughput EVM chain with 18ms median RPC response latency." />
         </section>
       </div>
@@ -485,7 +599,7 @@ function PromoFeatureCard({
   href: string;
   accent: string;
   tnc: string;
-  Icon: (p: { className?: string }) => React.ReactElement;
+  Icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
     <div className="relative flex flex-col justify-between overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5 shadow-lg hover:border-[var(--color-line-2)] transition-all">
@@ -525,7 +639,7 @@ function Trust({
   title,
   sub,
 }: {
-  Icon: (p: { className?: string }) => React.ReactElement;
+  Icon: React.ComponentType<{ className?: string }>;
   title: string;
   sub: string;
 }) {

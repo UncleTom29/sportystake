@@ -244,6 +244,17 @@ export const stats = {
 
 export const promos = [
   {
+    id: "p-parlay",
+    tag: "Multi-Market Parlays",
+    title: "Prediction Markets Now in Multi-Leg Parlays",
+    subtitle: "Combine Crypto, Politics & Macro binary events with sports matches into high-multiplier parlay slips on-chain",
+    cta: "Parlay Predictions",
+    href: "/prediction-markets",
+    gradient: "from-purple-500/35 via-indigo-700/20 to-transparent",
+    accent: "#c084fc",
+    tnc: "Combine any prediction market outcome with sports selections in your betslip for cumulative parlay odds.",
+  },
+  {
     id: "p1",
     tag: "Welcome Bonus",
     title: "100% Match up to $2,000 Wager Bonus",
@@ -278,14 +289,14 @@ export const promos = [
   },
   {
     id: "p4",
-    tag: "AI Auto-Pilot",
-    title: "Autonomous Quant Betting Studio",
-    subtitle: "Deploy institutional algorithmic betting circuits with non-custodial session delegation · Real-time +EV execution",
-    cta: "Launch Auto-Pilot",
+    tag: "AI Football Picks",
+    title: "European Football Quant Signals",
+    subtitle: "Institutional predictive models & real-time +EV signals across Premier League, La Liga, Serie A, Bundesliga & Champions League",
+    cta: "View AI Picks",
     href: "/ai-analytics",
     gradient: "from-emerald-500/35 via-emerald-700/20 to-transparent",
     accent: "#00e701",
-    tnc: "Non-custodial ERC-4337 smart session keys with strict daily budget caps and zero withdrawal authority.",
+    tnc: "Algorithmic value betting model signals updated in real-time across top European football competitions.",
   },
   {
     id: "p5",

@@ -105,6 +105,18 @@ function statusFor(f: NormalizedFixture): "OPEN" | "LIVE" | "SETTLED" | "CANCELL
  *  the same create-or-update power, not a blind update. */
 async function upsertFixture(f: NormalizedFixture): Promise<void> {
   const id = marketIdFor(f.fixtureId);
+
+  // Never overwrite a market that's already been settled or cancelled —
+  // a stale live tick (or a finished fixture still appearing in the live
+  // feed) must not revert a finalized market's status or scores.
+  const existing = await prisma.market.findUnique({
+    where: { fixtureId: BigInt(f.fixtureId) },
+    select: { status: true },
+  });
+  if (existing && (existing.status === "SETTLED" || existing.status === "CANCELLED")) {
+    return;
+  }
+
   const start = new Date(f.startTime);
   // Markets close 1 minute before kickoff by default.
   const closesAt = new Date(start.getTime() - 60_000);
@@ -187,8 +199,11 @@ async function handleLive(evt: LiveEvent): Promise<void> {
 
 async function handleFinished(evt: FinishedEvent): Promise<void> {
   const id = marketIdFor(evt.fixtureId);
+  // Don't overwrite a cancelled market's score — it's already been refunded.
+  // SETTLED is allowed here: the settlement worker processes this same event
+  // and needs the score present on the Market row for display.
   await prisma.market.updateMany({
-    where: { id },
+    where: { id, status: { notIn: ["CANCELLED"] } },
     data: { homeScore: evt.homeScore, awayScore: evt.awayScore },
   });
 }
@@ -301,6 +316,7 @@ async function reconcileLiveScoresFromCache(): Promise<void> {
       const result = await prisma.market.updateMany({
         where: {
           fixtureId: BigInt(fixtureId),
+          status: { in: ["OPEN", "LIVE", "SUSPENDED"] },
         },
         data: {
           status: "LIVE",
@@ -313,11 +329,13 @@ async function reconcileLiveScoresFromCache(): Promise<void> {
 
       // If this match is actively in-play right now, ensure any parlay legs
       // that were prematurely marked WON/LOST are reverted back to PENDING!
+      // Only do this if the market was actually updated (i.e. still in-play,
+      // not already SETTLED/CANCELLED) — otherwise we'd undo correct settlements.
       const market = await prisma.market.findUnique({
         where: { fixtureId: BigInt(fixtureId) },
         select: { id: true },
       });
-      if (market) {
+      if (market && result.count > 0) {
         await prisma.parlayLeg.updateMany({
           where: { marketId: market.id, result: { not: "PENDING" } },
           data: { result: "PENDING" },
@@ -412,29 +430,14 @@ async function resolvePastKickoffMatchesWithBets(): Promise<void> {
 
       // Look up authentic score from LiveScore feed
       const liveData = await findScoreForTeams(m.homeTeam, m.awayTeam, m.sport, m.startTime);
-      let homeScore = liveData?.homeScore ?? m.homeScore ?? 0;
-      let awayScore = liveData?.awayScore ?? m.awayScore ?? 0;
+      const homeScore = liveData?.homeScore ?? m.homeScore;
+      const awayScore = liveData?.awayScore ?? m.awayScore;
 
-      // Special fallback rules for known matches
-      if (
-        (m.homeTeam.toLowerCase().includes("hull") && m.awayTeam.toLowerCase().includes("manchester united")) ||
-        (m.homeTeam.toLowerCase().includes("manchester united") && m.awayTeam.toLowerCase().includes("hull"))
-      ) {
-        homeScore = m.homeTeam.toLowerCase().includes("hull") ? 2 : 0;
-        awayScore = m.homeTeam.toLowerCase().includes("hull") ? 0 : 2;
-      } else if (
-        (m.homeTeam.toLowerCase().includes("ipswich") && m.awayTeam.toLowerCase().includes("sunderland")) ||
-        (m.homeTeam.toLowerCase().includes("sunderland") && m.awayTeam.toLowerCase().includes("ipswich"))
-      ) {
-        homeScore = m.homeTeam.toLowerCase().includes("ipswich") ? 2 : 1;
-        awayScore = m.homeTeam.toLowerCase().includes("ipswich") ? 1 : 2;
-      } else if (
-        (m.homeTeam.toLowerCase().includes("real madrid") && m.awayTeam.toLowerCase().includes("espanyol")) ||
-        (m.homeTeam.toLowerCase().includes("espanyol") && m.awayTeam.toLowerCase().includes("real madrid"))
-      ) {
-        // Espanyol 1 - 2 Real Madrid (Carlos Espí 90' winner)
-        homeScore = m.homeTeam.toLowerCase().includes("espanyol") ? 1 : 2;
-        awayScore = m.homeTeam.toLowerCase().includes("espanyol") ? 2 : 1;
+      // NEVER default to 0-0 — an unverifiable score must not settle a match.
+      // Let the stuck-market canceller (24h) or admin manual-settle handle it.
+      if (homeScore === null || homeScore === undefined || awayScore === null || awayScore === undefined) {
+        console.warn(`[oracle-sync] Cannot verify score for ${m.homeTeam} vs ${m.awayTeam} (market ${m.id}) — skipping auto-resolution`);
+        continue;
       }
 
       const scoreChanged = m.homeScore !== homeScore || m.awayScore !== awayScore;

@@ -42,10 +42,10 @@ chmod 600 /etc/sportystake/.env
 chown sportystake:sportystake /etc/sportystake/.env
 
 echo "==> nginx"
-cp deploy/nginx/sportystake.conf /etc/nginx/sites-available/sportystake
-ln -sf /etc/nginx/sites-available/sportystake /etc/nginx/sites-enabled/sportystake
+cp deploy/nginx/sportystake.conf /etc/nginx/sites-available/sportystake.conf
+ln -sf /etc/nginx/sites-available/sportystake.conf /etc/nginx/sites-enabled/sportystake.conf
 echo "    NOTE: place your Cloudflare Origin CA cert/key at"
-echo "    /etc/ssl/cloudflare/origin.{pem,key} before reloading nginx."
+echo "    /etc/ssl/cloudflare/sportystake.origin.{pem,key} before reloading nginx."
 
 echo "==> systemd units"
 cp deploy/systemd/sportystake-*.service /etc/systemd/system/
@@ -70,18 +70,21 @@ SUDOERS
 chmod 440 /etc/sudoers.d/sportystake-systemctl
 visudo -cf /etc/sudoers.d/sportystake-systemctl
 
-echo "==> ufw: deny by default, allow SSH from admin IP + 443 from Cloudflare only"
-ufw --force reset
-ufw default deny incoming
-ufw default allow outgoing
-echo "    Set your admin IP below before running: ufw allow from <ADMIN_IP> to any port 22 proto tcp"
-for ip in $(curl -fsSL https://www.cloudflare.com/ips-v4); do
-  ufw allow from "$ip" to any port 443 proto tcp
-done
-for ip in $(curl -fsSL https://www.cloudflare.com/ips-v6); do
-  ufw allow from "$ip" to any port 443 proto tcp
-done
-echo "    Review rules with 'ufw status numbered', then 'ufw enable' when ready."
+if [[ "${ENABLE_UFW_RESTRICTIONS:-0}" == "1" ]]; then
+  echo "==> ufw: deny by default, allow SSH from admin IP + 443 from Cloudflare only"
+  ufw --force reset
+  ufw default deny incoming
+  ufw default allow outgoing
+  for ip in $(curl -fsSL https://www.cloudflare.com/ips-v4); do
+    ufw allow from "$ip" to any port 443 proto tcp
+  done
+  for ip in $(curl -fsSL https://www.cloudflare.com/ips-v6); do
+    ufw allow from "$ip" to any port 443 proto tcp
+  done
+  echo "    Review rules with 'ufw status numbered', then 'ufw enable' when ready."
+else
+  echo "==> Skipping UFW reset (multi-project host safe mode)"
+fi
 
 echo "==> Done. Next steps:"
 echo "  1. Add your admin IP: ufw allow from <ADMIN_IP> to any port 22 proto tcp && ufw enable"

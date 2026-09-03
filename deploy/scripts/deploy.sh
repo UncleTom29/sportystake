@@ -90,7 +90,7 @@ main() {
 
   echo "Deployed $(git rev-parse --short HEAD) — checking health"
   sleep 3
-  curl -fsS http://127.0.0.1:3000/api/health || { echo "Health check failed" >&2; exit 1; }
+  curl -fsS http://127.0.0.1:3050/api/health || { echo "Health check failed" >&2; exit 1; }
   echo "OK"
 }
 

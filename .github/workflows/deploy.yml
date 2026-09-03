@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy-ec2:
-    name: EC2 — full app (frontend + backend + workers)
+  deploy-vps:
+    name: Contabo VPS — full app (frontend + backend + workers)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -36,13 +36,13 @@ jobs:
         continue-on-error: true
       - name: Deploy over SSH
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.CONTABO_SSH_PRIVATE_KEY || secrets.EC2_SSH_PRIVATE_KEY }}
+          VPS_HOST: ${{ secrets.CONTABO_HOST || secrets.EC2_HOST }}
+          VPS_USER: ${{ secrets.CONTABO_USER || secrets.EC2_USER }}
         run: |
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy_key "$EC2_USER@$EC2_HOST" \
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" \
             "sudo -u sportystake bash /opt/sportystake/deploy/scripts/deploy.sh"

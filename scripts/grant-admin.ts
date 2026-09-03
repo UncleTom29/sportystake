@@ -8,7 +8,9 @@
  *   npx tsx scripts/grant-admin.ts 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 ADMIN
  */
 
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+
+type Role = "USER" | "OPERATOR" | "ADMIN";
 
 const prisma = new PrismaClient();
 

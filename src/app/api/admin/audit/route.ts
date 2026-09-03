@@ -28,7 +28,7 @@ export const GET = withRequestId(async (req: NextRequest) => {
   ]);
 
   return ok({
-    items: items.map((l) => ({
+    items: items.map((l: any) => ({
       id: l.id,
       action: l.action,
       target: l.target,

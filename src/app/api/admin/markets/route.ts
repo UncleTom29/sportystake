@@ -46,7 +46,7 @@ export const GET = withRequestId(async (req: NextRequest) => {
   ]);
 
   return ok({
-    items: items.map((m) => ({
+    items: items.map((m: any) => ({
       ...m,
       startTime: m.startTime.toISOString(),
       closesAt: m.closesAt.toISOString(),

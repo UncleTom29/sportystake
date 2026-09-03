@@ -37,7 +37,7 @@ export const GET = withRequestId(async (req: NextRequest) => {
   ]);
 
   return ok({
-    items: items.map((b) => ({
+    items: items.map((b: any) => ({
       id: b.id,
       game: b.game,
       amount: (Number(b.amount) / 1e6).toFixed(2),

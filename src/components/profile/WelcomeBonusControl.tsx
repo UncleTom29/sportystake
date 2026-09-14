@@ -163,7 +163,7 @@ export default function WelcomeBonusControl() {
               </div>
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-bg-3)]">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-[var(--color-brand-500)] transition-all duration-300"
+                  className="h-full bg-[var(--color-brand-500)] transition-all duration-300"
                   style={{ width: `${status?.rolloverProgressPercent}%` }}
                 />
               </div>

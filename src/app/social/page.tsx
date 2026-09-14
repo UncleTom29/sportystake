@@ -275,7 +275,7 @@ export default function SocialPage() {
                         </span>
                         <div
                           className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-black text-white"
-                          style={{ background: `linear-gradient(135deg, ${t.color}, ${t.color}99)` }}
+                          style={{ backgroundColor: t.color }}
                         >
                           {t.handle.slice(0, 2).toUpperCase()}
                         </div>

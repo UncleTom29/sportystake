@@ -102,7 +102,7 @@ export default async function Home() {
             sub="Combine Crypto, Politics & Macro binary events with sports matches into high-multiplier parlay slips."
             cta="Parlay Predictions"
             href="/prediction-markets"
-            accent="#c084fc"
+            accent="#2dc4ff"
             tnc="100% On-Chain · Compounded parlay odds"
             Icon={Layers}
           />

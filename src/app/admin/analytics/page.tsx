@@ -20,7 +20,7 @@ const QUOTA_BREAKDOWN = [
   { label: "Live fixtures", used: 12, color: "var(--color-live)" },
   { label: "Pre-match odds", used: 8, color: "var(--color-brand-500)" },
   { label: "Daily fixtures", used: 4, color: "var(--color-info)" },
-  { label: "Standings", used: 6, color: "#a78bfa" },
+  { label: "Standings", used: 6, color: "var(--color-ink-2)" },
   { label: "H2H / other", used: 4, color: "var(--color-warn)" },
 ];
 
@@ -73,7 +73,7 @@ export default function AdminAnalyticsPage() {
             <OverviewCard label="GGR today" value={`$${MOCK_OVERVIEW.ggrToday.toLocaleString()}`} sub="gross gaming revenue" accent="var(--color-brand-500)" Icon={TrendUp} />
             <OverviewCard label="GGR this week" value={`$${MOCK_OVERVIEW.ggrWeek.toLocaleString()}`} sub={`$${MOCK_OVERVIEW.ggrMonth.toLocaleString()} this month`} accent="var(--color-brand-500)" Icon={TrendUp} />
             <OverviewCard label="Active users (24h)" value={String(MOCK_OVERVIEW.activeUsers24h)} sub={`${MOCK_OVERVIEW.betCount} bets placed`} accent="var(--color-info)" Icon={ZapIcon} />
-            <OverviewCard label="LP TVL" value={`$${(MOCK_OVERVIEW.lpTvl / 1000).toFixed(0)}K`} sub={`$${(MOCK_OVERVIEW.volume / 1000).toFixed(0)}K bet volume`} accent="#a78bfa" Icon={ZapIcon} />
+            <OverviewCard label="LP TVL" value={`$${(MOCK_OVERVIEW.lpTvl / 1000).toFixed(0)}K`} sub={`$${(MOCK_OVERVIEW.volume / 1000).toFixed(0)}K bet volume`} accent="var(--color-brand-500)" Icon={ZapIcon} />
           </div>
 
           {/* Risk panel */}

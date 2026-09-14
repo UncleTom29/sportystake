@@ -149,7 +149,7 @@ export default function TermsPage() {
           {/* Section 4 */}
           <section id="section-4" className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 shadow-md">
             <h2 className="text-xl font-bold text-white mb-3 flex items-center gap-2">
-              <span className="mono text-sm text-violet-300">04.</span>
+              <span className="mono text-sm text-[var(--color-brand-500)]">04.</span>
               Provably Fair Casino & Commit-Reveal Hashing
             </h2>
             <p>

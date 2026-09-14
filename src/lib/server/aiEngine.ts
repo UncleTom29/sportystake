@@ -323,7 +323,7 @@ Respond ONLY with valid JSON in format:
           tag: "SOCIAL",
           title: "Top 5 European Leagues Focus",
           desc: `Algorithms filter exclusively for high-liquidity Tier-1 European football competitions (Premier League, La Liga, Serie A, Bundesliga, Champions League).`,
-          accent: "#a78bfa",
+          accent: "#2dc4ff",
         },
       ];
     } else {
@@ -350,7 +350,7 @@ Respond ONLY with valid JSON in format:
           tag: "SOCIAL",
           title: "Tier-1 Competitions Only",
           desc: "Algorithms filter exclusively for high-liquidity Tier-1 European football competitions to guarantee optimal execution without slippage.",
-          accent: "#a78bfa",
+          accent: "#2dc4ff",
         },
       ];
     }

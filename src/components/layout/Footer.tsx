@@ -85,7 +85,7 @@ export default function Footer() {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-info)]/10 text-[var(--color-info)] border border-[var(--color-info)]/20">
                 <BadgeCheck className="h-5 w-5" />
               </div>
               <div>

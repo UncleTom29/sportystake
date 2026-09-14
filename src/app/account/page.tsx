@@ -285,7 +285,7 @@ export default function AccountPage() {
           label="Best streak"
           value={loading ? "—" : String(stats?.bestStreak ?? 0)}
           Icon={TrophyIcon}
-          accent="#a78bfa"
+          accent="var(--color-brand-500)"
           hint="Your longest winning streak on record"
         />
         <StatCard label="Total wagered" value={loading ? "—" : `$${stats?.totalWagered ?? "0.00"}`} Icon={ShieldIcon} accent="var(--color-info)" />

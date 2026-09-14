@@ -115,7 +115,7 @@ export const GET = withRequestId(async (req: NextRequest) => {
     const roi = volume > 0 ? Math.round(((payout - volume) / volume) * 1000) / 10 : 0;
     const referredUsers = refMap.get(u.id) ?? 0;
 
-    const colors = ["#f59e0b", "#22c55e", "#8b5cf6", "#06b6d4", "#f43f5e", "#3b82f6", "#10b981", "#f97316"];
+    const colors = ["#f59e0b", "#22c55e", "#14b8a6", "#06b6d4", "#f43f5e", "#3b82f6", "#10b981", "#f97316"];
     const color = colors[Math.abs(u.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length];
 
     return {

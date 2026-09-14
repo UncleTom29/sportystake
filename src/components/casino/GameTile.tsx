@@ -6,13 +6,13 @@ export default function GameTile({ game }: { game: CasinoGame }) {
   return (
     <Link href={game.href} className="group relative block overflow-hidden rounded-lg border border-[var(--color-line-1)] bg-[var(--color-bg-2)] text-left transition-transform hover:-translate-y-0.5 hover:border-[var(--color-line-2)]">
       <div
-        className="relative aspect-[3/4] w-full overflow-hidden"
+        className="relative aspect-[3/4] w-full overflow-hidden bg-[var(--color-bg-3)]"
         style={{
-          background: `radial-gradient(120% 90% at 0% 0%, ${game.accent}33 0%, transparent 55%), linear-gradient(160deg, ${game.color} 0%, ${shade(game.color, -45)} 100%)`,
+          backgroundColor: game.color,
         }}
       >
         <GameArt name={game.name} accent={game.accent} category={game.category} />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-black/40" />
 
         {/* Top tag */}
         {game.tag && (

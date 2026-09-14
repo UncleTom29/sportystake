@@ -23,7 +23,7 @@ const PROFILE_DATA = {
   },
   badges: [
     { id: "hot", Icon: Flame, label: "Hot Streak", color: "text-amber-400" },
-    { id: "highroller", Icon: Gem, label: "High Roller", color: "text-purple-400" },
+    { id: "highroller", Icon: Gem, label: "High Roller", color: "text-amber-400" },
     { id: "value", Icon: Crosshair, label: "Value Bettor", color: "text-blue-400" },
     { id: "early", Icon: Sparkles, label: "Early Adopter", color: "text-emerald-400" },
   ],

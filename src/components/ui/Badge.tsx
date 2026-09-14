@@ -13,7 +13,7 @@ const variants: Record<NonNullable<BadgeProps["variant"]>, string> = {
   info: "bg-[var(--color-info)]/15 text-[var(--color-info)] border border-[var(--color-info)]/25",
   warn: "bg-[var(--color-warn)]/15 text-[var(--color-warn)] border border-[var(--color-warn)]/25",
   neutral: "bg-[var(--color-bg-3)] text-[var(--color-ink-1)] border border-[var(--color-line-2)]",
-  violet: "bg-violet-500/15 text-violet-300 border border-violet-500/25",
+  violet: "bg-[var(--color-info)]/15 text-[var(--color-info)] border border-[var(--color-info)]/25",
 };
 
 export default function Badge({ children, variant = "neutral", size = "sm", pill }: BadgeProps) {

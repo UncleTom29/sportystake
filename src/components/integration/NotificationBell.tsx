@@ -35,7 +35,7 @@ function KindIcon({ kind }: { kind: string }) {
       return <Banknote className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />;
     case "bonus":
     case "BONUS_COMPLETED":
-      return <Gift className="h-4 w-4 text-purple-400 shrink-0 mt-0.5" />;
+      return <Gift className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />;
     case "quota":
     case "warning":
       return <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />;

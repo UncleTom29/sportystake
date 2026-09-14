@@ -140,7 +140,7 @@ export function PrivyAppProvider({ children }: { children: React.ReactNode }) {
         loginMethods: ["email"],
         appearance: {
           theme: "dark",
-          accentColor: "#6366f1",
+          accentColor: "#00e701",
           showWalletLoginFirst: false,
         },
         embeddedWallets: {

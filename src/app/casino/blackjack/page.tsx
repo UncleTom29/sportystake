@@ -217,7 +217,7 @@ export default function BlackjackPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-3">
-          <div className="relative flex min-h-[340px] flex-col items-center justify-center gap-8 overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-gradient-to-b from-[#0d2818] to-[#0a1218] p-6">
+          <div className="relative flex min-h-[340px] flex-col items-center justify-center gap-8 overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6">
             {/* Dealer */}
             <div className="flex flex-col items-center gap-2">
               <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">Dealer</p>

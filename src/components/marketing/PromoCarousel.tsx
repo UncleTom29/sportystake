@@ -17,8 +17,7 @@ export default function PromoCarousel() {
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
-      <div className="bg-grid absolute inset-0 opacity-30" />
-      <div className="bg-mesh absolute inset-0" />
+      <div className="bg-grid absolute inset-0 opacity-20" />
       <div
         className="relative flex transition-transform duration-700 ease-out"
         style={{ transform: `translateX(-${idx * 100}%)` }}
@@ -28,7 +27,6 @@ export default function PromoCarousel() {
             key={p.id}
             className="relative grid w-full shrink-0 grid-cols-1 items-center gap-4 p-6 md:grid-cols-[1.5fr_1fr] md:p-8"
           >
-            <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${p.gradient}`} />
             <div className="relative">
               <div className="flex items-center gap-2">
                 <span
@@ -95,24 +93,13 @@ export default function PromoCarousel() {
 function PromoArt({ accent }: { accent: string }) {
   return (
     <svg viewBox="0 0 320 200" className="h-44 w-full">
-      <defs>
-        <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={accent} stopOpacity="0.9" />
-          <stop offset="1" stopColor={accent} stopOpacity="0" />
-        </linearGradient>
-        <radialGradient id="g2" cx="50%" cy="50%">
-          <stop offset="0" stopColor={accent} stopOpacity="0.45" />
-          <stop offset="1" stopColor={accent} stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <rect x="0" y="0" width="320" height="200" fill="url(#g2)" />
-      <g stroke={accent} strokeOpacity="0.4" strokeWidth="1" fill="none">
+      <g stroke={accent} strokeOpacity="0.3" strokeWidth="1" fill="none">
         <circle cx="240" cy="100" r="80" />
         <circle cx="240" cy="100" r="60" />
-        <circle cx="240" cy="100" r="40" strokeOpacity="0.7" />
-        <circle cx="240" cy="100" r="20" strokeOpacity="0.9" />
+        <circle cx="240" cy="100" r="40" strokeOpacity="0.5" />
+        <circle cx="240" cy="100" r="20" strokeOpacity="0.7" />
       </g>
-      <g fill={accent}>
+      <g fill={accent} opacity="0.85">
         <rect x="40" y="120" width="6" height="40" rx="2" />
         <rect x="56" y="100" width="6" height="60" rx="2" />
         <rect x="72" y="80" width="6" height="80" rx="2" />
@@ -128,7 +115,7 @@ function PromoArt({ accent }: { accent: string }) {
         fill="none"
         strokeLinecap="round"
       />
-      <path d="M40 150 L80 110 L130 140 L180 70 L240 100 L300 50 L300 200 L40 200 Z" fill="url(#g1)" opacity="0.35" />
+      <path d="M40 150 L80 110 L130 140 L180 70 L240 100 L300 50 L300 200 L40 200 Z" fill={accent} opacity="0.08" />
     </svg>
   );
 }

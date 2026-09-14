@@ -63,7 +63,7 @@ export default function WalletButton() {
       >
           <span
             className="h-5 w-5 shrink-0 rounded-full"
-            style={{ background: "linear-gradient(135deg, var(--color-brand-500), #2dc4ff)" }}
+            style={{ backgroundColor: "var(--color-brand-500)" }}
             aria-hidden
           />
         <span className="mono hidden sm:inline">{user.username ?? shortAddr(address)}</span>

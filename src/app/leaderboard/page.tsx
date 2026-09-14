@@ -202,7 +202,7 @@ export default function LeaderboardPage() {
         <div className="flex items-center gap-1 overflow-x-auto rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-1.5 scrollbar-none">
           {[
             { id: "sports", label: "Sports Volume", Icon: Activity, color: "text-emerald-400" },
-            { id: "casino", label: "Casino High-Rollers", Icon: Gem, color: "text-purple-400" },
+            { id: "casino", label: "Casino High-Rollers", Icon: Gem, color: "text-amber-400" },
             { id: "roi", label: "Top ROI %", Icon: TrendingUp, color: "text-cyan-400" },
             { id: "streaks", label: "Win Streaks", Icon: Flame, color: "text-amber-400" },
             { id: "referrals", label: "Top Referrers", Icon: UserPlus, color: "text-blue-400" },
@@ -257,7 +257,7 @@ export default function LeaderboardPage() {
                 key={p.userId}
                 className={`relative flex flex-col items-center justify-end rounded-2xl border p-4 text-center transition-all ${
                   isFirst
-                    ? "border-[var(--color-brand-500)]/50 bg-gradient-to-b from-[var(--color-brand-500)]/15 to-[var(--color-bg-2)] shadow-2xl scale-105"
+                    ? "border-[var(--color-brand-500)]/50 bg-[var(--color-bg-2)] shadow-2xl scale-105 ring-1 ring-[var(--color-brand-500)]/30"
                     : "border-[var(--color-line-1)] bg-[var(--color-bg-2)]"
                 }`}
               >
@@ -273,7 +273,7 @@ export default function LeaderboardPage() {
 
                 <div
                   className="mt-3 flex h-14 w-14 items-center justify-center rounded-full text-xl font-black text-white shadow-lg ring-2 ring-white/20"
-                  style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}99)` }}
+                  style={{ backgroundColor: p.color }}
                 >
                   {p.handle[0]}
                 </div>
@@ -330,7 +330,7 @@ export default function LeaderboardPage() {
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                    style={{ background: `linear-gradient(135deg, ${p.color}, ${p.color}99)` }}
+                    style={{ backgroundColor: p.color }}
                   >
                     {p.handle[0]}
                   </div>

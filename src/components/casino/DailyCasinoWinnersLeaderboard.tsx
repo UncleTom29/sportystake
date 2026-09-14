@@ -122,7 +122,7 @@ export default function DailyCasinoWinnersLeaderboard() {
                     <td className="mono font-bold" style={{ color: Number(item.pnl || 0) >= 0 ? "var(--color-brand-500)" : "var(--color-live)" }}>
                       {Number(item.pnl || 0) >= 0 ? "+" : ""}${Number(item.pnl || 0).toFixed(2)} USDC
                     </td>
-                    <td className="mono font-bold text-violet-300">
+                    <td className="mono font-bold text-[var(--color-info)]">
                       {Number(item.roi || 0) >= 0 ? "+" : ""}{Number(item.roi || 0).toFixed(1)}%
                     </td>
                   </tr>

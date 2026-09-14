@@ -45,16 +45,9 @@ export default function CasinoPage() {
       </h1>
       {/* Featured hero — Aviator */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(120% 90% at 100% 0%, rgba(167, 139, 250, 0.35) 0%, transparent 50%), radial-gradient(80% 80% at 0% 100%, rgba(0, 231, 1, 0.18) 0%, transparent 55%)",
-          }}
-        />
         <div className="relative grid items-center gap-4 p-5 md:grid-cols-[1.4fr_1fr] md:p-8">
           <div>
-            <span className="mono inline-flex items-center gap-1 rounded-md bg-violet-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-violet-300">
+            <span className="mono inline-flex items-center gap-1 rounded-md bg-[var(--color-brand-500)]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)]">
               <FlameIcon className="h-3 w-3" /> Featured
             </span>
             <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl text-white">Aviator</h2>
@@ -68,7 +61,7 @@ export default function CasinoPage() {
                 <p className="text-[11px] text-[var(--color-ink-3)]">Fair RNG</p>
               </div>
               <div>
-                <p className="mono text-2xl font-black text-violet-300">24/7</p>
+                <p className="mono text-2xl font-black text-[var(--color-brand-500)]">24/7</p>
                 <p className="text-[11px] text-[var(--color-ink-3)]">Live Rounds</p>
               </div>
               <div>
@@ -132,7 +125,7 @@ export default function CasinoPage() {
           title={cat === "All" ? "All games" : cat}
           subtitle={`${filtered.length} available`}
           Icon={CasinoChipIcon}
-          accent="#a78bfa"
+          accent="var(--color-brand-500)"
         />
         <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-6">
           {filtered.map((g) => (
@@ -162,12 +155,6 @@ function CrashChart() {
 
   return (
     <svg viewBox="0 0 320 200" className="absolute inset-0 h-full w-full">
-      <defs>
-        <linearGradient id="crashFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#a78bfa" stopOpacity="0.45" />
-          <stop offset="1" stopColor="#a78bfa" stopOpacity="0" />
-        </linearGradient>
-      </defs>
       {/* Grid */}
       <g stroke="rgba(255,255,255,0.05)" strokeWidth="1">
         {Array.from({ length: 5 }).map((_, i) => (
@@ -177,9 +164,9 @@ function CrashChart() {
           <line key={`v${i}`} x1={i * 40} y1="0" x2={i * 40} y2="200" />
         ))}
       </g>
-      <path d={`${path} L320,200 L0,200 Z`} fill="url(#crashFill)" />
-      <path d={path} stroke="#a78bfa" strokeWidth="2.5" fill="none" strokeLinecap="round" />
-      <circle cx={320} cy={20} r="5" fill="#a78bfa" />
+      <path d={`${path} L320,200 L0,200 Z`} fill="#00e701" opacity="0.1" />
+      <path d={path} stroke="#00e701" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <circle cx={320} cy={20} r="5" fill="#00e701" />
     </svg>
   );
 }

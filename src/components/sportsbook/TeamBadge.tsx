@@ -13,7 +13,7 @@ export default function TeamBadge({
     <div
       className={`relative flex shrink-0 items-center justify-center rounded-full font-black text-white ${dim}`}
       style={{
-        background: `linear-gradient(135deg, ${color} 0%, ${shade(color, -25)} 100%)`,
+        backgroundColor: color,
         boxShadow: `inset 0 -1px 0 ${shade(color, -40)}, 0 0 0 1px rgba(255,255,255,0.06)`,
       }}
     >

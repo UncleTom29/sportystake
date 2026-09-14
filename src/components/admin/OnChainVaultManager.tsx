@@ -454,7 +454,7 @@ export default function OnChainVaultManager() {
   return (
     <div className="space-y-6">
       {/* Header Banner & Connected Admin Wallet Pill */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-[var(--color-line-2)] bg-gradient-to-r from-[var(--color-bg-2)] via-[var(--color-bg-2)] to-[var(--color-bg-3)] p-5 shadow-lg">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-2xl border border-[var(--color-line-2)] bg-[var(--color-bg-2)] p-5 shadow-lg">
         <div>
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 rounded-full bg-[var(--color-brand-500)] animate-pulse" />
@@ -657,11 +657,11 @@ export default function OnChainVaultManager() {
         </div>
 
         {/* Vault 2: Casino House Vault */}
-        <div className="rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5 shadow-md flex flex-col justify-between hover:border-purple-500/40 transition-colors">
+        <div className="rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-5 shadow-md flex flex-col justify-between hover:border-cyan-500/40 transition-colors">
           <div>
             <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-500/15 text-purple-400">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400">
                   <Gamepad2 className="h-4 w-4" />
                 </span>
                 <div>
@@ -671,7 +671,7 @@ export default function OnChainVaultManager() {
                   </p>
                 </div>
               </div>
-              <span className="rounded bg-purple-500/10 px-2 py-0.5 mono text-[10px] font-bold text-purple-400 border border-purple-500/20">
+              <span className="rounded bg-cyan-500/10 px-2 py-0.5 mono text-[10px] font-bold text-cyan-400 border border-cyan-500/20">
                 Single-Player
               </span>
             </div>
@@ -702,7 +702,7 @@ export default function OnChainVaultManager() {
                 </span>
               </div>
 
-              <div className="rounded-xl border border-purple-500/20 bg-purple-500/5 p-3 mt-4 text-[11px] text-[var(--color-ink-2)]">
+              <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 mt-4 text-[11px] text-[var(--color-ink-2)]">
                 Backs dice, blackjack, roulette, slots, and baccarat wagers. Payouts are settled sub-second directly to winning players on Arc Network.
               </div>
             </div>
@@ -715,7 +715,7 @@ export default function OnChainVaultManager() {
                 setActiveVault("casino");
                 setModalMode("deposit");
               }}
-              className="flex-1 rounded-xl bg-purple-500 py-2 text-xs font-black text-white hover:brightness-110 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1"
+              className="flex-1 rounded-xl bg-cyan-500 py-2 text-xs font-black text-black hover:brightness-110 transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1"
             >
               <ArrowDownToLine className="h-3.5 w-3.5" />
               Deposit Bankroll
@@ -814,7 +814,7 @@ export default function OnChainVaultManager() {
       </div>
 
       {/* Protocol Total Banner */}
-      <div className="rounded-2xl border border-[var(--color-brand-500)]/30 bg-gradient-to-r from-[var(--color-bg-2)] via-[var(--color-brand-500)]/5 to-[var(--color-bg-2)] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+      <div className="rounded-2xl border border-[var(--color-brand-500)]/30 bg-[var(--color-bg-2)] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-brand-500)]/20 text-[var(--color-brand-500)]">
             <Landmark className="h-5 w-5" />

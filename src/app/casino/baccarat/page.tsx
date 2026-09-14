@@ -107,7 +107,7 @@ export default function BaccaratPage() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="space-y-3">
-          <div className="relative flex min-h-[340px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-gradient-to-b from-[#2a0d18] to-[#0a1218] p-6">
+          <div className="relative flex min-h-[340px] items-center justify-center overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6">
             <div className="flex w-full max-w-md items-center justify-between gap-4">
               <HandDisplay label="Player" total={revealed ? result?.player ?? null : null} revealed={revealed} won={revealed && result?.winner === "player"} />
               <div className="mono text-lg font-black text-[var(--color-ink-3)]">VS</div>
@@ -208,7 +208,7 @@ function HandDisplay({ label, total, revealed, won }: { label: string; total: nu
             style={{
               borderColor: won ? "var(--color-brand-500)" : "var(--color-line-2)",
               background: revealed
-                ? "linear-gradient(160deg, rgba(167,139,250,0.15) 0%, var(--color-bg-2) 100%)"
+                ? "var(--color-bg-3)"
                 : "repeating-linear-gradient(45deg, var(--color-bg-3), var(--color-bg-3) 4px, var(--color-bg-4) 4px, var(--color-bg-4) 8px)",
               transitionDelay: `${i * 150}ms`,
             }}

@@ -7,6 +7,7 @@ import { SportIcon } from "@/components/icons/SportIcons";
 import { Markets } from "@/lib/api-client";
 import type { MarketDTO } from "@/lib/types";
 import OddsButton from "@/components/sportsbook/OddsButton";
+import LiveMatchCenter from "@/components/sportsbook/LiveMatchCenter";
 
 export interface LiveEventDetails {
   match_id: string;
@@ -113,7 +114,7 @@ export default function LiveMatchModal({ event, onClose }: Props) {
         </div>
 
         {/* Live Score Hero Banner (Livescores.com style) */}
-        <div className="relative bg-gradient-to-b from-[var(--color-bg-2)] to-[var(--color-bg-1)] px-6 py-8 text-center">
+        <div className="relative bg-[var(--color-bg-2)] px-6 py-8 text-center">
           {/* Status Badge */}
           <div className="mb-4 flex items-center justify-center gap-2">
             {isFinished ? (
@@ -169,6 +170,15 @@ export default function LiveMatchModal({ event, onClose }: Props) {
             <span className="mono font-bold text-white">{statusLine}</span>
           </div>
         </div>
+
+        {/* 2D Live Match Center */}
+        {sportSlug === "football" && market && !isFinished && (
+          <div className="px-5 pb-4">
+            <LiveMatchCenter
+              market={market}
+            />
+          </div>
+        )}
 
         {/* Live Odds & Quick Action */}
         <div className="border-t border-[var(--color-line-1)] bg-[var(--color-bg-2)]/40 px-6 py-4">

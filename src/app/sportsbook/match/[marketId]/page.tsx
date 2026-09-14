@@ -7,9 +7,8 @@ import { marketToMatch } from "@/lib/adapters/marketToMatch";
 import type { Match } from "@/lib/mockData";
 import type { MarketDTO, OddsBundle } from "@/lib/types";
 import OddsButton from "@/components/sportsbook/OddsButton";
-import LiveMatchCenter from "@/components/sportsbook/LiveMatchCenter";
 import {
-  ChevronLeft, LiveIcon, ShieldIcon, ZapIcon,
+  ChevronLeft, LiveIcon, ShieldIcon,
 } from "@/components/icons/UIIcons";
 
 interface MarketRow {
@@ -194,7 +193,6 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
 
       {/* Match header */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-4 sm:p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(0,231,1,0.06),transparent_60%)]" />
         <div className="relative">
           <div className="mb-4 flex items-center justify-between gap-2">
             <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)] truncate">
@@ -283,13 +281,6 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
           </div>
         </div>
       </div>
-
-      {/* 2D Live Match Center / Visualizer */}
-      {!isPrediction && (
-        <div className="mt-6">
-          <LiveMatchCenter market={market} homeColor={matchUi.homeColor} awayColor={matchUi.awayColor} />
-        </div>
-      )}
 
       {markets.length === 0 ? (
         <div className="mt-4 rounded-xl border border-dashed border-[var(--color-line-1)] bg-[var(--color-bg-2)]/40 p-8 text-center text-[12px] text-[var(--color-ink-3)]">

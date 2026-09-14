@@ -27,7 +27,7 @@ export default async function PredictionMarketsPage() {
     <div className="mx-auto max-w-[1400px] px-3 py-6 md:px-6">
       {/* Hero Header Banner */}
       <div className="relative mb-8 overflow-hidden rounded-3xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(0,231,1,0.1),transparent_70%)] pointer-events-none" />
+
         
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
           <div className="max-w-2xl">

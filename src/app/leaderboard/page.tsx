@@ -126,7 +126,7 @@ export default function LeaderboardPage() {
     <div className="mx-auto max-w-[1200px] px-3 py-5 md:px-5">
       {/* Hero Competition Banner */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(0,231,1,0.12),transparent_70%)]" />
+
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2">

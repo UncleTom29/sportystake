@@ -30,7 +30,7 @@ export default function WalletPage() {
         {/* Balance + deposit */}
         <div className="space-y-3">
           <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6">
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(0,231,1,0.07),transparent_55%)]" />
+
             <div className="relative">
               <p className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Available balance</p>
               <p className="mono mt-2 text-4xl font-black text-white">

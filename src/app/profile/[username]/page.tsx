@@ -57,7 +57,7 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
 
       {/* Profile hero */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(167,139,250,0.1),transparent_55%)]" />
+        
         <div className="relative flex flex-col gap-4 md:flex-row md:items-start">
           {/* Avatar */}
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-2 border-[#f59e0b] bg-[#f59e0b]/10 text-amber-400">

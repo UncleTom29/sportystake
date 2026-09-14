@@ -142,12 +142,11 @@ export default async function Home() {
       {/* 3. Provably Fair Casino Feature Spotlight Section */}
       <section className="mt-8">
         <div className="relative overflow-hidden rounded-2xl border border-[var(--color-brand-500)]/30 bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
-          <div className="bg-mesh absolute inset-0 opacity-70" />
           <div className="relative grid items-center gap-6 md:grid-cols-[1.4fr_1fr]">
             <div>
               <div className="flex items-center gap-2">
                 <Badge variant="brand">Provably Fair On-Chain</Badge>
-                <span className="mono text-[10px] font-bold text-violet-300 uppercase tracking-wider">0% House Manipulation</span>
+                <span className="mono text-[10px] font-bold text-[var(--color-ink-2)] uppercase tracking-wider">0% House Manipulation</span>
               </div>
               <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl">
                 Cryptographically Verifiable Game Outcomes
@@ -192,7 +191,7 @@ export default async function Home() {
             {/* Cryptographic Fairness Architecture */}
             <div className="space-y-3">
               <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 flex items-start gap-3.5">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-400 ring-1 ring-violet-500/30">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-brand-500)]/15 text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
                   <ShieldIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -279,7 +278,7 @@ export default async function Home() {
               <p className="text-[10px] text-[var(--color-ink-3)]">Smart Payouts</p>
             </div>
             <div className="rounded-lg bg-[var(--color-bg-1)] p-2.5 text-center">
-              <p className="mono text-lg font-black text-violet-300">Audited</p>
+              <p className="mono text-lg font-black text-[var(--color-ink-1)]">Audited</p>
               <p className="text-[10px] text-[var(--color-ink-3)]">EVM Contracts</p>
             </div>
           </div>
@@ -288,16 +287,15 @@ export default async function Home() {
 
       {/* 5. Prediction Markets in Multi-Leg Parlays Spotlight */}
       <section className="mt-8">
-        <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
-          <div className="bg-mesh absolute inset-0 opacity-70" />
+        <div className="relative overflow-hidden rounded-2xl border border-[var(--color-info)]/30 bg-[var(--color-bg-2)] p-6 md:p-8 shadow-2xl">
           <div className="relative grid items-center gap-8 lg:grid-cols-[1.2fr_1fr]">
             <div>
               <div className="flex items-center gap-2">
-                <Badge variant="violet">NEW · MULTI-ASSET PARLAYS</Badge>
-                <span className="mono text-[10px] font-bold text-purple-300 uppercase tracking-wider">Cross-Market Accumulators</span>
+                <Badge variant="info">NEW · MULTI-ASSET PARLAYS</Badge>
+                <span className="mono text-[10px] font-bold text-[var(--color-ink-2)] uppercase tracking-wider">Cross-Market Accumulators</span>
               </div>
               <h2 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl lg:text-4xl">
-                Prediction Markets Now Available in <span className="text-purple-400">Multi-Leg Parlays</span>
+                Prediction Markets Now Available in <span className="text-[var(--color-info)]">Multi-Leg Parlays</span>
               </h2>
               <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-2)] md:text-sm">
                 Break free from standard single-sport betting. SportyStake lets you combine <strong className="text-white">Crypto milestones</strong>, <strong className="text-white">Macroeconomics</strong>, and <strong className="text-white">Global political elections</strong> directly with <strong className="text-white">Premier League, Champions League, and NBA matches</strong> in unified multi-leg parlay slips for massive compounded returns.
@@ -314,14 +312,14 @@ export default async function Home() {
                 </div>
                 <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
                   <span className="text-[10px] uppercase font-bold text-[var(--color-ink-3)]">3. Multiplied Slip</span>
-                  <p className="text-[12px] font-bold text-purple-400 mt-0.5">Compounded Parlay Odds</p>
+                  <p className="text-[12px] font-bold text-[var(--color-info)] mt-0.5">Compounded Parlay Odds</p>
                 </div>
               </div>
 
               <div className="mt-6 flex flex-wrap items-center gap-3">
                 <Link
                   href="/prediction-markets"
-                  className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-purple-500 px-5 text-[13px] font-bold text-white hover:bg-purple-400 transition-transform active:scale-95 shadow-lg shadow-purple-500/20"
+                  className="inline-flex h-11 items-center gap-1.5 rounded-lg bg-[var(--color-info)] px-5 text-[13px] font-bold text-[var(--color-bg-0)] hover:opacity-90 transition-transform active:scale-95 shadow-lg shadow-[var(--color-info)]/20"
                 >
                   Explore Prediction Markets
                   <ArrowUpRight className="h-4 w-4" />
@@ -333,22 +331,22 @@ export default async function Home() {
                   Build a Sports Parlay
                 </Link>
                 <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-3)]">
-                  <ShieldIcon className="h-3.5 w-3.5 text-purple-400" />
+                  <ShieldIcon className="h-3.5 w-3.5 text-[var(--color-info)]" />
                   100% Non-Custodial Escrow on Arc EVM
                 </div>
               </div>
             </div>
 
             {/* Visual Sample Cross-Market Parlay Ticket */}
-            <div className="rounded-2xl border border-purple-500/30 bg-[var(--color-bg-1)] p-5 shadow-2xl relative">
+            <div className="rounded-2xl border border-[var(--color-info)]/30 bg-[var(--color-bg-1)] p-5 shadow-2xl relative">
               <div className="flex items-center justify-between border-b border-[var(--color-line-1)] pb-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-info)]/20 text-[var(--color-info)]">
                     <Layers className="h-3.5 w-3.5" />
                   </span>
                   <span className="text-[12px] font-black uppercase tracking-wider text-white">Cross-Market Parlay</span>
                 </div>
-                <span className="mono rounded bg-purple-500/20 px-2 py-0.5 text-[11px] font-bold text-purple-300">
+                <span className="mono rounded bg-[var(--color-info)]/20 px-2 py-0.5 text-[11px] font-bold text-[var(--color-info)]">
                   3 Legs Combined
                 </span>
               </div>
@@ -364,13 +362,13 @@ export default async function Home() {
                   <p className="text-[11px] text-[var(--color-brand-500)] font-semibold">Selection: Arsenal Win</p>
                 </div>
 
-                <div className="rounded-xl border border-purple-500/30 bg-purple-950/20 p-3">
-                  <div className="flex items-center justify-between text-[10px] text-purple-300 font-bold uppercase">
+                <div className="rounded-xl border border-[var(--color-info)]/30 bg-[var(--color-info)]/5 p-3">
+                  <div className="flex items-center justify-between text-[10px] text-[var(--color-info)] font-bold uppercase">
                     <span>🪙 Crypto Prediction · Target Price</span>
                     <span className="mono text-white">2.20x</span>
                   </div>
                   <p className="mt-1 text-[13px] font-bold text-white">Bitcoin &gt; $100,000 by Q4</p>
-                  <p className="text-[11px] text-purple-400 font-semibold">Selection: YES Outcome</p>
+                  <p className="text-[11px] text-[var(--color-info)] font-semibold">Selection: YES Outcome</p>
                 </div>
 
                 <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3">
@@ -387,7 +385,7 @@ export default async function Home() {
               <div className="mt-4 rounded-xl bg-[var(--color-bg-3)] p-3.5 border border-[var(--color-line-1)]">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-[var(--color-ink-2)] font-semibold">Combined Multiplier:</span>
-                  <span className="mono text-base font-black text-purple-400">6.71x Total Odds</span>
+                  <span className="mono text-base font-black text-[var(--color-info)]">6.71x Total Odds</span>
                 </div>
                 <div className="mt-1.5 flex items-center justify-between pt-1.5 border-t border-[var(--color-line-1)]">
                   <span className="text-[11px] text-[var(--color-ink-3)]">Example $50 USDC Stake:</span>
@@ -496,7 +494,7 @@ export default async function Home() {
             subtitle="House games · provably fair on-chain · instant payouts"
             href="/casino"
             Icon={CasinoChipIcon}
-            accent="#a78bfa"
+            accent="var(--color-brand-500)"
           />
           <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-6">
             {casinoGames.slice(0, 6).map((g) => (
@@ -507,7 +505,6 @@ export default async function Home() {
 
         {/* 10. Quantitative Model Spotlight Section */}
         <section className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-6 md:p-8">
-          <div className="bg-mesh absolute inset-0 opacity-80" />
           <div className="relative grid items-center gap-6 md:grid-cols-[1.4fr_1fr]">
             <div>
               <Badge variant="brand">Quant Model Terminal</Badge>

@@ -37,7 +37,7 @@ const Body = z.discriminatedUnion("game", [
     game: z.literal("roulette"),
     txHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/),
     betType: z.string().min(1),
-    selection: z.union([z.number(), z.string()]),
+    selection: z.union([z.number(), z.string()]).optional(),
     clientSeed: z.string().min(1).max(64).default("default"),
   }),
   z.object({

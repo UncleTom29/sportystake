@@ -33,12 +33,17 @@ export default function PendingCasinoBetBanner({ game, onResolved }: Props) {
   const handleResolve = async () => {
     setResolving(true);
     try {
+      const extraParams = { ...pending.params };
+      if (pending.game === "roulette") {
+        extraParams.selection = extraParams.selection ?? extraParams.betType ?? "red";
+        extraParams.betType = extraParams.betType ?? "red";
+      }
       const res = await resolveCasinoBetWithRetry(
         {
           game: pending.game,
           txHash: pending.txHash,
           clientSeed: pending.clientSeed,
-          ...pending.params,
+          ...extraParams,
         },
         3,
       );

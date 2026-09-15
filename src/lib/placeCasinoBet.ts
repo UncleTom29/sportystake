@@ -97,10 +97,15 @@ export async function resolveCasinoBetWithRetry(
   game: string;
   settled: boolean;
 }> {
+  const payload = { ...body };
+  if (payload.game === "roulette" && payload.selection === undefined && payload.betType) {
+    payload.selection = payload.betType;
+  }
+
   let lastErr: unknown;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const res = await Casino.bet(body);
+      const res = await Casino.bet(payload);
       clearPendingCasinoBet(body.game);
       return res;
     } catch (err) {
@@ -117,7 +122,7 @@ export async function resolveCasinoBetWithRetry(
     game: body.game,
     amount: Number(body.amount ?? 0),
     clientSeed: body.clientSeed,
-    params: body,
+    params: payload,
     timestamp: Date.now(),
   });
 

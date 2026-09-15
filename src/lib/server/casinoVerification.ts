@@ -22,7 +22,13 @@ export interface VerifiedCasinoBet {
 
 /** Verifies a `placeCasinoBet` tx actually happened and was sent by `expectedPlayer`. */
 export async function verifyCasinoBetPlaced(txHash: `0x${string}`, expectedPlayer: string): Promise<VerifiedCasinoBet> {
-  const receipt = await publicClient().getTransactionReceipt({ hash: txHash });
+  let receipt: TransactionReceipt;
+  try {
+    receipt = await publicClient().getTransactionReceipt({ hash: txHash });
+  } catch {
+    // If not immediately available due to RPC node propagation delay, wait up to 4s
+    receipt = await publicClient().waitForTransactionReceipt({ hash: txHash, timeout: 4_000 });
+  }
   if (receipt.status !== "success") {
     throw new ApiError("TransactionFailed", "The on-chain transaction did not succeed", 409);
   }

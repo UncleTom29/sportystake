@@ -15,13 +15,13 @@ const SEGMENT_DEG = 360 / WHEEL_ORDER.length;
 
 type OutsideBet = "red" | "black" | "even" | "odd" | "low" | "high" | "dozen1" | "dozen2" | "dozen3";
 
-const OUTSIDE_BETS: { key: OutsideBet; label: string; betType: string; selection?: number; payout: string }[] = [
-  { key: "red", label: "Red", betType: "red", payout: "2×" },
-  { key: "black", label: "Black", betType: "black", payout: "2×" },
-  { key: "even", label: "Even", betType: "even", payout: "2×" },
-  { key: "odd", label: "Odd", betType: "odd", payout: "2×" },
-  { key: "low", label: "1–18", betType: "low", payout: "2×" },
-  { key: "high", label: "19–36", betType: "high", payout: "2×" },
+const OUTSIDE_BETS: { key: OutsideBet; label: string; betType: string; selection?: number | string; payout: string }[] = [
+  { key: "red", label: "Red", betType: "red", selection: "red", payout: "2×" },
+  { key: "black", label: "Black", betType: "black", selection: "black", payout: "2×" },
+  { key: "even", label: "Even", betType: "even", selection: "even", payout: "2×" },
+  { key: "odd", label: "Odd", betType: "odd", selection: "odd", payout: "2×" },
+  { key: "low", label: "1–18", betType: "low", selection: "low", payout: "2×" },
+  { key: "high", label: "19–36", betType: "high", selection: "high", payout: "2×" },
   { key: "dozen1", label: "1st 12", betType: "dozen", selection: 1, payout: "3×" },
   { key: "dozen2", label: "2nd 12", betType: "dozen", selection: 2, payout: "3×" },
   { key: "dozen3", label: "3rd 12", betType: "dozen", selection: 3, payout: "3×" },
@@ -89,7 +89,7 @@ export default function RoulettePage() {
     try {
       const res = await resolveCasinoBetWithRetry({
         game: "roulette", txHash, clientSeed,
-        betType: activeBet.betType, selection: activeBet.selection,
+        betType: activeBet.betType, selection: activeBet.selection ?? activeBet.betType,
         amount: amt,
       });
       const landedNumber = res.outcome.detail.number as number;

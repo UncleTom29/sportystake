@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useWallet } from "@/lib/walletStore";
 import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { useUsdcBalance, formatUsdc } from "@/lib/useWalletBalance";
 import { useNotifications } from "@/lib/notificationStore";
+import { Auth } from "@/lib/api-client";
 
 import { ShieldCheck } from "lucide-react";
 
@@ -27,6 +28,19 @@ export default function WalletButton() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { balance } = useUsdcBalance({ address: address ?? undefined });
   const balanceLabel = formatUsdc(balance);
+
+  // If user is authenticated or has active address but username is not in state, hydrate from server
+  useEffect(() => {
+    if (address && (!user || !user.username)) {
+      Auth.me()
+        .then((res) => {
+          if (res?.user) {
+            useWallet.getState().setSession({ user: res.user, stats: res.stats ?? null });
+          }
+        })
+        .catch(() => {});
+    }
+  }, [address, user]);
 
   // State 1: not signed in
   if (authStatus !== "authenticated" || !user || !address) {
@@ -52,6 +66,10 @@ export default function WalletButton() {
     );
   }
 
+  const rawUsername = user.username?.trim();
+  const username = rawUsername ? rawUsername.replace(/^@/, "") : null;
+  const displayName = username ? `@${username}` : shortAddr(address);
+
   // State 2: signed in
   return (
     <div className="relative">
@@ -61,12 +79,14 @@ export default function WalletButton() {
         aria-haspopup="menu"
         aria-expanded={menuOpen}
       >
-          <span
-            className="h-5 w-5 shrink-0 rounded-full"
-            style={{ backgroundColor: "var(--color-brand-500)" }}
-            aria-hidden
-          />
-        <span className="mono hidden sm:inline">{user.username ?? shortAddr(address)}</span>
+        <span
+          className="h-5 w-5 shrink-0 rounded-full"
+          style={{ backgroundColor: "var(--color-brand-500)" }}
+          aria-hidden
+        />
+        <span className={`hidden sm:inline ${username ? "font-bold text-white tracking-tight" : "mono"}`}>
+          {displayName}
+        </span>
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
           <path d="M2 4l3 3 3-3" stroke="currentColor" strokeWidth="1.5" fill="none" />
         </svg>
@@ -77,13 +97,32 @@ export default function WalletButton() {
           className="absolute right-0 top-full z-40 mt-1.5 w-[240px] overflow-hidden rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-2)] shadow-xl"
         >
           <div className="border-b border-[var(--color-line-1)] p-3">
-            <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Wallet</p>
-            <p className="mono mt-0.5 text-[12px] text-white">{shortAddr(address)}</p>
+            {username ? (
+              <>
+                <p className="text-[13px] font-bold text-white">@{username}</p>
+                <p className="mono mt-0.5 text-[11px] text-[var(--color-ink-3)]">{shortAddr(address)}</p>
+              </>
+            ) : (
+              <>
+                <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Wallet</p>
+                <p className="mono mt-0.5 text-[12px] text-white">{shortAddr(address)}</p>
+              </>
+            )}
             <p className="mono mt-2 text-[16px] font-black text-[var(--color-brand-500)]">
               ${balanceLabel}{" "}
               <span className="text-[10px] font-bold text-[var(--color-brand-500)]/70">USDC</span>
             </p>
           </div>
+          {!username && (
+            <Link
+              href="/account"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center justify-between border-b border-[var(--color-line-1)] bg-[var(--color-brand-500)]/10 px-3 py-2 text-[11px] font-semibold text-[var(--color-brand-400)] hover:bg-[var(--color-brand-500)]/15"
+            >
+              <span>Set your @username</span>
+              <span>→</span>
+            </Link>
+          )}
           <Link href="/account" onClick={() => setMenuOpen(false)} className="block px-3 py-2 text-[12px] hover:bg-[var(--color-bg-3)]">
             Account
           </Link>

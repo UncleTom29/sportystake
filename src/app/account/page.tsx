@@ -89,6 +89,9 @@ export default function AccountPage() {
       .then((data) => {
         if (data?.data?.user) {
           setUserMe(data.data.user);
+          if (data.data.user.username) {
+            useWallet.getState().updateUsername(data.data.user.username);
+          }
         }
       })
       .catch(() => {});
@@ -373,6 +376,7 @@ export default function AccountPage() {
         onClose={() => setUsernameModalOpen(false)}
         onUsernameSet={(newUsername) => {
           setUserMe((prev) => (prev ? { ...prev, username: newUsername } : null));
+          useWallet.getState().updateUsername(newUsername);
           fetchUserData();
         }}
       />

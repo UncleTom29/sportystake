@@ -68,8 +68,8 @@ export default function Footer() {
                 <ShieldIcon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[13px] font-bold text-white">Instant Access</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Fast &amp; Secure Payouts</p>
+                <p className="text-[13px] font-bold text-white">Self-Custody</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Direct Web3 Wallet Access</p>
               </div>
             </div>
 
@@ -78,8 +78,8 @@ export default function Footer() {
                 <ZapIcon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[13px] font-bold text-white">Fast Payouts</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Direct USDC Settlements</p>
+                <p className="text-[13px] font-bold text-white">Instant USDC Payouts</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Direct Wallet Settlements</p>
               </div>
             </div>
 
@@ -89,7 +89,7 @@ export default function Footer() {
               </div>
               <div>
                 <p className="text-[13px] font-bold text-white">Provably Fair</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Transparent Odds &amp; History</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Cryptographic Outcomes</p>
               </div>
             </div>
 
@@ -98,8 +98,8 @@ export default function Footer() {
                 <ShieldIcon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[13px] font-bold text-white">Guaranteed Solvency</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">100% Reserve Backed</p>
+                <p className="text-[13px] font-bold text-white">100% Reserve Backed</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Guaranteed USDC Solvency</p>
               </div>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function Footer() {
             </Link>
 
             <p className="max-w-sm text-[13px] leading-relaxed text-[var(--color-ink-2)]">
-              The premier modern sportsbook and casino. Enjoy instant USDC payouts, competitive global odds across 40+ sports, and provably fair casino games with zero delays.
+              The premier modern crypto sportsbook and casino on Arc Network. Enjoy instant USDC payouts, competitive global odds across 40+ sports, and provably fair casino games with zero gas fees.
             </p>
 
             <div className="flex items-center gap-2.5 pt-2">

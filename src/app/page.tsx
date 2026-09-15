@@ -235,10 +235,10 @@ export default async function Home() {
 
         {/* 7. Trust & Security Grid */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Trust Icon={ShieldIcon} title="Fast &amp; Private" sub="Instant 1-click access with zero verification delays." />
-          <Trust Icon={TrendUp} title="Instant Payouts" sub="Winnings are credited automatically the moment matches settle." />
-          <Trust Icon={BadgeCheck} title="Fair Play Guaranteed" sub="Transparent odds and verifiable game outcomes on every round." />
-          <Trust Icon={BadgeCheck} title="Ultra-Low Latency" sub="Sub-second execution with zero transaction fees." />
+          <Trust Icon={ShieldIcon} title="Self-Custody" sub="Retain complete control of your keys and funds at all times." />
+          <Trust Icon={TrendUp} title="Instant USDC Payouts" sub="Winnings are credited directly to your wallet the moment matches settle." />
+          <Trust Icon={BadgeCheck} title="Provably Fair" sub="Cryptographically verifiable game outcomes with public seed hashes." />
+          <Trust Icon={BadgeCheck} title="Zero Gas Fees" sub="Fast betting and settlements on Arc EVM with zero gas costs." />
         </section>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { UserApi } from "@/lib/api-client";
+import { useWallet } from "@/lib/walletStore";
 import { useNotifications } from "@/lib/notificationStore";
 import { CloseIcon } from "@/components/icons/UIIcons";
 import { AtSign, CheckCircle2, AlertCircle } from "lucide-react";
@@ -30,7 +31,7 @@ export default function SetUsernameModal({
       return;
     }
 
-    setChecking(true);
+  setChecking(true);
     const timer = setTimeout(() => {
       UserApi.checkUsername(username)
         .then((res) => {
@@ -56,12 +57,14 @@ export default function SetUsernameModal({
     setSubmitting(true);
     try {
       const res = await UserApi.setUsername(username);
+      const claimedName = res.user.username!;
+      useWallet.getState().updateUsername(claimedName);
       pushToast({
         kind: "success",
         title: "Username Claimed",
-        body: `@${res.user.username} is now associated with your account`,
+        body: `@${claimedName} is now associated with your account`,
       });
-      onUsernameSet(res.user.username!);
+      onUsernameSet(claimedName);
       onClose();
     } catch (err) {
       pushToast({ kind: "error", title: "Claim Failed", body: (err as Error).message });

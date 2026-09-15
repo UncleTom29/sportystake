@@ -16,13 +16,13 @@ export default function StatsMarquee({
   maxWin = "—",
 }: StatsMarqueeProps) {
   const items = [
-    { Icon: ShieldIcon, label: "Fast & Private", sub: "instant access" },
-    { Icon: ZapIcon, label: "Instant Payouts", sub: "zero delays" },
+    { Icon: ShieldIcon, label: "Self-Custody", sub: "your keys, your funds" },
+    { Icon: ZapIcon, label: "Instant USDC", sub: "direct payouts" },
     { Icon: TrophyIcon, label: "Top Odds", sub: "40+ global sports" },
-    { Icon: BadgeCheck, label: "Provably Fair", sub: "verified games" },
+    { Icon: BadgeCheck, label: "Provably Fair", sub: "cryptographic proofs" },
     { Icon: GiftIcon, label: "$2,000 Bonus", sub: "welcome match" },
     { Icon: FlameIcon, label: "Prediction Markets", sub: "real-world events" },
-    { Icon: ZapIcon, label: "Zero Gas Fees", sub: "free bets" },
+    { Icon: ZapIcon, label: "Zero Gas Fees", sub: "gasless on Arc" },
     ...(maxWin && maxWin !== "—" ? [{ Icon: TrophyIcon, label: maxWin, sub: "biggest win this week" }] : []),
   ];
 

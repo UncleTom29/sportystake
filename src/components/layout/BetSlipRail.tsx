@@ -380,9 +380,7 @@ function SlipContent({
                 active ? "text-white bg-[var(--color-bg-2)]/40" : "text-[var(--color-ink-3)] hover:text-white"
               }`}
             >
-              {t === "singles"
-                ? `Singles (${selections.length})`
-                : `Multi (${selections.length} Legs · ${parlayOdds.toFixed(2)}×)`}
+              {t === "singles" ? "Singles" : `Multi · ${parlayOdds.toFixed(2)}×`}
               {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--color-brand-500)]" />}
             </button>
           );
@@ -395,26 +393,6 @@ function SlipContent({
           <EmptyState onLoadCode={onLoadCode} />
         ) : (
           <div className="space-y-2.5 p-3.5">
-            {/* Multi / Accumulator Overview Header */}
-            {tab === "parlay" && selections.length >= 2 && (
-              <div className="flex items-center justify-between rounded-lg border border-[var(--color-brand-500)]/20 bg-[var(--color-brand-500)]/10 px-3.5 py-2.5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-brand-400)]">
-                      {selections.length}-Game Multi
-                    </span>
-                    <span className="rounded bg-[var(--color-brand-500)]/20 px-1.5 py-0.2 text-[9px] font-black text-[var(--color-brand-500)]">
-                      ALL MUST WIN
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Combined Odds Multiplier</p>
-                </div>
-                <div className="mono text-right">
-                  <span className="text-lg font-black text-[var(--color-brand-500)]">{parlayOdds.toFixed(2)}×</span>
-                </div>
-              </div>
-            )}
-
             {selections.map((sel) => (
               <SelectionRow
                 key={`${sel.matchId}-${sel.market}`}
@@ -492,13 +470,13 @@ function SlipContent({
                 : !walletConnected
                 ? "Sign in to bet"
                 : tab === "singles"
-                ? `Place ${selections.length} Single${selections.length > 1 ? "s" : ""}`
-                : `Place ${selections.length}-Game Multi`}
+                ? "Place Singles"
+                : "Place Multi Bet"}
             </button>
           </div>
 
           <p className="mt-2.5 text-center text-[11px] text-[var(--color-ink-4)]">
-            {walletConnected ? `Balance: ${balance} USDC · ` : ""}Instant payouts · Zero transaction fees
+            {walletConnected ? `Balance: ${balance} USDC · ` : ""}Instant USDC settlement · Zero gas fees
           </p>
         </div>
       )}

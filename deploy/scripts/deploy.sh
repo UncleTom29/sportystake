@@ -62,6 +62,10 @@ main() {
   set +a
   npx prisma generate
   npx prisma migrate deploy || npx prisma db push --accept-data-loss
+  # Clear any stale next-build process or leftover .next/lock from an interrupted run
+  pkill -f "next build" || true
+  sleep 1
+  rm -f .next/lock
   pnpm build
 
   # packages/oracle has its own build step (tsc) and its own deps — it uses

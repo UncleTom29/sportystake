@@ -8,6 +8,10 @@ on:
       - "v*"
   workflow_dispatch:
 
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
 jobs:
   deploy-vps:
     name: Contabo VPS — full app (frontend + backend + workers)
@@ -47,4 +51,4 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
           ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" \
-            "sudo -u sportystake bash /opt/sportystake/deploy/scripts/deploy.sh"
+            "sudo -u sportystake pkill -f 'next build' || true; sudo -u sportystake rm -f /opt/sportystake/.next/lock; sudo -u sportystake bash /opt/sportystake/deploy/scripts/deploy.sh"

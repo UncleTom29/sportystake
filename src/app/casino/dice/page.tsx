@@ -113,7 +113,6 @@ export default function DicePage() {
           </Link>
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">Dice</h1>
-        <p className="text-[13px] text-[var(--color-ink-3)]">Predict high or low. Adjust the threshold to change odds.</p>
       </div>
 
       <PendingCasinoBetBanner game="dice" onResolved={handlePendingResolved} />
@@ -273,10 +272,6 @@ export default function DicePage() {
               <div className="flex justify-between">
                 <span className="text-[var(--color-ink-3)]">Payout on win</span>
                 <span className="mono font-bold text-white">${payout.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--color-ink-3)]">Verification</span>
-                <span className="mono font-bold text-[var(--color-brand-500)]">Provably Fair</span>
               </div>
             </div>
 

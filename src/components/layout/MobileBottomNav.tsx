@@ -38,7 +38,7 @@ const moreNavItems = [
   { href: "/live", label: "Live Scores", desc: "Real-time match updates", Icon: Activity, iconColor: "text-[var(--color-live)]" },
   { href: "/leaderboard", label: "Leaderboard & Referrals", desc: "Rankings & prize pools", Icon: Award, iconColor: "text-amber-400" },
   { href: "/social", label: "Social Bet Feed", desc: "Tail top tipster tickets", Icon: Share2, iconColor: "text-blue-400" },
-  { href: "/ai-analytics", label: "AI Picks & Predictions", desc: "Smart AI match insights", Icon: BrainCircuit, iconColor: "text-[var(--color-brand-500)]" },
+  { href: "/ai-analytics", label: "Market Analytics", desc: "Match stats & projections", Icon: BrainCircuit, iconColor: "text-[var(--color-brand-500)]" },
   { href: "/prediction-markets", label: "Prediction Markets", desc: "Speculate on global outcomes", Icon: TrendingUp, iconColor: "text-[var(--color-info)]" },
   { href: "/account", label: "Wallet & Account", desc: "Profile, bets & referrals", Icon: WalletCards, iconColor: "text-cyan-400" },
 ];

@@ -52,23 +52,8 @@ export default function CasinoPage() {
             </span>
             <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl text-white">Aviator</h2>
             <p className="mt-2 max-w-md text-[13px] text-[var(--color-ink-2)] md:text-sm">
-              Watch the multiplier climb. Cash out before it busts. Commit-reveal on-chain —
-              every round&apos;s seed is verifiable after it resolves.
+              Real-time multiplier climbs. Cash out before the round busts with instant on-chain payouts.
             </p>
-            <div className="mt-5 grid grid-cols-3 gap-3 max-w-md">
-              <div>
-                <p className="mono text-2xl font-black text-white">Provable</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Fair RNG</p>
-              </div>
-              <div>
-                <p className="mono text-2xl font-black text-[var(--color-brand-500)]">24/7</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Live Rounds</p>
-              </div>
-              <div>
-                <p className="mono text-2xl font-black text-[var(--color-brand-500)]">On-chain</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">Settlement</p>
-              </div>
-            </div>
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <Link href={featured.href} className="inline-flex h-11 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-5 text-[14px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]">
                 Play now
@@ -110,12 +95,6 @@ export default function CasinoPage() {
               {c.label}
             </button>
           ))}
-        </div>
-        {/* Was hidden below md — exactly the audience (first-time, unsure
-            mobile bettors) who benefit most from seeing this reassurance. */}
-        <div className="flex items-center gap-1.5 text-[11px] text-[var(--color-ink-3)] md:ml-auto">
-          <ShieldIcon className="h-3.5 w-3.5 shrink-0" />
-          Non-custodial · settled by smart contract
         </div>
       </div>
 

@@ -64,7 +64,7 @@ export default function AIAnalyticsPage() {
   const [predictions, setPredictions] = useState<PredictionItem[]>([]);
   const [insights, setInsights] = useState<InsightItem[]>([]);
   const [lastAnalyzedAt, setLastAnalyzedAt] = useState<string | null>(null);
-  const [modelUsed, setModelUsed] = useState<string>("DeepSeek-V4 European Football Quant Engine");
+  const [modelUsed, setModelUsed] = useState<string>("Predictive Signals Engine");
   const [trackRecord, setTrackRecord] = useState<ModelTrackRecord>({
     winRate: 64.6,
     roi: 14.2,
@@ -232,7 +232,7 @@ export default function AIAnalyticsPage() {
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="mono inline-flex items-center gap-1.5 rounded-full bg-[var(--color-brand-500)]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] ring-1 ring-[var(--color-brand-500)]/30">
                 <BrainCircuit className="h-3.5 w-3.5 animate-pulse" />
-                TOP EUROPEAN FOOTBALL QUANTITATIVE TERMINAL
+                FOOTBALL MARKET ANALYTICS
               </span>
               <span className="mono rounded-full bg-[var(--color-bg-1)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--color-ink-3)] border border-[var(--color-line-1)]">
                 {modelUsed}
@@ -240,10 +240,10 @@ export default function AIAnalyticsPage() {
             </div>
 
             <h1 className="mt-3 text-2xl font-black tracking-tight text-white md:text-3xl lg:text-4xl">
-              AI Football Picks & Expected Value Edge
+              Football Market Analytics & Value Signals
             </h1>
             <p className="mt-2 text-[13px] text-[var(--color-ink-2)] leading-relaxed">
-              Institutional quantitative model signals benchmarked exclusively across top European football competitions (Premier League, La Liga, Serie A, Bundesliga, Ligue 1 & UEFA Champions League). Implied win probabilities, true Bayesian estimates, and fractional Kelly unit sizing.
+              Statistical projections and expected value indicators across top European football competitions (Premier League, La Liga, Serie A, Bundesliga, Ligue 1 & UEFA Champions League). Win probabilities, expected value margins, and unit sizing.
             </p>
           </div>
 
@@ -370,7 +370,7 @@ export default function AIAnalyticsPage() {
               viewMode === "table" ? "bg-[var(--color-bg-1)] text-white shadow-sm" : "text-[var(--color-ink-3)] hover:text-white"
             }`}
           >
-            Quant Table
+            Signals Table
           </button>
         </div>
       </div>
@@ -586,7 +586,7 @@ export default function AIAnalyticsPage() {
                         className="flex items-center gap-1 text-[11px] font-bold text-[var(--color-ink-2)] hover:text-white transition-colors"
                       >
                         {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                        {isExpanded ? "Hide Quantitative Rationale" : "Deep Quantitative Rationale"}
+                        {isExpanded ? "Hide Analysis" : "View Analysis"}
                       </button>
                       {isExpanded && (
                         <p className="mt-2 text-[12px] text-[var(--color-ink-2)] bg-[var(--color-bg-1)] p-3 rounded-lg border border-[var(--color-line-1)] leading-relaxed">

@@ -142,7 +142,6 @@ export default function SlotsPage() {
           </Link>
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">Slots</h1>
-        <p className="text-[13px] text-[var(--color-ink-3)]">5 reels · 20 paylines · provably fair RNG</p>
       </div>
 
       <PendingCasinoBetBanner game="slots" onResolved={handlePendingResolved} />

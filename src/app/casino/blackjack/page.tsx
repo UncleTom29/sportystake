@@ -200,7 +200,6 @@ export default function BlackjackPage() {
           </Link>
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">Blackjack</h1>
-        <p className="text-[13px] text-[var(--color-ink-3)]">Beat the dealer without busting past 21. Dealer stands on all 17s.</p>
       </div>
 
       {hasRecoverable && phase === "idle" && (
@@ -322,7 +321,6 @@ export default function BlackjackPage() {
               <div className="flex justify-between"><span className="text-[var(--color-ink-3)]">Blackjack</span><span className="mono font-bold text-[var(--color-brand-500)]">3:2</span></div>
               <div className="flex justify-between"><span className="text-[var(--color-ink-3)]">Win</span><span className="mono font-bold text-white">1:1</span></div>
               <div className="flex justify-between"><span className="text-[var(--color-ink-3)]">Push</span><span className="mono font-bold text-white">Stake returned</span></div>
-              <div className="flex justify-between"><span className="text-[var(--color-ink-3)]">Verification</span><span className="mono font-bold text-[var(--color-brand-500)]">Provably Fair</span></div>
             </div>
 
             <button

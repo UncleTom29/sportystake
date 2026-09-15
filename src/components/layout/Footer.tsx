@@ -34,13 +34,12 @@ const footerNavigation = [
     ],
   },
   {
-    title: "AI & Predictions",
+    title: "Markets & Social",
     links: [
-      { label: "AI Picks & Predictions", href: "/ai-analytics" },
-      { label: "European Football Quant Engine", href: "/ai-analytics" },
-      { label: "Top Leagues +EV Signals", href: "/ai-analytics" },
       { label: "Prediction Markets", href: "/prediction-markets" },
-      { label: "Shared Ticket Affiliate", href: "/sportsbook" },
+      { label: "Market Analytics", href: "/ai-analytics" },
+      { label: "Social Bet Feed", href: "/social" },
+      { label: "Shared Tickets", href: "/sportsbook" },
       { label: "Lifetime Referral Program", href: "/profile" },
     ],
   },

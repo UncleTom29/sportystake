@@ -434,9 +434,6 @@ export default function AviatorPage() {
             <Plane className="h-6 w-6 text-[#ff2d55]" />
             Aviator
           </h1>
-          <p className="text-[13px] text-[var(--color-ink-3)]">
-            Watch the red plane climb. Cash out before it flies away! Provably fair on-chain RNG.
-          </p>
         </div>
         {pendingPayout > 0n && (
           <button
@@ -492,8 +489,8 @@ export default function AviatorPage() {
                   <span className="mono text-5xl md:text-6xl font-black text-white drop-shadow-md">
                     {formatCountdown(countdownSec)}
                   </span>
-                  <p className={`mono text-xs font-bold uppercase tracking-widest ${isCutoff ? "text-yellow-400" : "text-[#ff2d55]"} animate-pulse`}>
-                    {isCutoff ? "TAKING OFF SOON... BETTING CLOSED" : "NEXT TAKEOFF IN PROGRESS... PLACE YOUR BETS"}
+                  <p className={`mono text-xs font-bold uppercase tracking-widest ${isCutoff ? "text-yellow-400" : "text-[#ff2d55]"}`}>
+                    {isCutoff ? "BETTING CLOSED" : "PLACE YOUR BETS"}
                   </p>
                 </div>
               )}

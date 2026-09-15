@@ -130,7 +130,6 @@ export default function RoulettePage() {
           </Link>
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">Roulette</h1>
-        <p className="text-[13px] text-[var(--color-ink-3)]">European wheel · single zero · pick a number or an outside bet.</p>
       </div>
 
       <PendingCasinoBetBanner game="roulette" onResolved={handlePendingResolved} />
@@ -289,10 +288,6 @@ export default function RoulettePage() {
               <div className="flex justify-between">
                 <span className="text-[var(--color-ink-3)]">Payout</span>
                 <span className="mono font-bold text-[var(--color-brand-500)]">{activeBet?.payout ?? "—"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-[var(--color-ink-3)]">Verification</span>
-                <span className="mono font-bold text-[var(--color-brand-500)]">Provably Fair</span>
               </div>
             </div>
 

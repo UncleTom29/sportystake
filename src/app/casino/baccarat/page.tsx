@@ -100,7 +100,6 @@ export default function BaccaratPage() {
           </Link>
         </div>
         <h1 className="text-2xl font-black tracking-tight text-white">Baccarat</h1>
-        <p className="text-[13px] text-[var(--color-ink-3)]">Bet on Player, Banker, or a Tie. Closest hand to 9 wins.</p>
       </div>
 
       <PendingCasinoBetBanner game="baccarat" onResolved={handlePendingResolved} />
@@ -175,11 +174,6 @@ export default function BaccaratPage() {
                   {v}
                 </button>
               ))}
-            </div>
-
-            <div className="mb-4 flex items-center justify-between rounded-md bg-[var(--color-bg-1)] p-3 text-[13px]">
-              <span className="text-[var(--color-ink-3)]">Verification</span>
-              <span className="mono font-bold text-[var(--color-brand-500)]">Provably Fair</span>
             </div>
 
             <button

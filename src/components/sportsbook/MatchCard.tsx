@@ -96,7 +96,7 @@ export default function MatchCard({ match }: { match: Match }) {
       {/* Footer */}
       <div className="mt-3 flex items-center justify-between text-[11px] border-t border-[var(--color-line-1)] pt-2.5">
         <Link href={matchDetailHref} className="text-[var(--color-ink-3)] hover:text-white font-medium">
-          +{marketsCount} odds available
+          +{marketsCount} markets
         </Link>
         <Link
           href={matchDetailHref}

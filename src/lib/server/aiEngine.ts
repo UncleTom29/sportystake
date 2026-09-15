@@ -130,11 +130,11 @@ export async function getDailyAIAnalysis(forceRefresh = false): Promise<AIAnalys
   const apiKey = process.env.OPENROUTER_API_KEY;
   let predictions: AIPredictionItem[] = [];
   let insights: AIInsightItem[] = [];
-  let modelUsed = "DeepSeek-V4 European Football Quant Engine";
+  let modelUsed = "Predictive Signals Engine";
 
-  if (apiKey && activeMarkets.length > 0) {
+  if (process.env.OPENROUTER_API_KEY) {
     try {
-      modelUsed = "DeepSeek-V4 Football Quant Engine (OpenRouter)";
+      modelUsed = "Predictive Signals Engine (Live)";
       const prompt = `Analyze these real top-tier European football fixtures (Premier League, La Liga, Serie A, Bundesliga, Ligue 1, UEFA Champions League) and produce a JSON array of quantitative betting recommendations:
 ${activeMarkets
   .map((m) => {

@@ -4,12 +4,11 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Markets } from "@/lib/api-client";
 import { SportIcon } from "@/components/icons/SportIcons";
-import { FlameIcon, TrophyIcon, BotIcon, TicketIcon } from "@/components/icons/UIIcons";
+import { FlameIcon, TrophyIcon, TicketIcon } from "@/components/icons/UIIcons";
 import { sportsList } from "@/lib/mockData";
 
 const primary = [
   { href: "/sportsbook?featured=1&popular=hot", label: "Popular", Icon: FlameIcon },
-  { href: "/ai-analytics", label: "AI Picks", Icon: BotIcon },
   { href: "/social", label: "Social", Icon: TicketIcon },
 ];
 

@@ -34,20 +34,18 @@ export const metadata: Metadata = {
     template: "%s | SportyStake",
   },
   description:
-    "SportyStake is a fully non-custodial decentralized crypto sportsbook, provably fair casino, and quantitative prediction market. Bet on 40+ sports, deploy autonomous AI betting agents, and access verified +EV match signals. Instant sub-second settlement on Arc Network.",
+    "SportyStake is a non-custodial crypto sportsbook, provably fair casino, and prediction market. Bet on 40+ sports with instant sub-second USDC settlement on Arc Network.",
   keywords: [
     "crypto sportsbook",
     "non-custodial betting",
     "on-chain casino",
     "decentralized sports betting",
     "Arc network",
-    "free LLM sports analytics",
-    "Claude Fable AI match predictions",
     "USDC sportsbook",
     "provably fair casino",
     "web3 sportsbook",
-    "1xbet wager bonus match",
-    "no kyc betting platform",
+    "prediction markets",
+    "no kyc betting",
   ],
   authors: [{ name: "SportyStake Protocol" }],
   creator: "SportyStake",
@@ -73,7 +71,7 @@ export const metadata: Metadata = {
     siteName: "SportyStake",
     title: "SportyStake — Non-Custodial Crypto Sportsbook & On-Chain Casino",
     description:
-      "Bet on 40+ sports, play provably fair games, and earn yield as the house. Free LLM sports analytics, non-custodial settlement, zero KYC.",
+      "Bet on 40+ sports, play provably fair games, and trade real-world event predictions. Non-custodial settlement, zero KYC.",
     // images intentionally omitted — src/app/opengraph-image.tsx generates
     // and wires it automatically. The previous manual reference pointed at
     // /og-banner.jpg, a file that was never actually added to public/, so
@@ -83,7 +81,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "SportyStake — Non-Custodial Crypto Sportsbook & On-Chain Casino",
     description:
-      "Bet on 40+ sports, play provably fair games, and earn yield as the house. Free LLM sports analytics, non-custodial settlement, zero KYC.",
+      "Bet on 40+ sports, play provably fair games, and trade real-world event predictions. Non-custodial settlement, zero KYC.",
     creator: "@sportystake",
   },
   icons: {
@@ -110,7 +108,7 @@ const jsonLdSchema = {
       "@id": "https://sportystake.com/#website",
       "url": "https://sportystake.com",
       "name": "SportyStake",
-      "description": "Non-custodial crypto sportsbook, provably fair casino, and free LLM sports analytics.",
+      "description": "Non-custodial crypto sportsbook, provably fair casino, and prediction markets.",
       "publisher": {
         "@type": "Organization",
         "name": "SportyStake Protocol",

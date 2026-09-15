@@ -252,11 +252,11 @@ describe("CrashGame", () => {
   });
 
   describe("no-risk crash range (empty rounds draw a rich, upper-scaled result)", () => {
-    it("a round with zero players draws from [10x, 1000x] instead of the normal curve", async () => {
+    it("a round with zero players draws from realistic no-risk curve [1.40x, 50x] instead of the normal curve", async () => {
       const env = await loadFixture(deploy);
       // Known: this exact seed resolves to 240n (2.40x) via the normal
       // formula at rtpBps=9000 (see the rtpBps direct-proportion test) —
-      // reused here so a value >= 1000 proves the branch actually changed,
+      // reused here so a value != 240 proves the branch actually changed,
       // not a coincidental landing.
       const seed = ethers.keccak256(ethers.toUtf8Bytes("rtp-dir-4"));
       await env.crash.startRound(seedHashOf(seed));
@@ -264,8 +264,8 @@ describe("CrashGame", () => {
       await env.crash.lockRound(1);
       await env.crash.resolveRound(1, seed);
       const crash = (await env.crash.rounds(1)).crashMultiplierX100;
-      expect(crash).to.be.gte(1000n);
-      expect(crash).to.be.lte(100_000n);
+      expect(crash).to.be.gte(140n);
+      expect(crash).to.be.lte(5000n);
       expect(crash).to.not.equal(240n);
     });
 
@@ -291,8 +291,8 @@ describe("CrashGame", () => {
         await env.crash.lockRound(roundId);
         await env.crash.resolveRound(roundId, seed);
         const crash = (await env.crash.rounds(roundId)).crashMultiplierX100;
-        expect(crash).to.be.gte(1000n);
-        expect(crash).to.be.lte(100_000n);
+        expect(crash).to.be.gte(140n);
+        expect(crash).to.be.lte(5000n);
         results.add(crash);
       }
       expect(results.size).to.be.greaterThan(1);
@@ -307,7 +307,8 @@ describe("CrashGame", () => {
       expect(cap).to.equal(100_000n); // MAX_AUTOCASHOUT_X100 — never constrains the no-risk draw
       await env.crash.resolveRound(1, seed);
       const crash = (await env.crash.rounds(1)).crashMultiplierX100;
-      expect(crash).to.be.gte(1000n);
+      expect(crash).to.be.gte(140n);
+      expect(crash).to.be.lte(5000n);
     });
   });
 

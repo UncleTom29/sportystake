@@ -59,7 +59,7 @@ const footerNavigation = [
 export default function Footer() {
   return (
     <footer className="mt-16 border-t border-[var(--color-line-1)] bg-[var(--color-bg-1)]">
-      {/* Top Banner: Protocol Solvency & Web3 Security */}
+      {/* Top Banner: Web3 Trust & Security */}
       <div className="border-b border-[var(--color-line-1)] bg-[var(--color-bg-2)]/60 py-6">
         <div className="mx-auto max-w-7xl px-4 md:px-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -68,8 +68,8 @@ export default function Footer() {
                 <ShieldIcon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[13px] font-bold text-white">No KYC & Non-Custodial</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">100% Smart Contract Escrow</p>
+                <p className="text-[13px] font-bold text-white">Instant Access</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Fast &amp; Secure Payouts</p>
               </div>
             </div>
 
@@ -78,8 +78,8 @@ export default function Footer() {
                 <ZapIcon className="h-5 w-5" />
               </div>
               <div>
-                <p className="text-[13px] font-bold text-white">Sub-Second Payouts</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">18ms Arc Block Finality</p>
+                <p className="text-[13px] font-bold text-white">Fast Payouts</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Direct USDC Settlements</p>
               </div>
             </div>
 
@@ -89,7 +89,7 @@ export default function Footer() {
               </div>
               <div>
                 <p className="text-[13px] font-bold text-white">Provably Fair</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">SHA-256 Commit-Reveal Hashes</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">Transparent Odds &amp; History</p>
               </div>
             </div>
 
@@ -99,7 +99,7 @@ export default function Footer() {
               </div>
               <div>
                 <p className="text-[13px] font-bold text-white">Guaranteed Solvency</p>
-                <p className="text-[11px] text-[var(--color-ink-3)]">100% On-Chain Escrowed Vaults</p>
+                <p className="text-[11px] text-[var(--color-ink-3)]">100% Reserve Backed</p>
               </div>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function Footer() {
             </Link>
 
             <p className="max-w-sm text-[13px] leading-relaxed text-[var(--color-ink-2)]">
-              The premier non-custodial crypto sportsbook & provably fair casino protocol. Built natively on Arc EVM chain for zero-KYC instant execution, permissionless LP pools, and cryptographic outcome verification.
+              The premier modern sportsbook and casino. Enjoy instant USDC payouts, competitive global odds across 40+ sports, and provably fair casino games with zero delays.
             </p>
 
             <div className="flex items-center gap-2.5 pt-2">
@@ -128,14 +128,14 @@ export default function Footer() {
                 <UsdcIcon className="h-4.5 w-4.5" />
                 <span className="mono text-[11px] font-bold text-white">USDC</span>
                 <span className="rounded bg-[var(--color-brand-500)]/15 px-1.5 py-0.5 text-[9px] font-bold text-[var(--color-brand-500)] border border-[var(--color-brand-500)]/30">
-                  ARC NATIVE
+                  FAST &amp; SECURE
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-[var(--color-ink-3)] pt-1">
               <ShieldIcon className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Smart Contracts Audited · Non-Custodial Protocol</span>
+              <span>Audited Security · 100% Reserve Backed</span>
             </div>
           </div>
 
@@ -172,21 +172,21 @@ export default function Footer() {
               <span>Gamble Responsibly</span>
               <span>·</span>
               <Link href="/terms" className="underline hover:text-white font-medium">
-                Terms & Conditions
+                Terms &amp; Conditions
               </Link>
               <span>·</span>
-              <span>© {new Date().getFullYear()} SportyStake Protocol</span>
+              <span>© {new Date().getFullYear()} SportyStake</span>
             </p>
             <p className="text-[10px] text-[var(--color-ink-4)] max-w-3xl">
-              SportyStake is a non-custodial smart contract system operating natively on the Arc EVM network. Users are solely responsible for ensuring compliance with their local legal jurisdiction.
+              SportyStake is an online sports entertainment and gaming platform. Users must be 18+ and are solely responsible for ensuring compliance with their local legal jurisdiction. Gamble responsibly.
             </p>
           </div>
 
           <div className="flex items-center gap-2.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-2)] px-3.5 py-2">
             <span className="h-2 w-2 rounded-full bg-[var(--color-brand-500)] animate-pulse" />
             <div className="text-[11px]">
-              <span className="font-bold text-white block">Arc EVM Chain</span>
-              <span className="mono text-[10px] text-[var(--color-ink-3)]">18ms Finality · ID 1337</span>
+              <span className="font-bold text-white block">Arc Network</span>
+              <span className="mono text-[10px] text-[var(--color-ink-3)]">Operational · 99.9% Uptime</span>
             </div>
           </div>
         </div>

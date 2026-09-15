@@ -34,7 +34,7 @@ export default function GameTile({ game }: { game: CasinoGame }) {
         {/* Bottom info */}
         <div className="absolute inset-x-0 bottom-0 p-2.5">
           <p className="truncate text-[13px] font-bold text-white">{game.name}</p>
-          <p className="truncate text-[10px] text-white/70">On-chain · Instant</p>
+          <p className="truncate text-[10px] text-white/70">{game.category} · {game.rtp}% RTP</p>
         </div>
 
         {/* Hover play overlay */}

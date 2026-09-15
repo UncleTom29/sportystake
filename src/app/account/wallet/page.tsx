@@ -124,7 +124,7 @@ export default function WalletPage() {
               )}
             </div>
             <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
-              <p className="text-[13px] text-[var(--color-ink-2)]">Full history is on the Arc block explorer.</p>
+              <p className="text-[13px] text-[var(--color-ink-2)]">View all deposits, withdrawals, and payouts on the Arc ledger.</p>
               {displayAddress && (
                 <a
                   href={`https://explorer.testnet.arc.network/address/${displayAddress}`}
@@ -132,7 +132,7 @@ export default function WalletPage() {
                   rel="noopener noreferrer"
                   className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-3)] px-3 text-[12px] font-semibold text-white hover:bg-[var(--color-bg-4)]"
                 >
-                  Open Arc Explorer
+                  View Activity Receipts
                 </a>
               )}
             </div>

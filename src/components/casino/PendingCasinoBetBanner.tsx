@@ -54,7 +54,7 @@ export default function PendingCasinoBetBanner({ game, onResolved }: Props) {
         title: "Bet Resolved Successfully",
         body: res.outcome.win
           ? `Settled: +${res.outcome.payout} USDC credited to your account.`
-          : "Settled on-chain.",
+          : "Bet settled.",
       });
       onResolved?.(res);
     } catch (err) {
@@ -80,7 +80,7 @@ export default function PendingCasinoBetBanner({ game, onResolved }: Props) {
           !
         </span>
         <div>
-          <p className="font-bold text-white">Unsettled On-Chain Bet Detected</p>
+          <p className="font-bold text-white">Unconfirmed Bet Detected</p>
           <p className="mono text-[11px] text-[var(--color-ink-3)]">
             Tx: <a href={explorerTxUrl(pending.txHash)} target="_blank" rel="noopener noreferrer" className="hover:underline">
               {pending.txHash.slice(0, 10)}…{pending.txHash.slice(-8)}

@@ -75,14 +75,14 @@ export default function ComplianceModal() {
             <div className="flex items-start gap-2.5">
               <KeyRound className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
               <div>
-                <strong className="text-white">100% Non-Custodial Protocol:</strong> SportyStake operates via self-custodial EVM smart contracts. You retain sole ownership of your Web3 keys & funds.
+                <strong className="text-white">Direct Account Control:</strong> You retain complete control of your funds and wallet balance at all times.
               </div>
             </div>
 
             <div className="flex items-start gap-2.5">
               <Scale className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
               <div>
-                <strong className="text-white">Jurisdictional Liability:</strong> Accessing decentralized wagering and liquidity pools must comply with your local laws. You assume full legal responsibility.
+                <strong className="text-white">Jurisdictional Compliance:</strong> Accessing sports wagering and games must comply with your local laws.
               </div>
             </div>
           </div>
@@ -109,7 +109,7 @@ export default function ComplianceModal() {
                 className="mt-0.5 h-4 w-4 rounded border-[var(--color-line-2)] bg-[var(--color-bg-1)] text-[var(--color-brand-500)] focus:ring-0 focus:ring-offset-0 cursor-pointer accent-[var(--color-brand-500)]"
               />
               <span className="text-[12px] font-medium text-[var(--color-ink-2)] group-hover:text-white transition-colors">
-                I understand SportyStake is a <strong className="text-white">decentralized protocol</strong> and I am fully liable for its usage in my jurisdiction.
+                I confirm that online sports betting and gaming are <strong className="text-white">permitted in my jurisdiction</strong>.
               </span>
             </label>
 
@@ -127,7 +127,7 @@ export default function ComplianceModal() {
                   target="_blank"
                   className="font-bold text-[var(--color-brand-500)] underline hover:text-[var(--color-brand-400)]"
                 >
-                  Terms & Conditions
+                  Terms &amp; Conditions
                 </Link>{" "}
                 and Risk Disclosures.
               </span>
@@ -145,7 +145,7 @@ export default function ComplianceModal() {
               Confirm
             </button>
             <p className="text-[10px] text-center text-[var(--color-ink-4)] font-medium">
-              By entering, you confirm agreement to smart contract protocol terms.
+              By entering, you confirm agreement to SportyStake platform rules and terms.
             </p>
           </div>
         </div>

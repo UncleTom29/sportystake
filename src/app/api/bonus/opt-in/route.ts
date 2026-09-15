@@ -48,7 +48,7 @@ export const POST = withRequestId(async (req: NextRequest) => {
   return ok({
     optIn: updated.bonusOptIn,
     message: enabled
-      ? "Welcome Bonus enabled! Your first qualified on-chain wager will receive a 100% match up to $2,000 USDC."
+      ? "Welcome Bonus enabled! Your first qualified wager will receive a 100% match up to $2,000 USDC."
       : "Welcome Bonus disabled.",
   });
 });

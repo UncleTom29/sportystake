@@ -45,8 +45,8 @@ export default function IntegrationProvider() {
           break;
         }
         case "bet:confirmed": {
-          pushToast({ kind: "success", title: "Bet confirmed", body: "On-chain confirmation received." });
-          pushNotification({ kind: "bet_confirmed", message: "Your bet was confirmed on-chain." });
+          pushToast({ kind: "success", title: "Bet confirmed", body: "Bet placed successfully." });
+          pushNotification({ kind: "bet_confirmed", message: "Your bet was confirmed." });
           break;
         }
         case "bet:settled": {

@@ -30,26 +30,25 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://sportystake.com"),
   title: {
-    default: "SportyStake — Non-Custodial Crypto Sportsbook & On-Chain Casino",
+    default: "SportyStake — Premier Sportsbook & Casino",
     template: "%s | SportyStake",
   },
   description:
-    "SportyStake is a non-custodial crypto sportsbook, provably fair casino, and prediction market. Bet on 40+ sports with instant sub-second USDC settlement on Arc Network.",
+    "SportyStake is the premier modern sportsbook and casino. Bet on 40+ sports with instant USDC payouts, transparent odds, and provably fair games.",
   keywords: [
-    "crypto sportsbook",
-    "non-custodial betting",
-    "on-chain casino",
-    "decentralized sports betting",
+    "sportsbook",
+    "sports betting",
+    "casino games",
+    "live sports odds",
     "Arc network",
     "USDC sportsbook",
     "provably fair casino",
-    "web3 sportsbook",
     "prediction markets",
-    "no kyc betting",
+    "fast payouts",
   ],
-  authors: [{ name: "SportyStake Protocol" }],
+  authors: [{ name: "SportyStake" }],
   creator: "SportyStake",
-  publisher: "SportyStake Protocol",
+  publisher: "SportyStake",
   alternates: {
     canonical: "https://sportystake.com",
   },
@@ -69,19 +68,17 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://sportystake.com",
     siteName: "SportyStake",
-    title: "SportyStake — Non-Custodial Crypto Sportsbook & On-Chain Casino",
+    title: "SportyStake — Premier Sportsbook & Casino",
     description:
-      "Bet on 40+ sports, play provably fair games, and trade real-world event predictions. Non-custodial settlement, zero KYC.",
+      "Bet on 40+ sports, play provably fair games, and trade real-world event predictions with instant USDC payouts.",
     // images intentionally omitted — src/app/opengraph-image.tsx generates
-    // and wires it automatically. The previous manual reference pointed at
-    // /og-banner.jpg, a file that was never actually added to public/, so
-    // every shared link rendered no preview image at all.
+    // and wires it automatically.
   },
   twitter: {
     card: "summary_large_image",
-    title: "SportyStake — Non-Custodial Crypto Sportsbook & On-Chain Casino",
+    title: "SportyStake — Premier Sportsbook & Casino",
     description:
-      "Bet on 40+ sports, play provably fair games, and trade real-world event predictions. Non-custodial settlement, zero KYC.",
+      "Bet on 40+ sports, play provably fair games, and trade real-world event predictions with instant USDC payouts.",
     creator: "@sportystake",
   },
   icons: {
@@ -151,7 +148,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Suspense>
           <LiveScoreTicker />
           <div className="relative">
-            <main className="pb-24 md:pb-16 lg:pr-90">{children}</main>
+            <main className="pb-24 md:pb-16 lg:pr-[390px] xl:pr-[430px]">{children}</main>
             <BetSlipRail />
           </div>
           <Footer />

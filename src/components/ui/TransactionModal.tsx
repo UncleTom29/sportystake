@@ -9,7 +9,7 @@ type Status = "pending" | "success" | "error";
 const DEFAULT_STEPS: Step[] = [
   { label: "Preparing transaction" },
   { label: "Awaiting relay" },
-  { label: "On-chain" },
+  { label: "Processing" },
   { label: "Confirming" },
   { label: "Complete" },
 ];

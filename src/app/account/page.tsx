@@ -206,7 +206,7 @@ export default function AccountPage() {
                 <CopyIcon className="h-3.5 w-3.5" />
               </button>
             )}
-            <p className="mt-1 text-[11px] text-[var(--color-ink-3)]">Arc Network · Non-Custodial USDC Wallet</p>
+            <p className="mt-1 text-[11px] text-[var(--color-ink-3)]">Arc Network · USDC Balance</p>
           </div>
 
           {!isConnected && (

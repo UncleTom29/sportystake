@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Decentralized Sportsbook — Live Sports Odds & Betting",
+  title: "Sportsbook — Live Sports Odds & Betting",
   description:
-    "Bet on Premier League, Champions League, NBA, UFC, Tennis, Esports and 40+ global sports on SportyStake. Non-custodial USDC wagering, instant on-chain payouts, zero KYC.",
+    "Bet on Premier League, Champions League, NBA, UFC, Tennis, Esports and 40+ global sports on SportyStake. Fast USDC wagering, instant payouts, and competitive odds.",
   keywords: [
-    "crypto sportsbook",
-    "web3 sports betting",
+    "sportsbook",
+    "sports betting",
     "live football odds",
-    "nba betting crypto",
-    "non-custodial sportsbook",
-    "on-chain sports bets",
+    "nba betting",
+    "premier league odds",
+    "fast payouts",
   ],
 };
 

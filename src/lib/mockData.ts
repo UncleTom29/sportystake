@@ -220,7 +220,7 @@ export const matches: Match[] = [
 // on-chain via Circle, settled by the operator. RTP is `100% - houseEdgeBps/100`
 // straight from src/lib/server/casino.ts, not a marketing number.
 export const casinoGames: CasinoGame[] = [
-  { id: "crash", name: "Aviator", href: "/casino/crash", category: "Crash", provider: "SportyStake", rtp: 99.00, minBet: 1, maxBet: 5000, color: "#0b2917", accent: "#00e701", tag: "HOT", description: "Cash out before the plane flies away. Commit-reveal on-chain." },
+  { id: "crash", name: "Aviator", href: "/casino/crash", category: "Crash", provider: "SportyStake", rtp: 99.00, minBet: 1, maxBet: 5000, color: "#0b2917", accent: "#00e701", tag: "HOT", description: "Cash out before the plane flies away. Provably fair with high multipliers." },
   { id: "dice", name: "Dice", href: "/casino/dice", category: "Dice", provider: "SportyStake", rtp: 99.00, minBet: 1, maxBet: 5000, color: "#0c3345", accent: "#2dc4ff", tag: "HOT", description: "Roll over or under. Adjust the threshold, adjust the odds." },
   { id: "slots", name: "Slots", href: "/casino/slots", category: "Slots", provider: "SportyStake", rtp: 96.50, minBet: 1, maxBet: 5000, color: "#3d2805", accent: "#ffb800", tag: "HOT", description: "5 reels, provably-fair symbol grid. Wilds pay big." },
   { id: "roulette", name: "Roulette", href: "/casino/roulette", category: "Table", provider: "SportyStake", rtp: 97.30, minBet: 1, maxBet: 5000, color: "#380e0e", accent: "#ff4444", tag: "NEW", description: "European single-zero wheel. Straight-up pays 36×." },
@@ -269,12 +269,12 @@ export const promos = [
     id: "p-casino",
     tag: "Casino Originals",
     title: "Aviator, Dice & Provably Fair Games",
-    subtitle: "High-multiplier crash flights, European roulette, dice and blackjack with verifiable on-chain outcomes",
+    subtitle: "High-multiplier crash flights, European roulette, dice and blackjack with verified fair outcomes",
     cta: "Play Casino",
     href: "/casino",
     gradient: "",
     accent: "#00e701",
-    tnc: "Cryptographic commit-reveal seed hashing on every round. Instant smart contract payouts.",
+    tnc: "Transparent odds and verifiable fairness on every round. Instant payouts.",
   },
   {
     id: "p2",

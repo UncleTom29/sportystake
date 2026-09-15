@@ -46,17 +46,17 @@ export default async function PredictionMarketsPage() {
               Trade Event Outcomes with Real-Time Probabilities
             </h1>
             <p className="mt-2.5 text-[14px] text-[var(--color-ink-2)] md:text-[15px] leading-relaxed">
-              Take positions on sports props, tournament champions, esports, and global milestones. Fully integrated with your universal SportyStake betslip and smart contract settlement.
+              Take positions on sports props, tournament champions, esports, and global milestones. Fully integrated with your universal SportyStake betslip with fast automated payouts.
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-4 text-[12px] text-[var(--color-ink-3)]">
               <span className="flex items-center gap-1.5 font-semibold text-white">
                 <ShieldCheck className="h-4 w-4 text-[var(--color-brand-500)]" />
-                Smart Contract Verified
+                Verified Results
               </span>
               <span className="flex items-center gap-1.5 font-semibold text-white">
                 <CheckCircle2 className="h-4 w-4 text-[var(--color-brand-500)]" />
-                Instant USDC Settlement
+                Instant USDC Payouts
               </span>
             </div>
           </div>

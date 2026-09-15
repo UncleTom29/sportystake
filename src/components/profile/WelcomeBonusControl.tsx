@@ -90,7 +90,7 @@ export default function WelcomeBonusControl() {
                   {bonusStatus === "EXPIRED" && "EXPIRED"}
                 </Badge>
               </div>
-              <p className="text-[11px] text-[var(--color-ink-3)]">100% First On-Chain Wager Match up to $2,000 USDC</p>
+              <p className="text-[11px] text-[var(--color-ink-3)]">100% First Wager Match up to $2,000 USDC</p>
             </div>
           </div>
 
@@ -197,7 +197,7 @@ export default function WelcomeBonusControl() {
             <p className="font-bold text-white">How to Qualify & Claim Your Bonus:</p>
             <ul className="space-y-1.5 list-disc list-inside text-[11px]">
               <li>Enable the Welcome Bonus above before placing your first wager.</li>
-              <li>Place your first on-chain wager with <strong>total odds &gt; 2.00</strong> and at least <strong>3 selections with odds ≥ 1.60</strong>.</li>
+              <li>Place your first wager with <strong>total odds &gt; 2.00</strong> and at least <strong>3 selections with odds ≥ 1.60</strong>.</li>
               <li>Upon successful wager placement, you receive a <strong>100% bonus match up to $2,000 USDC</strong> in your Virtual Bonus Account.</li>
               <li>Complete 10x rollover on accumulator bets (10+ legs, 3+ legs ≥ 1.60) within 10 days to transfer up to initial bonus amount to main wallet.</li>
             </ul>

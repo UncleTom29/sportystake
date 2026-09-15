@@ -41,7 +41,7 @@ export default function CasinoPage() {
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
       <h1 className="sr-only">
-        Provably Fair On-Chain Crypto Casino — Crash, Dice, Slots, Table Games
+        Provably Fair Casino — Crash, Dice, Slots, Table Games
       </h1>
       {/* Featured hero — Aviator */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)]">
@@ -52,7 +52,7 @@ export default function CasinoPage() {
             </span>
             <h2 className="mt-3 text-3xl font-black tracking-tight md:text-4xl text-white">Aviator</h2>
             <p className="mt-2 max-w-md text-[13px] text-[var(--color-ink-2)] md:text-sm">
-              Real-time multiplier climbs. Cash out before the round busts with instant on-chain payouts.
+              Real-time multiplier climbs. Cash out before the round busts for instant payouts.
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <Link href={featured.href} className="inline-flex h-11 items-center gap-1.5 rounded-md bg-[var(--color-brand-500)] px-5 text-[14px] font-bold text-[var(--color-bg-0)] hover:bg-[var(--color-brand-400)]">

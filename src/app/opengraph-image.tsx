@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "SportyStake — Non-Custodial Web3 Sportsbook & Casino";
+export const alt = "SportyStake — Premier Sportsbook & Casino";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -73,7 +73,7 @@ export default function Image() {
             textAlign: "center",
           }}
         >
-          Non-Custodial Crypto Sportsbook &amp; On-Chain Casino
+          Premier Sportsbook &amp; Casino
         </div>
         <div
           style={{
@@ -82,7 +82,7 @@ export default function Image() {
             gap: 16,
           }}
         >
-          {["Zero KYC", "Provably Fair", "Instant Settlement"].map((tag) => (
+          {["Fast & Private", "Provably Fair", "Instant Payouts"].map((tag) => (
             <div
               key={tag}
               style={{

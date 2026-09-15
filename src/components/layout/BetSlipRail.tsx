@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useBetSlip, type BetSelection } from "@/lib/betSlipStore";
-import { CloseIcon, TicketIcon, ChevronDown, ChevronUp, ZapIcon, UsdtIcon } from "@/components/icons/UIIcons";
+import { CloseIcon, TicketIcon, ChevronDown, ChevronUp, ZapIcon, UsdcIcon } from "@/components/icons/UIIcons";
 import { useWallet } from "@/lib/walletStore";
 import { usePrivyLogin } from "@/lib/usePrivyLogin";
 import { useUsdcBalance } from "@/lib/useWalletBalance";
@@ -9,7 +9,7 @@ import { useNotifications } from "@/lib/notificationStore";
 import { placeSingleBets, placeParlay } from "@/lib/placeBet";
 import { BetSlip } from "@/lib/api-client";
 import BookedBetModal from "@/components/sportsbook/BookedBetModal";
-import { Gift } from "lucide-react";
+import { Gift, Trash2 } from "lucide-react";
 
 type Tab = "singles" | "parlay";
 
@@ -193,7 +193,7 @@ export default function BetSlipRail() {
       )}
 
       {/* Desktop rail */}
-      <aside className="fixed right-0 top-[104px] z-30 hidden h-[calc(100vh-104px-64px)] w-[340px] border-l border-[var(--color-line-1)] bg-[var(--color-bg-1)] lg:block">
+      <aside className="fixed right-0 top-[104px] bottom-0 z-30 hidden w-[390px] xl:w-[430px] border-l border-[var(--color-line-1)] bg-[var(--color-bg-1)] shadow-2xl lg:flex lg:flex-col">
         <SlipContent {...shared} />
       </aside>
 
@@ -285,19 +285,23 @@ function SlipContent({
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-[var(--color-line-1)] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-[var(--color-line-1)] px-4 py-3.5 bg-[var(--color-bg-1)]">
         <div className="flex items-center gap-2">
           <TicketIcon className="h-4 w-4 text-[var(--color-brand-500)]" />
-          <span className="text-[13px] font-bold tracking-wide">BET SLIP</span>
+          <span className="text-[13px] font-black tracking-wider uppercase text-white">BET SLIP</span>
           {hasSelections && (
-            <span className="mono flex h-5 min-w-5 items-center justify-center rounded-md bg-[var(--color-bg-3)] px-1.5 text-[11px] font-bold">
+            <span className="mono flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--color-brand-500)]/15 border border-[var(--color-brand-500)]/30 px-2 text-[11px] font-bold text-[var(--color-brand-500)]">
               {selections.length}
             </span>
           )}
         </div>
         <div className="flex items-center gap-1">
           {hasSelections && (
-            <button onClick={clearAll} className="text-[12px] text-[var(--color-ink-3)] hover:text-[var(--color-live)]">
+            <button
+              onClick={clearAll}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-[var(--color-ink-3)] transition-colors hover:bg-rose-500/10 hover:text-rose-400"
+            >
+              <Trash2 className="h-3 w-3" />
               Clear
             </button>
           )}
@@ -310,21 +314,21 @@ function SlipContent({
       </div>
 
       {/* Load Code Bar */}
-      <div className="border-b border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-2">
-        <div className="flex items-center gap-1.5 rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-2 py-1 focus-within:border-[var(--color-brand-500)]/50">
-          <TicketIcon className="h-3.5 w-3.5 text-[var(--color-ink-3)]" />
+      <div className="border-b border-[var(--color-line-1)] bg-[var(--color-bg-2)]/60 px-3 py-2">
+        <div className="flex items-center gap-1.5 rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-2.5 py-1 focus-within:border-[var(--color-brand-500)]/50">
+          <TicketIcon className="h-3.5 w-3.5 text-[var(--color-ink-3)] shrink-0" />
           <input
             type="text"
             value={loadInput}
             onChange={(e) => setLoadInput(e.target.value.toUpperCase())}
             onKeyDown={(e) => e.key === "Enter" && handleTriggerLoad()}
-            placeholder="Load Code (e.g. 7X9K2W)"
+            placeholder="Load Booking Code (e.g. 7X9K2W)"
             className="mono w-full bg-transparent text-[11px] font-semibold text-white outline-none placeholder:text-[var(--color-ink-4)]"
           />
           <button
             onClick={handleTriggerLoad}
             disabled={!loadInput.trim()}
-            className="rounded bg-[var(--color-bg-3)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] transition-colors hover:bg-[var(--color-bg-4)] disabled:opacity-40"
+            className="rounded bg-[var(--color-bg-3)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] transition-colors hover:bg-[var(--color-bg-4)] disabled:opacity-40"
           >
             Load
           </button>
@@ -333,8 +337,8 @@ function SlipContent({
 
       {/* Account Selector Pill: Main USDC vs Virtual Bonus Account */}
       {walletConnected && (bonusActive || bonusBalance > 0) && (
-        <div className="border-b border-[var(--color-line-1)] bg-[var(--color-bg-2)]/80 p-2">
-          <div className="grid grid-cols-2 gap-1 rounded-lg bg-[var(--color-bg-1)] p-1">
+        <div className="border-b border-[var(--color-line-1)] bg-[var(--color-bg-2)]/40 p-2">
+          <div className="grid grid-cols-2 gap-1.5 rounded-lg bg-[var(--color-bg-0)] p-1 border border-[var(--color-line-1)]">
             <button
               onClick={() => setAccountMode("main")}
               className={`rounded-md py-1.5 text-[11px] font-bold transition-all ${
@@ -372,29 +376,51 @@ function SlipContent({
               key={t}
               onClick={() => setTab(t)}
               disabled={t === "parlay" && selections.length < 2}
-              className={`relative py-2.5 text-[12px] font-bold uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                active ? "text-white" : "text-[var(--color-ink-3)] hover:text-white"
+              className={`relative py-3 text-[12px] font-bold uppercase tracking-wider transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                active ? "text-white bg-[var(--color-bg-2)]/40" : "text-[var(--color-ink-3)] hover:text-white"
               }`}
             >
-              {t === "singles" ? "Singles" : `Multi · ${parlayOdds.toFixed(2)}×`}
-              {active && <span className="absolute inset-x-3 bottom-0 h-0.5 rounded-t bg-[var(--color-brand-500)]" />}
+              {t === "singles"
+                ? `Singles (${selections.length})`
+                : `Multi (${selections.length} Legs · ${parlayOdds.toFixed(2)}×)`}
+              {active && <span className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--color-brand-500)]" />}
             </button>
           );
         })}
       </div>
 
-      {/* Selections */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      {/* Selections List Area */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 bg-[var(--color-bg-0)]/40">
         {!hasSelections ? (
           <EmptyState onLoadCode={onLoadCode} />
         ) : (
-          <div className="space-y-2 p-3">
+          <div className="space-y-2.5 p-3.5">
+            {/* Multi / Accumulator Overview Header */}
+            {tab === "parlay" && selections.length >= 2 && (
+              <div className="flex items-center justify-between rounded-lg border border-[var(--color-brand-500)]/20 bg-[var(--color-brand-500)]/10 px-3.5 py-2.5">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-brand-400)]">
+                      {selections.length}-Game Multi
+                    </span>
+                    <span className="rounded bg-[var(--color-brand-500)]/20 px-1.5 py-0.2 text-[9px] font-black text-[var(--color-brand-500)]">
+                      ALL MUST WIN
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">Combined Odds Multiplier</p>
+                </div>
+                <div className="mono text-right">
+                  <span className="text-lg font-black text-[var(--color-brand-500)]">{parlayOdds.toFixed(2)}×</span>
+                </div>
+              </div>
+            )}
+
             {selections.map((sel) => (
               <SelectionRow
                 key={`${sel.matchId}-${sel.market}`}
                 sel={sel}
                 showStake={tab === "singles"}
-                stake={singleStake}
+                stake={sel.stake || singleStake}
                 onStake={(v) => updateStake(sel.matchId, sel.market, v)}
                 onRemove={() => removeSelection(sel.matchId, sel.market)}
               />
@@ -405,39 +431,40 @@ function SlipContent({
 
       {/* Footer */}
       {hasSelections && (
-        <div className="border-t border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-3">
+        <div className="border-t border-[var(--color-line-1)] bg-[var(--color-bg-1)] p-4 shadow-xl">
           {tab === "singles" ? (
             <>
               <StakeInput value={singleStake} onChange={setSingleStake} label="Stake per single" balance={balance} />
-              <Quick chips={[10, 25, 50, 100]} onPick={(v) => setSingleStake(v)} />
-              <Row label="Total stake" value={`${singlesTotalStake.toFixed(2)} USDT`} />
-              <Row label="Potential return" value={`${singlesTotalReturn.toFixed(2)} USDT`} accent />
+              <Quick chips={[5, 10, 25, 50, 100]} onPick={(v) => setSingleStake(v)} />
+              <div className="my-2.5 space-y-1 border-t border-[var(--color-line-1)] pt-2">
+                <Row label="Total stake" value={`$${singlesTotalStake.toFixed(2)} USDC`} />
+                <Row label="Potential return" value={`$${singlesTotalReturn.toFixed(2)} USDC`} accent />
+              </div>
             </>
           ) : (
             <>
-              <div className="mb-2 flex items-center justify-between rounded-md bg-[var(--color-bg-2)] px-3 py-2">
-                <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">Combined odds</span>
-                <span className="mono text-base font-bold text-[var(--color-brand-500)]">{parlayOdds.toFixed(2)}×</span>
+              <StakeInput value={parlayStake} onChange={setParlayStake} label="Multi Stake" balance={balance} />
+              <Quick chips={[5, 10, 25, 50, 100]} onPick={(v) => setParlayStake(v)} />
+              <div className="my-2.5 space-y-1 border-t border-[var(--color-line-1)] pt-2">
+                <Row label="Total Stake" value={`$${parlayStake.toFixed(2)} USDC`} />
+                <Row label="Combined Odds" value={`${parlayOdds.toFixed(2)}×`} />
+                <Row label="Potential Return" value={`$${parlayReturn.toFixed(2)} USDC`} accent />
               </div>
-              <StakeInput value={parlayStake} onChange={setParlayStake} label="Stake" balance={balance} />
-              <Quick chips={[10, 25, 50, 100]} onPick={(v) => setParlayStake(v)} />
-              <Row label="Stake" value={`${parlayStake.toFixed(2)} USDT`} />
-              <Row label="Potential return" value={`${parlayReturn.toFixed(2)} USDT`} accent />
             </>
           )}
 
-          <div className="mt-2 mb-3 flex items-center justify-between rounded-md bg-[var(--color-bg-2)] px-2.5 py-1.5">
-            <span className="text-[11px] text-[var(--color-ink-3)]">Accept odds changes</span>
+          <div className="mb-3 flex items-center justify-between rounded-lg bg-[var(--color-bg-2)] px-3 py-1.5 border border-[var(--color-line-1)]">
+            <span className="text-[11px] text-[var(--color-ink-3)] font-medium">Accept odds changes</span>
             <div className="flex items-center gap-1">
               {(["any", "better", "none"] as const).map((a) => (
                 <button
                   key={a}
                   onClick={() => setAccept(a)}
-                  className={`rounded px-2 py-0.5 text-[11px] font-semibold capitalize ${
-                    accept === a ? "bg-[var(--color-bg-3)] text-white" : "text-[var(--color-ink-3)]"
+                  className={`rounded-md px-2 py-0.5 text-[11px] font-semibold capitalize transition-colors ${
+                    accept === a ? "bg-[var(--color-bg-4)] text-white" : "text-[var(--color-ink-3)] hover:text-white"
                   }`}
                 >
-                  {a}
+                  {a === "any" ? "Any" : a === "better" ? "Higher" : "None"}
                 </button>
               ))}
             </div>
@@ -448,7 +475,7 @@ function SlipContent({
             <button
               onClick={onBook}
               disabled={booking || placing}
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md border border-[var(--color-brand-500)]/40 bg-[var(--color-bg-2)] text-[13px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] transition-colors hover:bg-[var(--color-brand-500)]/10 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--color-brand-500)]/40 bg-[var(--color-bg-2)] text-[13px] font-bold uppercase tracking-wider text-[var(--color-brand-500)] transition-colors hover:bg-[var(--color-brand-500)]/10 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <TicketIcon className="h-4 w-4" />
               {booking ? "Booking…" : "Book Bet"}
@@ -457,7 +484,7 @@ function SlipContent({
             <button
               onClick={onPlace}
               disabled={placing || booking}
-              className="flex h-11 flex-[2] items-center justify-center gap-2 rounded-md bg-[var(--color-brand-500)] text-[14px] font-black uppercase tracking-wider text-[var(--color-bg-0)] transition-colors hover:bg-[var(--color-brand-400)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-11 flex-[2] items-center justify-center gap-2 rounded-xl bg-[var(--color-brand-500)] text-[14px] font-black uppercase tracking-wider text-[var(--color-bg-0)] shadow-lg shadow-[var(--color-brand-500)]/20 transition-all hover:bg-[var(--color-brand-400)] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <ZapIcon className="h-4 w-4" />
               {placing
@@ -465,13 +492,13 @@ function SlipContent({
                 : !walletConnected
                 ? "Sign in to bet"
                 : tab === "singles"
-                ? `Place ${selections.length} bet${selections.length > 1 ? "s" : ""}`
-                : "Place parlay"}
+                ? `Place ${selections.length} Single${selections.length > 1 ? "s" : ""}`
+                : `Place ${selections.length}-Game Multi`}
             </button>
           </div>
 
-          <p className="mt-2 text-center text-[10px] text-[var(--color-ink-4)]">
-            {walletConnected ? `Balance: ${balance} USDC · ` : ""}On-chain · settled by smart contract · zero gas to you
+          <p className="mt-2.5 text-center text-[11px] text-[var(--color-ink-4)]">
+            {walletConnected ? `Balance: ${balance} USDC · ` : ""}Instant payouts · Zero transaction fees
           </p>
         </div>
       )}
@@ -487,8 +514,8 @@ function EmptyState({ onLoadCode }: { onLoadCode?: (code: string) => void }) {
         <TicketIcon className="h-6 w-6 text-[var(--color-brand-500)]" />
       </div>
       <div>
-        <p className="text-[14px] font-bold text-white">Your slip is empty</p>
-        <p className="mt-1 text-[11px] text-[var(--color-ink-3)]">Tap any odds or load a booked ticket</p>
+        <p className="text-[14px] font-bold text-white">Your bet slip is empty</p>
+        <p className="mt-1 text-[11px] text-[var(--color-ink-3)]">Select odds on any match or load a booking code</p>
       </div>
 
       {onLoadCode && (
@@ -519,6 +546,9 @@ function EmptyState({ onLoadCode }: { onLoadCode?: (code: string) => void }) {
 
 function SelectionRow({
   sel,
+  showStake,
+  stake,
+  onStake,
   onRemove,
 }: {
   sel: Sel;
@@ -527,26 +557,62 @@ function SelectionRow({
   onStake: (v: number) => void;
   onRemove: () => void;
 }) {
-  const [open, setOpen] = useState(true);
   return (
-    <div className="rounded-md border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-2.5">
-      <div className="flex items-start gap-2">
+    <div className="rounded-xl border border-[var(--color-line-1)] bg-[var(--color-bg-2)] p-3 transition-colors hover:border-[var(--color-line-2)]">
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{sel.market}</p>
-            <button onClick={onRemove} className="text-[var(--color-ink-3)] hover:text-[var(--color-live)]">
-              <CloseIcon className="h-3.5 w-3.5" />
-            </button>
+          {/* Market tag & Match status */}
+          <div className="flex items-center gap-1.5">
+            <span className="rounded bg-[var(--color-bg-3)] px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[var(--color-ink-2)]">
+              {sel.market}
+            </span>
           </div>
-          <p className="mt-0.5 truncate text-[13px] font-bold text-white">{sel.selection}</p>
-          <p className="truncate text-[11px] text-[var(--color-ink-3)]">{sel.matchLabel}</p>
+
+          {/* Selection Name */}
+          <p className="mt-1 text-[13px] font-bold text-white leading-tight break-words">
+            {sel.selection}
+          </p>
+
+          {/* Match Label */}
+          <p className="mt-0.5 text-[11px] text-[var(--color-ink-3)] truncate">
+            {sel.matchLabel}
+          </p>
         </div>
-        <div className="mono shrink-0 text-[13px] font-bold text-[var(--color-brand-500)]">{sel.odds.toFixed(2)}</div>
+
+        {/* Odds & Remove */}
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <button
+            onClick={onRemove}
+            className="flex h-5 w-5 items-center justify-center rounded text-[var(--color-ink-3)] transition-colors hover:bg-rose-500/15 hover:text-rose-400"
+            title="Remove selection"
+          >
+            <CloseIcon className="h-3.5 w-3.5" />
+          </button>
+          <div className="mono rounded-md bg-[var(--color-bg-4)] px-2 py-0.5 text-[13px] font-extrabold text-[var(--color-brand-500)] shadow-sm">
+            {sel.odds.toFixed(2)}
+          </div>
+        </div>
       </div>
-      <button onClick={() => setOpen((v) => !v)} className="mt-1 flex items-center gap-0.5 text-[10px] text-[var(--color-ink-3)] hover:text-white">
-        {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-        Details
-      </button>
+
+      {/* Individual Single Stake Input (in Singles mode) */}
+      {showStake && (
+        <div className="mt-2 pt-2 border-t border-[var(--color-line-1)] flex items-center justify-between gap-2">
+          <span className="text-[11px] text-[var(--color-ink-3)]">Leg Stake:</span>
+          <div className="flex items-center gap-1">
+            <span className="mono text-[11px] text-[var(--color-ink-3)]">$</span>
+            <input
+              type="number"
+              min={0}
+              step={0.1}
+              value={stake || ""}
+              onChange={(e) => onStake(parseFloat(e.target.value) || 0)}
+              placeholder="0.00"
+              className="mono h-6 w-20 rounded border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-1.5 text-right text-[11px] font-bold text-white outline-none focus:border-[var(--color-brand-500)]"
+            />
+            <span className="text-[10px] font-bold text-[var(--color-ink-4)]">USDC</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -556,11 +622,12 @@ function StakeInput({ value, onChange, label, balance }: { value: number; onChan
   return (
     <div className="mb-2">
       <div className="mb-1 flex items-center justify-between">
-        <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-3)]">{label}</span>
-        <span className="mono text-[10px] text-[var(--color-ink-4)]">{balance ? `Bal ${balance}` : "—"}</span>
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-3)]">{label}</span>
+        <span className="mono text-[11px] text-[var(--color-ink-3)]">{balance ? `Bal: $${balance}` : "—"}</span>
       </div>
-      <div className="flex h-10 items-center rounded-md border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-2 focus-within:border-[var(--color-brand-500)]/40">
-        <UsdtIcon className="h-4 w-4" />
+      <div className="flex h-10 items-center rounded-xl border border-[var(--color-line-2)] bg-[var(--color-bg-0)] px-3 focus-within:border-[var(--color-brand-500)]/50 transition-colors">
+        <UsdcIcon className="h-4 w-4 shrink-0" />
+        <span className="mono ml-2 text-[13px] font-bold text-[var(--color-ink-3)]">$</span>
         <input
           type="number"
           min={0}
@@ -569,9 +636,12 @@ function StakeInput({ value, onChange, label, balance }: { value: number; onChan
           value={value || ""}
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
           placeholder="0.00"
-          className="mono ml-2 w-full bg-transparent text-[14px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)]"
+          className="mono ml-1 w-full bg-transparent text-[14px] font-bold text-white outline-none placeholder:text-[var(--color-ink-4)]"
         />
-        <button onClick={() => onChange(maxAmount)} className="ml-2 rounded bg-[var(--color-bg-3)] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-1)] hover:bg-[var(--color-bg-4)]">
+        <button
+          onClick={() => onChange(maxAmount)}
+          className="ml-2 rounded-md bg-[var(--color-bg-3)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-1)] transition-colors hover:bg-[var(--color-bg-4)]"
+        >
           Max
         </button>
       </div>
@@ -581,14 +651,14 @@ function StakeInput({ value, onChange, label, balance }: { value: number; onChan
 
 function Quick({ chips, onPick }: { chips: number[]; onPick: (n: number) => void }) {
   return (
-    <div className="mb-2 grid grid-cols-4 gap-1">
+    <div className="mb-2 grid grid-cols-5 gap-1.5">
       {chips.map((c) => (
         <button
           key={c}
           onClick={() => onPick(c)}
-          className="mono rounded-md bg-[var(--color-bg-2)] py-1.5 text-[11px] font-bold text-[var(--color-ink-1)] hover:bg-[var(--color-bg-3)]"
+          className="mono rounded-lg bg-[var(--color-bg-2)] py-1.5 text-[11px] font-bold text-[var(--color-ink-1)] transition-colors hover:bg-[var(--color-bg-3)] hover:text-white border border-[var(--color-line-1)]"
         >
-          +{c}
+          +${c}
         </button>
       ))}
     </div>
@@ -597,9 +667,10 @@ function Quick({ chips, onPick }: { chips: number[]; onPick: (n: number) => void
 
 function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-1 text-[12px]">
+    <div className="flex items-center justify-between py-0.5 text-[12px]">
       <span className="text-[var(--color-ink-3)]">{label}</span>
-      <span className={`mono font-bold ${accent ? "text-[var(--color-brand-500)]" : "text-white"}`}>{value}</span>
+      <span className={`mono font-bold ${accent ? "text-[var(--color-brand-500)] text-[13px]" : "text-white"}`}>{value}</span>
     </div>
   );
 }
+

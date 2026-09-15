@@ -61,7 +61,7 @@ export default async function Home() {
   return (
     <div className="mx-auto max-w-[1400px] px-3 py-4 md:px-5">
       <h1 className="sr-only">
-        SportyStake — Non-Custodial Decentralized Crypto Sportsbook &amp; On-Chain Casino
+        SportyStake — Premier Sportsbook &amp; Casino
       </h1>
       {/* 1. Hero Carousel */}
       <div>
@@ -169,7 +169,7 @@ export default async function Home() {
         <section>
           <SectionHeader
             title="Casino · Originals"
-            subtitle="House games · provably fair on-chain · instant payouts"
+            subtitle="Original games with transparent odds and fast payouts"
             href="/casino"
             Icon={CasinoChipIcon}
             accent="var(--color-brand-500)"
@@ -193,7 +193,7 @@ export default async function Home() {
             <PromoFeatureCard
               tag="Welcome Bonus"
               title="$2,000 Wager Match"
-              sub="100% bonus match on your first settled wager on-chain. Instant USDC credit with zero KYC required."
+              sub="Double your bankroll on your first settled wager. Instant USDC credit with zero verification delays."
               cta="Claim Bonus"
               href="/sportsbook"
               accent="#00e701"
@@ -233,12 +233,12 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* 7. Web3 Trust & Security Grid */}
+        {/* 7. Trust & Security Grid */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Trust Icon={ShieldIcon} title="Zero KYC & Non-Custodial" sub="Direct smart contract wallet access without ID uploads." />
-          <Trust Icon={TrendUp} title="Sub-Second Automated Payouts" sub="Smart contracts execute instant payouts the moment events resolve." />
-          <Trust Icon={BadgeCheck} title="Provably Fair On-Chain" sub="Cryptographic commit-reveal seed hashes verifiable for every round." />
-          <Trust Icon={BadgeCheck} title="Built on Arc EVM" sub="High-throughput blockchain with sub-second finality and low fees." />
+          <Trust Icon={ShieldIcon} title="Fast &amp; Private" sub="Instant 1-click access with zero verification delays." />
+          <Trust Icon={TrendUp} title="Instant Payouts" sub="Winnings are credited automatically the moment matches settle." />
+          <Trust Icon={BadgeCheck} title="Fair Play Guaranteed" sub="Transparent odds and verifiable game outcomes on every round." />
+          <Trust Icon={BadgeCheck} title="Ultra-Low Latency" sub="Sub-second execution with zero transaction fees." />
         </section>
       </div>
     </div>

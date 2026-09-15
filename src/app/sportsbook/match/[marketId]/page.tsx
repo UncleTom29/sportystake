@@ -277,7 +277,7 @@ export default function MatchDetailPage({ params }: { params: Promise<{ marketId
           {/* Guarantee banner */}
           <div className="mt-4 flex items-center justify-center gap-2 rounded-md bg-[var(--color-bg-1)] p-2.5 sm:py-2 text-[12px]">
             <ShieldIcon className="h-3.5 w-3.5 text-[var(--color-brand-500)] shrink-0" />
-            <span className="text-[var(--color-ink-2)]">100% Guaranteed On-Chain Smart Contract Payouts</span>
+            <span className="text-[var(--color-ink-2)] font-medium">Guaranteed Instant Payouts &amp; Fair Odds</span>
           </div>
         </div>
       </div>

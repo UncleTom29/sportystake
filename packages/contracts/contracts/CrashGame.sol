@@ -664,10 +664,13 @@ contract CrashGame is
     }
 
     /// @notice Lowest crash value a no-risk (zero-player) round can draw —
-    ///         10.00x. Below this, the round's public history would mostly
-    ///         show the low crashes the normal curve produces most of the
-    ///         time, defeating the point of the wider range below.
-    uint256 public constant NO_RISK_FLOOR_X100 = 1000;
+    ///         1.40x. Avoids 1.00x instant busts so no-risk rounds exhibit
+    ///         a higher winning rate, while keeping outcomes realistic and
+    ///         grounded in typical Aviator crash ranges (1.40x–25x).
+    uint256 public constant NO_RISK_FLOOR_X100 = 140;
+
+    /// @notice Maximum multiplier cap for a no-risk (zero-player) round — 50.00x.
+    uint256 public constant NO_RISK_MAX_X100 = 5000;
 
     /// @notice Crash point derived deterministically from the (revealed) seed.
     /// @dev Returns multiplier x100. Floor of 100 (= 1.00x). House edge is
@@ -681,20 +684,18 @@ contract CrashGame is
     ///
     ///      `noRisk` (true only when nobody joined this round — no stake,
     ///      no payout, nothing to protect any bettor's fairness against)
-    ///      draws from a different, deliberately right-shifted range
-    ///      instead: uniform over [NO_RISK_FLOOR_X100, MAX_AUTOCASHOUT_X100]
-    ///      (10x-1000x), so the public round history stays visually rich
-    ///      through a lull with no players, rather than mostly showing the
-    ///      low crashes the normal curve produces most of the time. Still
-    ///      fully determined by the same committed seed — not manipulable,
-    ///      just a different mapping applied only when there is no one to
-    ///      be unfair to.
+    ///      draws from a higher-win-rate, realistic curve:
+    ///      no instant busts at 1.00x, centered around 1.80x-5.00x with
+    ///      occasional runs up to 25x-50x.
     function _crashFromSeed(bytes32 seed, uint256 roundId, bool noRisk) internal view returns (uint256) {
         bytes32 mix = keccak256(abi.encodePacked(seed, roundId));
         uint256 r = uint256(mix);
         if (noRisk) {
-            uint256 span = MAX_AUTOCASHOUT_X100 - NO_RISK_FLOOR_X100 + 1;
-            return NO_RISK_FLOOR_X100 + (r % span);
+            uint256 nrE = (r % 1_000_000);
+            uint256 added = (150 * nrE) / (1_000_000 - (nrE * 93 / 100));
+            uint256 nrCrash = NO_RISK_FLOOR_X100 + added;
+            if (nrCrash > NO_RISK_MAX_X100) return NO_RISK_MAX_X100;
+            return nrCrash;
         }
         // Instant-bust probability = house edge fraction.
         if (r % BPS_DENOM < (BPS_DENOM - rtpBps)) return 100;

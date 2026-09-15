@@ -69,6 +69,25 @@ async function pushHistory(crashX100: number): Promise<void> {
   await r.ltrim(REDIS_HISTORY_KEY, 0, HISTORY_KEEP - 1);
 }
 
+async function sanitizeHistoryCache(): Promise<void> {
+  try {
+    const existing = await redis().lrange(REDIS_HISTORY_KEY, 0, -1);
+    const cleaned = existing.filter((val) => {
+      const n = Number(val);
+      return !Number.isNaN(n) && n > 0 && n <= 5000;
+    });
+    if (cleaned.length !== existing.length) {
+      await redis().del(REDIS_HISTORY_KEY);
+      if (cleaned.length > 0) {
+        await redis().rpush(REDIS_HISTORY_KEY, ...cleaned);
+      }
+      logger.info("[crash] purged legacy inflated multipliers from history cache");
+    }
+  } catch (err) {
+    logger.warn("[crash] failed to sanitize history cache", { error: String(err) });
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -104,6 +123,7 @@ async function bootstrap(): Promise<void> {
 
   // ── Fix #5: recover stuck rounds on startup ──────────────────────────
   await recoverStuckRounds(publicClient, wallet, crashGameAddress);
+  await sanitizeHistoryCache();
 
   // eslint-disable-next-line no-constant-condition
   while (true) {

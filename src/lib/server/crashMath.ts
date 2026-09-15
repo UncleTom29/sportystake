@@ -11,7 +11,9 @@ export const BPS_DENOM = 10_000n;
 /** Mirrors CrashGame.sol's MAX_AUTOCASHOUT_X100 constant exactly. */
 export const MAX_AUTOCASHOUT_X100 = 100_000n;
 /** Mirrors CrashGame.sol's NO_RISK_FLOOR_X100 constant exactly. */
-export const NO_RISK_FLOOR_X100 = 1_000n;
+export const NO_RISK_FLOOR_X100 = 140n;
+/** Mirrors CrashGame.sol's NO_RISK_MAX_X100 constant exactly. */
+export const NO_RISK_MAX_X100 = 5000n;
 
 /**
  * Mirrors CrashGame.sol's `_crashFromSeed` exactly — keccak256-based, NOT
@@ -40,19 +42,21 @@ export const NO_RISK_FLOOR_X100 = 1_000n;
  * wrong displayed outcome.
  *
  * `noRisk` mirrors the contract's own branch in `_crashFromSeed`: true only
- * when nobody joined the round, in which case it draws uniformly from
- * [NO_RISK_FLOOR_X100, MAX_AUTOCASHOUT_X100] (10x-1000x) instead of the
- * normal curve, so the public round history stays visually rich through a
- * lull with no players. Kept in lockstep with the Solidity side deliberately
- * — this exact kind of two-copies-of-one-formula drift is what caused the
- * bug documented above in the first place.
+ * when nobody joined the round, drawing from a higher-win-rate, realistic
+ * curve (1.40x floor, no instant 1.00x busts, centered in 1.80x-5.00x with
+ * occasional spikes up to 50x) instead of the old uniform 10x-1000x range.
+ * Kept in lockstep with the Solidity side deliberately — this exact kind
+ * of two-copies-of-one-formula drift is what caused the bug documented above.
  */
 export function onchainCrashMultiplierX100(seed: `0x${string}`, roundId: bigint, rtpBps: bigint, noRisk: boolean): number {
   const mix = keccak256(encodePacked(["bytes32", "uint256"], [seed, roundId]));
   const r = BigInt(mix);
   if (noRisk) {
-    const span = MAX_AUTOCASHOUT_X100 - NO_RISK_FLOOR_X100 + 1n;
-    return Number(NO_RISK_FLOOR_X100 + (r % span));
+    const e = r % 1_000_000n;
+    const added = (150n * e) / (1_000_000n - (e * 93n / 100n));
+    let crashX100 = NO_RISK_FLOOR_X100 + added;
+    if (crashX100 > NO_RISK_MAX_X100) crashX100 = NO_RISK_MAX_X100;
+    return Number(crashX100);
   }
   if (r % BPS_DENOM < (BPS_DENOM - rtpBps)) return 100;
   const e = r % 1_000_000n;

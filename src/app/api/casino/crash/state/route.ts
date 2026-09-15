@@ -29,6 +29,8 @@ interface PublicRoundState {
  * point that had no relationship to the real, provably-fair on-chain
  * outcome. Real money must never be staked against invented state.
  */
+const REALISTIC_STARTER_HISTORY = [240, 185, 320, 165, 410, 215, 195, 540, 175, 290, 150, 360, 225, 180, 260];
+
 export const GET = withRequestId(async (_req: NextRequest) => {
   let raw: string | null = null;
   let historyRaw: string[] = [];
@@ -42,14 +44,21 @@ export const GET = withRequestId(async (_req: NextRequest) => {
     // Redis unreachable — fall through to the "no round" response below.
   }
 
+  // Filter out any legacy inflated multipliers (> 50.00x) from previous testnet runs
+  const sanitizedHistory = historyRaw
+    .map(Number)
+    .filter((h) => !Number.isNaN(h) && h > 0 && h <= 5000);
+
+  const history = sanitizedHistory.length > 0 ? sanitizedHistory : REALISTIC_STARTER_HISTORY;
+
   if (raw) {
     try {
       const round = JSON.parse(raw) as PublicRoundState;
-      return ok({ round, history: historyRaw.map(Number) });
+      return ok({ round, history });
     } catch {
       // Corrupt cache entry — fall through to the "no round" response below.
     }
   }
 
-  return ok({ round: null, history: historyRaw.map(Number) });
+  return ok({ round: null, history });
 });

@@ -5,6 +5,7 @@ import {
   BPS_DENOM,
   MAX_AUTOCASHOUT_X100,
   NO_RISK_FLOOR_X100,
+  NO_RISK_MAX_X100,
 } from "./crashMath";
 
 describe("onchainCrashMultiplierX100", () => {
@@ -69,14 +70,14 @@ describe("onchainCrashMultiplierX100", () => {
   });
 
   describe("noRisk (empty round — mirrors CrashGame.sol's dedicated branch)", () => {
-    it("draws from [NO_RISK_FLOOR_X100, MAX_AUTOCASHOUT_X100] instead of the normal curve", () => {
+    it("draws from [NO_RISK_FLOOR_X100, NO_RISK_MAX_X100] instead of the normal curve", () => {
       // Same seed/round the round-578 regression test above uses — under
       // the normal formula this resolves to 102 (1.02x). noRisk=true must
       // ignore that entirely.
       const seed = "0xbdb4cac935ce5e99542ffb0097d17bb04c75d6d05b736fb39fcd181526cfb03b" as `0x${string}`;
       const result = onchainCrashMultiplierX100(seed, 578n, 9000n, true);
       expect(result).toBeGreaterThanOrEqual(Number(NO_RISK_FLOOR_X100));
-      expect(result).toBeLessThanOrEqual(Number(MAX_AUTOCASHOUT_X100));
+      expect(result).toBeLessThanOrEqual(Number(NO_RISK_MAX_X100));
       expect(result).not.toBe(102);
     });
 

@@ -10,6 +10,8 @@ import { Auth } from "@/lib/api-client";
 
 import { ShieldCheck } from "lucide-react";
 
+import UserAvatar from "@/components/ui/UserAvatar";
+
 function shortAddr(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
@@ -31,7 +33,7 @@ export default function WalletButton() {
 
   // If user is authenticated or has active address but username is not in state, hydrate from server
   useEffect(() => {
-    if (address && (!user || !user.username)) {
+    if (address && (!user || !user.username || !user.avatar)) {
       Auth.me()
         .then((res) => {
           if (res?.user) {
@@ -79,10 +81,11 @@ export default function WalletButton() {
         aria-haspopup="menu"
         aria-expanded={menuOpen}
       >
-        <span
-          className="h-5 w-5 shrink-0 rounded-full"
-          style={{ backgroundColor: "var(--color-brand-500)" }}
-          aria-hidden
+        <UserAvatar
+          avatar={user.avatar}
+          name={displayName}
+          size={20}
+          className="h-5 w-5 text-[10px]"
         />
         <span className={`hidden sm:inline ${username ? "font-bold text-white tracking-tight" : "mono"}`}>
           {displayName}
@@ -94,21 +97,31 @@ export default function WalletButton() {
       {menuOpen && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-40 mt-1.5 w-[240px] overflow-hidden rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-2)] shadow-xl"
+          className="absolute right-0 top-full z-40 mt-1.5 w-[250px] overflow-hidden rounded-lg border border-[var(--color-line-2)] bg-[var(--color-bg-2)] shadow-xl"
         >
           <div className="border-b border-[var(--color-line-1)] p-3">
-            {username ? (
-              <>
-                <p className="text-[13px] font-bold text-white">@{username}</p>
-                <p className="mono mt-0.5 text-[11px] text-[var(--color-ink-3)]">{shortAddr(address)}</p>
-              </>
-            ) : (
-              <>
-                <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Wallet</p>
-                <p className="mono mt-0.5 text-[12px] text-white">{shortAddr(address)}</p>
-              </>
-            )}
-            <p className="mono mt-2 text-[16px] font-black text-[var(--color-brand-500)]">
+            <div className="flex items-center gap-2.5">
+              <UserAvatar
+                avatar={user.avatar}
+                name={displayName}
+                size={36}
+                className="h-9 w-9 text-sm ring-1 ring-[var(--color-brand-500)]/30"
+              />
+              <div className="min-w-0 flex-1">
+                {username ? (
+                  <>
+                    <p className="truncate text-[13px] font-bold text-white">@{username}</p>
+                    <p className="mono truncate text-[11px] text-[var(--color-ink-3)]">{shortAddr(address)}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[10px] uppercase tracking-wider text-[var(--color-ink-3)]">Wallet</p>
+                    <p className="mono truncate text-[12px] text-white">{shortAddr(address)}</p>
+                  </>
+                )}
+              </div>
+            </div>
+            <p className="mono mt-2.5 text-[16px] font-black text-[var(--color-brand-500)]">
               ${balanceLabel}{" "}
               <span className="text-[10px] font-bold text-[var(--color-brand-500)]/70">USDC</span>
             </p>

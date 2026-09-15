@@ -102,6 +102,7 @@ function toUserDto(user: {
   id: string;
   walletAddress: string;
   username: string | null;
+  avatar?: string | null;
   referralCode: string;
   isPublic: boolean;
   isBanned: boolean;
@@ -122,6 +123,7 @@ function toUserDto(user: {
     roles: Array.from(rolesSet) as UserDTO["roles"],
     createdAt: user.createdAt.toISOString(),
     username: user.username ?? undefined,
+    avatar: user.avatar ?? undefined,
   };
 }
 

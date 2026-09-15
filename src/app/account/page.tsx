@@ -67,6 +67,8 @@ function betToActivity(b: BetDTO) {
   };
 }
 
+import UserAvatar from "@/components/ui/UserAvatar";
+
 export default function AccountPage() {
   const walletAddress = useWallet((s) => s.address);
   const isConnected = useWallet((s) => s.authStatus === "authenticated");
@@ -91,6 +93,9 @@ export default function AccountPage() {
           setUserMe(data.data.user);
           if (data.data.user.username) {
             useWallet.getState().updateUsername(data.data.user.username);
+          }
+          if (data.data.user.avatar) {
+            useWallet.getState().updateAvatar(data.data.user.avatar);
           }
         }
       })
@@ -152,10 +157,15 @@ export default function AccountPage() {
           <div
             onClick={() => setAvatarModalOpen(true)}
             title="Click to change avatar"
-            className="relative group flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--color-bg-3)] text-2xl font-black border-2 border-[var(--color-line-2)] hover:border-[var(--color-brand-500)] transition-all"
+            className="relative group flex h-16 w-16 shrink-0 cursor-pointer items-center justify-center rounded-full bg-[var(--color-bg-3)] border-2 border-[var(--color-line-2)] hover:border-[var(--color-brand-500)] transition-all"
           >
-            {userMe?.avatar || <UserCircle2 className="h-10 w-10 text-[var(--color-ink-2)]" />}
-            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand-500)] text-[10px] font-bold text-[var(--color-bg-0)] shadow">
+            <UserAvatar
+              avatar={userMe?.avatar}
+              name={userMe?.username || displayAddress}
+              size={64}
+              className="h-full w-full"
+            />
+            <span className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--color-brand-500)] text-[10px] font-bold text-[var(--color-bg-0)] shadow ring-2 ring-[var(--color-bg-2)]">
               <Camera className="h-3 w-3" />
             </span>
           </div>
@@ -388,6 +398,7 @@ export default function AccountPage() {
         currentAvatar={userMe?.avatar}
         onAvatarSaved={(newAvatar) => {
           setUserMe((prev) => (prev ? { ...prev, avatar: newAvatar } : null));
+          useWallet.getState().updateAvatar(newAvatar);
           fetchUserData();
         }}
       />

@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useWallet } from "@/lib/walletStore";
 import { LeaderboardApi } from "@/lib/api-client";
+import UserAvatar from "@/components/ui/UserAvatar";
 
 type Category = "sports" | "casino" | "roi" | "streaks" | "referrals";
 type Period = "weekly" | "monthly" | "alltime";
@@ -271,11 +272,13 @@ export default function LeaderboardPage() {
                   )}
                 </div>
 
-                <div
-                  className="mt-3 flex h-14 w-14 items-center justify-center rounded-full text-xl font-black text-white shadow-lg ring-2 ring-white/20"
-                  style={{ backgroundColor: p.color }}
-                >
-                  {p.handle[0]}
+                <div className="mt-3">
+                  <UserAvatar
+                    avatar={p.avatar}
+                    name={p.handle}
+                    size={56}
+                    className="h-14 w-14 text-xl shadow-lg ring-2 ring-white/20"
+                  />
                 </div>
 
                 <div className="mt-2.5 min-w-0">
@@ -328,12 +331,12 @@ export default function LeaderboardPage() {
                 </div>
 
                 <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
-                    style={{ backgroundColor: p.color }}
-                  >
-                    {p.handle[0]}
-                  </div>
+                  <UserAvatar
+                    avatar={p.avatar}
+                    name={p.handle}
+                    size={32}
+                    className="h-8 w-8 text-xs shrink-0 ring-1 ring-white/10"
+                  />
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="truncate font-bold text-white">{p.handle}</span>

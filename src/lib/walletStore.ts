@@ -23,6 +23,7 @@ interface WalletState {
 
   setSession: (input: { user: UserDTO; stats: UserStats }) => void;
   updateUsername: (username: string) => void;
+  updateAvatar: (avatar: string) => void;
   setAuthStatus: (status: AuthStatus, error?: string | null) => void;
   setAddress: (address: Address | null) => void;
   clearSession: () => void;
@@ -40,6 +41,10 @@ export const useWallet = create<WalletState>((set) => ({
   updateUsername: (username) =>
     set((s) => ({
       user: s.user ? { ...s.user, username } : ({ username, walletAddress: s.address ?? "" } as unknown as UserDTO),
+    })),
+  updateAvatar: (avatar) =>
+    set((s) => ({
+      user: s.user ? { ...s.user, avatar } : ({ avatar, walletAddress: s.address ?? "" } as unknown as UserDTO),
     })),
   setAuthStatus: (status, error = null) => set({ authStatus: status, error }),
   setAddress: (address) => set({ address }),

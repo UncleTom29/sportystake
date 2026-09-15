@@ -13,7 +13,7 @@ const ProfileBody = z.object({
     .max(20, "Username must be at most 20 characters")
     .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
     .optional(),
-  avatar: z.string().max(10, "Avatar must be a valid string").optional(),
+  avatar: z.string().max(500_000, "Avatar image data must be under 350KB").nullable().optional(),
 });
 
 export const POST = withRequestId(async (req: NextRequest) => {

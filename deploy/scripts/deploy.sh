@@ -64,9 +64,13 @@ main() {
   npx prisma migrate deploy || npx prisma db push --accept-data-loss
   # Clear any stale next-build process or leftover .next/lock from an interrupted run
   pkill -f "next build" || true
-  sleep 1
+  sleep 2
   rm -f .next/lock
-  pnpm build
+  if ! pnpm build; then
+    echo "First build attempt failed. Clearing .next cache and retrying fresh build..."
+    rm -rf .next
+    pnpm build
+  fi
 
   # packages/oracle has its own build step (tsc) and its own deps — it uses
   # npm (package-lock.json), not pnpm, matching the root package.json's
@@ -92,10 +96,23 @@ main() {
     sudo /usr/bin/systemctl restart "sportystake-${unit}"
   done
 
-  echo "Deployed $(git rev-parse --short HEAD) — checking health"
-  sleep 3
-  curl -fsS http://127.0.0.1:3050/api/health || { echo "Health check failed" >&2; exit 1; }
-  echo "OK"
+  echo "Deployed $(git rev-parse --short HEAD) — checking health..."
+  HEALTHY=false
+  for i in {1..15}; do
+    if curl -fsS http://127.0.0.1:3050/api/health >/dev/null 2>&1; then
+      HEALTHY=true
+      break
+    fi
+    echo "Waiting for app to start (attempt $i/15)..."
+    sleep 2
+  done
+
+  if [ "$HEALTHY" != "true" ]; then
+    echo "Health check failed after 30 seconds" >&2
+    sudo /usr/bin/journalctl -u sportystake-web -n 30 --no-pager || true
+    exit 1
+  fi
+  echo "Health check OK"
 }
 
 main "$@"

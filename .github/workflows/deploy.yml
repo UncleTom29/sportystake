@@ -24,20 +24,13 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
-      # Typecheck here first so a broken commit is caught before it reaches
-      # the box — deploy/scripts/deploy.sh rebuilds (and typechecks, via
-      # `next build`) again on the host itself regardless, which is the
-      # real gate: native deps like @prisma/client's query engine need to
-      # compile there, not cross-compile on the runner, and deploy.sh's
-      # `set -euo pipefail` means a failed build there stops before restart.
-      # continue-on-error here because this exact step is currently
-      # unreliable on GitHub's ubuntu-latest runner specifically — see
-      # ci.yml's matching step for the full writeup — while deploy.sh's own
-      # build has run clean on every real deploy so far.
+      # Pre-flight check on runner (non-blocking for deploy — the VPS build is the true gate)
       - run: pnpm install --frozen-lockfile
+        continue-on-error: true
       - run: npx prisma generate
+        continue-on-error: true
       - run: pnpm typecheck
         continue-on-error: true
       - name: Deploy over SSH
@@ -46,9 +39,31 @@ jobs:
           VPS_HOST: ${{ secrets.CONTABO_HOST || secrets.EC2_HOST }}
           VPS_USER: ${{ secrets.CONTABO_USER || secrets.EC2_USER }}
         run: |
+          if [ -z "$SSH_PRIVATE_KEY" ] || [ -z "$VPS_HOST" ] || [ -z "$VPS_USER" ]; then
+            echo "Error: Required deployment secrets (HOST, USER, or PRIVATE_KEY) are missing." >&2
+            exit 1
+          fi
+
           mkdir -p ~/.ssh
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy_key "$VPS_USER@$VPS_HOST" \
-            "sudo -u sportystake pkill -f 'next build' || true; sudo -u sportystake rm -f /opt/sportystake/.next/lock; sudo -u sportystake bash /opt/sportystake/deploy/scripts/deploy.sh"
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+          DEPLOY_CMD="sudo -u sportystake pkill -f 'next build' || true; sudo -u sportystake rm -f /opt/sportystake/.next/lock; sudo -u sportystake bash /opt/sportystake/deploy/scripts/deploy.sh"
+
+          DEPLOYED=false
+          for attempt in 1 2 3; do
+            echo "Connecting to $VPS_HOST for deployment (attempt $attempt/3)..."
+            if ssh $SSH_OPTS "$VPS_USER@$VPS_HOST" "$DEPLOY_CMD"; then
+              DEPLOYED=true
+              break
+            fi
+            echo "SSH deploy command failed or connection dropped. Retrying in 5s..."
+            sleep 5
+          done
+
+          if [ "$DEPLOYED" != "true" ]; then
+            echo "Deployment failed after 3 attempts" >&2
+            exit 1
+          fi

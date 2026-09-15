@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   next-typecheck-lint:
@@ -23,7 +23,7 @@ jobs:
           version: 9
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: pnpm install --frozen-lockfile
       - run: npx prisma generate
       # KNOWN ISSUE, not a real type error: on GitHub Actions' ubuntu-latest
@@ -42,6 +42,7 @@ jobs:
       # its GitHub Actions annotations if they occur alongside the noise.
       - run: pnpm typecheck
         continue-on-error: true
+      - run: pnpm test
       # Pre-existing lint debt (mostly no-explicit-any) predates this
       # pipeline — surface it without blocking deploys, same treatment as
       # the Slither job below. Tighten once the backlog's cleared.
@@ -59,7 +60,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: packages/oracle/package-lock.json
       - run: npm ci
@@ -77,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: packages/sdk/package-lock.json
       - run: npm ci
@@ -95,7 +96,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: packages/contracts/package-lock.json
       - run: npm ci
@@ -115,7 +116,7 @@ jobs:
       - run: pip install slither-analyzer==0.10.4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: packages/contracts/package-lock.json
       - run: npm --prefix packages/contracts ci
